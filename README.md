@@ -17,7 +17,7 @@ nothing sent to the cloud. Your voice never leaves your computer.
 
 - 🔌 **Completely offline & private.** After a one-time setup, it works with your
   Wi-Fi turned off. Your audio is never uploaded anywhere.
-- ⌨️ **Type anywhere with a hotkey.** Default: **`Ctrl + Alt + Space`**. Press
+- ⌨️ **Type anywhere with a hotkey.** Default: **`Ctrl + Win`** (hold Ctrl and tap the Windows key 🪟). Press
   once to start listening, press again to stop — your text is inserted instantly.
 - 📋 **Smart clipboard fallback.** If no text field is selected, the text is
   copied to your clipboard automatically (with a little pop-up to tell you).
@@ -43,8 +43,8 @@ nothing sent to the cloud. Your voice never leaves your computer.
 2. **Start** — double-click **`Start-VibeFlow.bat`**.
    A microphone icon 🎙️ appears near your clock. That's VibeFlow running.
 
-3. **Talk** — click into any text box, press **`Ctrl + Alt + Space`**, say a
-   sentence, then press **`Ctrl + Alt + Space`** again. Your words appear. 🎉
+3. **Talk** — click into any text box, press **`Ctrl + Win`**, say a
+   sentence, then press **`Ctrl + Win`** again. Your words appear. 🎉
 
 👉 New to this? Read the **[Step-by-step User Guide](docs/USER_GUIDE.md)** — it's
 written for everyone, with no jargon.
@@ -99,7 +99,7 @@ Open the tray icon's menu and choose **"Open settings file"**. It's a plain text
 file you can edit in Notepad. The most useful options:
 
 - **Trigger style** — `toggle` (tap on/off) or `push_to_talk` (hold to talk).
-- **The hotkey** — e.g. `ctrl+alt+space`, or a hold key like `ctrl_r`.
+- **The hotkey** — e.g. `ctrl+win`, or a hold key like `ctrl_r`.
 - **Where text goes** — `auto` (smart), `type` (always type), or `clipboard`.
 - **Language** — `auto`, or a code like `en`, `es`, `hi`, `fr`, `de`.
 

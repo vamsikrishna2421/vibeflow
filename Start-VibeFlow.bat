@@ -2,7 +2,7 @@
 rem ===========================================================================
 rem  Double-click this file to start VibeFlow.
 rem  A small microphone icon appears near the clock (system tray).
-rem  Press Ctrl+Alt+Space, speak, then press it again.
+rem  Press Ctrl+Win, speak, then press it again.
 rem ===========================================================================
 set "VFPYW=%~dp0.venv\Scripts\pythonw.exe"
 if not exist "%VFPYW%" (

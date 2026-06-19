@@ -39,8 +39,8 @@ hotkey:
   mode: toggle
 
   # Used in "toggle" mode. Combine keys with '+'. Examples:
-  #   ctrl+alt+space   ctrl+shift+d   alt+`   f9
-  toggle_combo: ctrl+alt+space
+  #   ctrl+win   ctrl+alt+space   ctrl+shift+d   f9
+  toggle_combo: ctrl+win
 
   # Used in "push_to_talk" mode. A single key you hold down. Examples:
   #   ctrl_r (right Ctrl)   alt_r (right Alt)   f8   caps_lock

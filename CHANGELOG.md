@@ -4,6 +4,16 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.0.1] — 2026-06-19
+
+### Changed
+- Default **toggle** hotkey is now **Ctrl + Win** (the Windows key); previously
+  `Ctrl + Alt + Space`.
+- Default **push-to-talk** key remains **right Ctrl** (`ctrl_r`).
+
+You can still set any combo you like in the settings file (`toggle_combo` /
+`push_to_talk_key`) and choose *Reload settings* from the tray menu.
+
 ## [1.0.0] — 2026-06-19
 
 First production release.

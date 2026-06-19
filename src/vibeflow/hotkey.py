@@ -2,7 +2,7 @@
 
 Two trigger styles, matching how tools like Wispr Flow behave:
 
-  * **toggle** — tap a combo (default ``Ctrl+Alt+Space``) to start, tap again to
+  * **toggle** — tap a combo (default ``Ctrl+Win``) to start, tap again to
     stop and transcribe.
   * **push_to_talk** — hold a single key (default right Ctrl) while you speak,
     release to transcribe.
@@ -103,7 +103,7 @@ class HotkeyManager:
         self,
         *,
         mode: str = "toggle",
-        toggle_combo: str = "ctrl+alt+space",
+        toggle_combo: str = "ctrl+win",
         push_to_talk_key: str = "ctrl_r",
         on_start: Callable[[], None],
         on_stop: Callable[[], None],

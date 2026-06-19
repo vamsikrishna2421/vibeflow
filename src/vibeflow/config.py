@@ -32,7 +32,7 @@ DEFAULTS: dict[str, Any] = {
     },
     "hotkey": {
         "mode": "toggle",                  # toggle | push_to_talk
-        "toggle_combo": "ctrl+alt+space",  # used in toggle mode
+        "toggle_combo": "ctrl+win",        # used in toggle mode (Ctrl + Windows key)
         "push_to_talk_key": "ctrl_r",      # used in push_to_talk mode
     },
     "output": {

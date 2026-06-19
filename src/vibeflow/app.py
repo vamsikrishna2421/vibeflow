@@ -68,7 +68,7 @@ class VibeFlowApp:
     def _build_hotkeys(self) -> HotkeyManager:
         return HotkeyManager(
             mode=self.cfg.get("hotkey.mode", "toggle"),
-            toggle_combo=self.cfg.get("hotkey.toggle_combo", "ctrl+alt+space"),
+            toggle_combo=self.cfg.get("hotkey.toggle_combo", "ctrl+win"),
             push_to_talk_key=self.cfg.get("hotkey.push_to_talk_key", "ctrl_r"),
             on_start=self.start_recording,
             on_stop=self.stop_recording,
@@ -314,7 +314,7 @@ class VibeFlowApp:
     def _trigger_hint(self) -> str:
         if self.cfg.get("hotkey.mode") == "push_to_talk":
             return f"Hold {self.cfg.get('hotkey.push_to_talk_key', 'ctrl_r')}"
-        return f"Press {self.cfg.get('hotkey.toggle_combo', 'ctrl+alt+space')}"
+        return f"Press {self.cfg.get('hotkey.toggle_combo', 'ctrl+win')}"
 
     def _save_config(self) -> None:
         try:

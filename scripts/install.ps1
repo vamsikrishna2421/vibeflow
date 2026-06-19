@@ -81,6 +81,6 @@ Write-Host "=====================================================" -ForegroundCo
 Write-Host ""
 Write-Host "  To start it: double-click 'Start-VibeFlow.bat'" -ForegroundColor White
 Write-Host "  A small microphone icon appears near the clock." -ForegroundColor White
-Write-Host "  Press Ctrl+Alt+Space, speak, press it again." -ForegroundColor White
+Write-Host "  Press Ctrl+Win, speak, press it again." -ForegroundColor White
 Write-Host ""
 Read-Host "Press Enter to close"

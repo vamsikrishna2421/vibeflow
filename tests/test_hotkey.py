@@ -27,6 +27,11 @@ def test_combo_function_key():
     assert to_pynput_combo("f9") == "<f9>"
 
 
+def test_combo_ctrl_win_default():
+    # Default toggle combo: Ctrl + Windows key -> pynput "<ctrl>+<cmd>".
+    assert to_pynput_combo("ctrl+win") == "<ctrl>+<cmd>"
+
+
 def test_combo_empty_raises():
     with pytest.raises(ValueError):
         to_pynput_combo("   ")

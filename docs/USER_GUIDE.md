@@ -101,10 +101,10 @@ choice, and Quit).
 VibeFlow starts in **Toggle** mode, which works like this:
 
 1. Click inside any text box — try the search bar, a new email, or Notepad.
-2. Press **`Ctrl + Alt + Space`**. You'll hear a short rising beep and the tray
+2. Press **`Ctrl + Win`**. You'll hear a short rising beep and the tray
    icon turns 🔴 red. VibeFlow is now listening.
 3. Speak naturally: *"Hello, this is my first sentence with VibeFlow."*
-4. Press **`Ctrl + Alt + Space`** again. You'll hear a falling beep; the icon
+4. Press **`Ctrl + Win`** again. You'll hear a falling beep; the icon
    turns 🟡 amber for a moment, then your text appears in the box. ✨
 
 That's it! Press the shortcut, talk, press it again.
@@ -168,7 +168,7 @@ Here is every setting, explained simply:
 | Setting             | What it does | Options / examples |
 |---------------------|--------------|--------------------|
 | `mode`              | How you trigger it | `toggle` *(tap on/off)*, `push_to_talk` *(hold)* |
-| `toggle_combo`      | The shortcut for toggle mode | `ctrl+alt+space`, `ctrl+shift+d`, `f9` |
+| `toggle_combo`      | The shortcut for toggle mode | `ctrl+win`, `ctrl+alt+space`, `f9` |
 | `push_to_talk_key`  | The key you hold in push-to-talk mode | `ctrl_r`, `alt_r`, `f8`, `caps_lock` |
 
 ### Output (`output`)
@@ -211,7 +211,7 @@ keys with `+`. Some ideas:
 ```yaml
 hotkey:
   mode: toggle
-  toggle_combo: ctrl+shift+space     # try this if Ctrl+Alt+Space clashes
+  toggle_combo: ctrl+shift+space     # try this if Ctrl+Win clashes
   # toggle_combo: f9                 # a single function key
   # toggle_combo: ctrl+alt+v
 ```
