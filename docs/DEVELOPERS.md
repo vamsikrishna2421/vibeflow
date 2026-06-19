@@ -61,12 +61,21 @@ vibeflow/
 │       ├── focus_detect.py    # is the focused element editable? (UIA/Win32)
 │       ├── output.py          # route + insert text (paste/keystroke/clipboard)
 │       ├── notifier.py        # short beeps (winsound)
+│       ├── icons.py           # render the VibeFlow logo (tray icons + .ico)
+│       ├── single_instance.py # named-mutex single-instance lock
+│       ├── autostart.py       # "Start with Windows" (HKCU Run key)
 │       └── resources/
-│           └── default_config.yaml   # commented settings template
+│           ├── default_config.yaml   # commented settings template
+│           └── logos/                 # brand art + generated vibeflow.ico
+├── packaging/
+│   └── version_info.txt      # VibeFlow.exe version metadata (mic shows "VibeFlow")
+├── installer/
+│   └── vibeflow.iss          # Inno Setup script -> VibeFlowSetup.exe
 ├── scripts/
 │   ├── install.ps1            # venv + install + model download
 │   ├── run.ps1               # run with a console (pass-through args)
-│   ├── build_exe.ps1         # PyInstaller build
+│   ├── build_exe.ps1         # build branded VibeFlow.exe (PyInstaller)
+│   ├── build_installer.ps1   # build single-file VibeFlowSetup.exe (Inno Setup)
 │   └── launch.py             # PyInstaller entry script
 ├── tests/                    # pytest unit tests (no mic/model/GUI needed)
 └── docs/
@@ -130,6 +139,9 @@ vibeflow/
 | `transcriber.py` | `Transcriber` (load + transcribe), device resolution | `faster_whisper`, `ctranslate2` |
 | `hotkey.py` | `HotkeyManager`, combo/key parsing (pure) | `pynput` |
 | `notifier.py` | Start/stop/error beeps | `winsound` |
+| `icons.py` | Render the brand logo (tray icons + `.ico`) | `PIL` |
+| `single_instance.py` | One-instance lock (named mutex) | `ctypes` |
+| `autostart.py` | Start-with-Windows (HKCU Run key) | `winreg` |
 | `app.py` | Orchestration, tray menu, notifications | `pystray`, `PIL` |
 | `__main__.py` | CLI / self-test | — |
 
@@ -177,27 +189,50 @@ I/O at the edges.
 
 ---
 
-## Building a standalone .exe
+## Packaging & distribution (single-file installer)
 
-For distributing to machines without Python:
+Two steps turn the source into the **one file you hand to testers**:
 
 ```powershell
+# 1) Build the branded executable (PyInstaller).  -> release\VibeFlow\VibeFlow.exe
 scripts\build_exe.ps1
-# output: release\VibeFlow\VibeFlow.exe
+
+# 2) Wrap it into a next-next-finish installer (Inno Setup).
+#    -> release\installer\VibeFlowSetup.exe   (this is the single file to share)
+scripts\build_installer.ps1
 ```
 
-This uses PyInstaller with `--collect-all` for `faster_whisper`, `ctranslate2`,
-`tokenizers`, `av`, and `onnxruntime`, and bundles `vibeflow.resources`.
+**Prerequisites:** PyInstaller is installed automatically into the venv. Inno
+Setup 6 is a one-time install: <https://jrsoftware.org/isdl.php> (or
+`winget install JRSoftware.InnoSetup`).
 
-**Notes & caveats:**
+**What the installer does** (`installer/vibeflow.iss`): a standard wizard installs
+VibeFlow per-user into `%LOCALAPPDATA%\Programs\VibeFlow` (no admin needed), adds
+a Start-Menu shortcut (and optional desktop icon), optionally **starts VibeFlow
+at login**, offers to launch it, and registers an **uninstaller**. It closes a
+running instance automatically on upgrade/uninstall.
 
-- The **speech model is not bundled** (it's large and license-friendly to fetch
-  at runtime). It downloads on first use into `%APPDATA%\VibeFlow\models`.
-- The resulting folder is large (hundreds of MB) due to the ML runtime.
-- Packaging native ML wheels is inherently finicky; if a hidden import is
-  missing at runtime, add it via `--hidden-import` / `--collect-all`.
-- For most users the **installer script is the recommended distribution** — it's
-  smaller, faster, and easier to update.
+**Why the microphone says "VibeFlow" (not "Python").** Windows shows the
+*running executable's* version metadata in the mic privacy indicator. Running
+`pythonw.exe -m vibeflow` therefore shows "Python". `VibeFlow.exe` embeds
+`packaging/version_info.txt` (`FileDescription` / `ProductName` = **VibeFlow**)
+and the logo icon, so Windows shows **"Microphone in use by: VibeFlow"**. This is
+why the packaged build — not the dev launcher — is what you distribute. The app
+also sets an explicit **AppUserModelID** for clean notification/taskbar identity.
+
+**Single instance & auto-start.** A named mutex (`single_instance.py`) ensures
+only one VibeFlow runs at a time. Auto-start is a per-user `HKCU\...\Run` value
+managed by both the installer (the *Start with Windows* task) and the tray menu
+toggle (`autostart.py`) — one value, one source of truth.
+
+**Caveats:**
+
+- The **speech model is not bundled** (it's large); it downloads once on first
+  use into `%APPDATA%\VibeFlow\models`, then runs fully offline.
+- The PyInstaller output folder is large (hundreds of MB) due to the ML runtime;
+  the compressed installer is smaller.
+- Packaging native ML wheels is finicky; if a hidden import is missing at
+  runtime, add it via `--hidden-import` / `--collect-all` in `build_exe.ps1`.
 
 ---
 

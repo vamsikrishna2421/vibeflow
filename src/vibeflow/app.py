@@ -1,12 +1,12 @@
 """The VibeFlow application: state machine + system-tray UI.
 
 Wires together the hotkey listener, microphone, transcriber and output router,
-and exposes everything through a small tray icon menu. The icon changes colour
-to show what's happening:
+and exposes everything through a small tray icon menu. The VibeFlow logo sits in
+the system tray with a small status dot:
 
-    blue  = idle (ready)
-    red   = recording
-    amber = transcribing
+    (no dot)  = idle (ready)
+    red dot   = recording
+    amber dot = transcribing
 
 All heavy work (transcription) runs off the hotkey/UI threads so the app stays
 responsive.
@@ -15,9 +15,17 @@ responsive.
 from __future__ import annotations
 
 import os
+import sys
 import threading
 
-from . import __app_name__, __version__, config as config_mod, notifier
+from . import (
+    __app_name__,
+    __version__,
+    autostart,
+    config as config_mod,
+    icons,
+    notifier,
+)
 from .audio import AudioError, Recorder
 from .focus_detect import detect_focus
 from .hotkey import HotkeyManager
@@ -25,10 +33,23 @@ from .output import COPIED, deliver
 from .text import clean_transcript, preview
 from .transcriber import Transcriber, TranscriptionError
 
-# Tray icon colours per state.
-_COLOR_IDLE = (70, 130, 180, 255)
-_COLOR_REC = (220, 50, 50, 255)
-_COLOR_BUSY = (230, 170, 40, 255)
+_APP_USER_MODEL_ID = "VibeFlow.Dictation"
+
+
+def _set_app_user_model_id() -> None:
+    """Tag the process so Windows shows the VibeFlow identity in notifications
+    and groups it on the taskbar. (The microphone 'in use by' name comes from
+    the packaged executable's version metadata, not from this.)"""
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+            _APP_USER_MODEL_ID
+        )
+    except Exception:
+        pass
 
 
 class VibeFlowApp:
@@ -165,6 +186,7 @@ class VibeFlowApp:
     # Tray UI
     # ------------------------------------------------------------------
     def run(self) -> None:
+        _set_app_user_model_id()
         try:
             import pystray
         except Exception as exc:  # pragma: no cover - depends on host
@@ -175,7 +197,7 @@ class VibeFlowApp:
 
         self.icon = pystray.Icon(
             __app_name__,
-            icon=self._image(_COLOR_IDLE),
+            icon=icons.make_tray_image("idle"),
             title=self._tooltip(),
             menu=self._menu(pystray),
         )
@@ -254,6 +276,11 @@ class VibeFlowApp:
             Item("Open settings folder", self._open_config_dir),
             Item("Reload settings", self._reload),
             Menu.SEPARATOR,
+            Item(
+                "Start with Windows",
+                self._toggle_autostart,
+                checked=lambda i: autostart.is_enabled(),
+            ),
             Item(f"About {__app_name__} {__version__}", self._about),
             Item("Quit", self._quit),
         )
@@ -296,6 +323,15 @@ class VibeFlowApp:
             f"Offline voice typing. {self._trigger_hint()} to dictate.",
         )
 
+    def _toggle_autostart(self, *_args) -> None:
+        enabled = autostart.toggle()
+        self._notify(
+            __app_name__,
+            "VibeFlow will start automatically with Windows."
+            if enabled
+            else "VibeFlow will no longer start with Windows.",
+        )
+
     def _quit(self, *_args) -> None:
         try:
             self.hotkeys.stop()
@@ -328,29 +364,18 @@ class VibeFlowApp:
     def _tooltip(self) -> str:
         return f"{__app_name__} — {self._status}"
 
-    def _image(self, color):
-        from PIL import Image, ImageDraw
-
-        img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
-        d = ImageDraw.Draw(img)
-        d.rounded_rectangle([24, 8, 40, 38], radius=8, fill=color)
-        d.arc([18, 20, 46, 48], start=0, end=180, fill=color, width=4)
-        d.line([32, 48, 32, 56], fill=color, width=4)
-        d.line([23, 56, 41, 56], fill=color, width=4)
-        return img
-
-    def _current_color(self):
+    def _state_name(self) -> str:
         if self._recording:
-            return _COLOR_REC
+            return "recording"
         if self._busy:
-            return _COLOR_BUSY
-        return _COLOR_IDLE
+            return "busy"
+        return "idle"
 
     def _refresh(self) -> None:
         if self.icon is None:
             return
         try:
-            self.icon.icon = self._image(self._current_color())
+            self.icon.icon = icons.make_tray_image(self._state_name())
             self.icon.title = self._tooltip()
         except Exception:
             pass

@@ -1,0 +1,37 @@
+# UTF-8
+#
+# PyInstaller version resource for VibeFlow.exe.
+# The 'FileDescription' / 'ProductName' below are what Windows shows as the app
+# identity — including the microphone privacy indicator ("Microphone in use by:
+# VibeFlow") and notifications. Keep these in sync with src/vibeflow/__init__.py.
+#
+VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=(1, 1, 0, 0),
+    prodvers=(1, 1, 0, 0),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+  ),
+  kids=[
+    StringFileInfo([
+      StringTable(
+        '040904B0',
+        [
+          StringStruct('CompanyName', 'VibeFlow'),
+          StringStruct('FileDescription', 'VibeFlow'),
+          StringStruct('FileVersion', '1.1.0.0'),
+          StringStruct('InternalName', 'VibeFlow'),
+          StringStruct('OriginalFilename', 'VibeFlow.exe'),
+          StringStruct('ProductName', 'VibeFlow'),
+          StringStruct('ProductVersion', '1.1.0.0'),
+          StringStruct('LegalCopyright', 'Copyright (c) 2026 VibeFlow. MIT License.')
+        ]
+      )
+    ]),
+    VarFileInfo([VarStruct('Translation', [1033, 1200])])
+  ]
+)

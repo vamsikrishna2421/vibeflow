@@ -24,8 +24,12 @@ nothing sent to the cloud. Your voice never leaves your computer.
 - 🖐️ **Two trigger styles.** *Toggle* (tap on/off) or *Push-to-talk* (hold a key
   while you speak) — your choice.
 - 🌍 **Many languages.** Automatically detects your language, or lock it to one.
-- 🪟 **Lives in your system tray.** A small microphone icon by the clock. It turns
-  **red** while listening and **amber** while it figures out your words.
+- 🪟 **Lives in your system tray.** The VibeFlow logo sits by the clock with a
+  small **red** dot while listening and **amber** while it works.
+- 🔒 **Just one, always.** Only a single VibeFlow runs at a time — no accidental
+  duplicates if you click twice.
+- 🚀 **Starts with Windows (optional).** Flip *Start with Windows* in the tray menu
+  (or let the installer set it up) so it's always ready.
 
 ---
 
@@ -41,13 +45,22 @@ nothing sent to the cloud. Your voice never leaves your computer.
    installed!"*, you're done.
 
 2. **Start** — double-click **`Start-VibeFlow.bat`**.
-   A microphone icon 🎙️ appears near your clock. That's VibeFlow running.
+   The VibeFlow logo appears near your clock (click the **^** to show hidden
+   icons). That's VibeFlow running.
 
 3. **Talk** — click into any text box, press **`Ctrl + Win`**, say a
    sentence, then press **`Ctrl + Win`** again. Your words appear. 🎉
 
 👉 New to this? Read the **[Step-by-step User Guide](docs/USER_GUIDE.md)** — it's
 written for everyone, with no jargon.
+
+---
+
+> 📦 **Want to hand VibeFlow to other people as one file?** Build a single
+> **`VibeFlowSetup.exe`** (double-click → next → next → finish, with optional
+> start-at-login and a clean uninstaller). It also makes Windows show
+> *"Microphone in use by: VibeFlow"*. See
+> [Developer Guide → Packaging](docs/DEVELOPERS.md#packaging--distribution-single-file-installer).
 
 ---
 

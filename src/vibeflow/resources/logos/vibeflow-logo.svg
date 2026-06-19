@@ -1,0 +1,21 @@
+<svg width="860" height="260" viewBox="0 0 860 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="flow" x1="50" y1="130" x2="250" y2="130" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3B6FE8"/>
+      <stop offset="0.55" stop-color="#8A5CF6"/>
+      <stop offset="1" stop-color="#F5A524"/>
+    </linearGradient>
+    <linearGradient id="word" x1="320" y1="90" x2="840" y2="170" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1B2A4A"/>
+      <stop offset="1" stop-color="#34406A"/>
+    </linearGradient>
+  </defs>
+  <g stroke="url(#flow)" stroke-linecap="round" fill="none" stroke-width="16">
+    <path d="M58 130 v-22 M58 130 v22"/>
+    <path d="M96 130 v-50 M96 130 v50"/>
+    <path d="M134 130 v-74 M134 130 v74"/>
+    <path d="M172 130 v-40 M172 130 v40"/>
+  </g>
+  <path d="M190 130 C 206 130, 208 110, 222 100" stroke="#F5A524" stroke-width="16" stroke-linecap="round" fill="none"/>
+  <text x="262" y="166" font-family="'Segoe UI','Helvetica Neue',Arial,sans-serif" font-size="92" font-weight="700" letter-spacing="-3" fill="url(#word)">Vibe<tspan font-weight="400" fill="#8A5CF6">Flow</tspan></text>
+</svg>

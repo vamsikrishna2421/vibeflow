@@ -4,6 +4,26 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] — 2026-06-19
+
+### Added
+- **Single-instance lock** — only one VibeFlow can run at a time. Launching it
+  again shows a friendly reminder and exits, instead of stacking a second tray
+  icon. Fixes accidental double-starts.
+- **Branded tray icon** — the VibeFlow logo replaces the plain microphone, with
+  a small red/amber status dot for recording/transcribing.
+- **"Start with Windows"** toggle in the tray menu (per-user; no admin needed).
+- **Enterprise installer** — `scripts\build_installer.ps1` produces a single
+  `VibeFlowSetup.exe` (Inno Setup) with a next-next-finish wizard, optional
+  auto-start at login, a Start-Menu shortcut, and a proper uninstaller.
+- **Branded executable** — `VibeFlow.exe` embeds the logo and version metadata,
+  so Windows shows "VibeFlow" (e.g. *"Microphone in use by: VibeFlow"*) instead
+  of "Python". An explicit AppUserModelID is set for notification/taskbar
+  grouping.
+
+### Changed
+- Application state is now shown via the logo's status dot and the tray tooltip.
+
 ## [1.0.1] — 2026-06-19
 
 ### Changed

@@ -95,13 +95,21 @@ def main(argv: list[str] | None = None) -> int:
 
 def _run(cfg: config_mod.Config) -> int:
     from .app import VibeFlowApp
+    from .single_instance import SingleInstance, notify_already_running
 
-    app = VibeFlowApp(cfg)
+    # Enforce a single running instance (fixes accidental double-launches).
+    instance = SingleInstance()
+    if not instance.acquire():
+        notify_already_running()
+        return 0
+
     try:
-        app.run()
+        VibeFlowApp(cfg).run()
     except RuntimeError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 2
+    finally:
+        instance.release()
     return 0
 
 
