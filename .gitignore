@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+*.spec.bak
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# VibeFlow build output
+/release/
+*.exe
+
+# Downloaded models / local data (never commit these — they're large)
+models/
+*.bin
+*.pt
+
+# Tooling / OS
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+
+# Local developer tooling — not part of the product, kept out of the repo
+.claude/
+.claude-flow/
+CLAUDE.md

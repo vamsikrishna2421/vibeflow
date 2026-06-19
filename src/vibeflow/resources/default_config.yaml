@@ -1,0 +1,99 @@
+# ============================================================================
+#  VibeFlow settings
+#  ----------------------------------------------------------------------------
+#  This is a plain text file. Edit it with any text editor (Notepad is fine),
+#  save, then choose "Reload settings" from the VibeFlow tray menu.
+#  Lines starting with '#' are comments and are ignored.
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+#  Speech model — turns your voice into text. Bigger = more accurate but slower.
+# ----------------------------------------------------------------------------
+model:
+  # tiny | base | small | medium | large-v3
+  #   tiny  = fastest, least accurate (good for old/slow laptops)
+  #   base  = great everyday balance (default)
+  #   small = noticeably more accurate, still fast on most machines
+  #   medium / large-v3 = most accurate, needs a strong CPU or a GPU
+  size: base
+
+  # Language of your speech. "auto" detects it for you, or set a code such as
+  # en (English), es (Spanish), fr (French), de (German), hi (Hindi)...
+  language: auto
+
+  # Where to run: auto | cpu | cuda
+  #   auto picks your NVIDIA GPU if available, otherwise the CPU.
+  device: auto
+
+  # Numerical precision: auto | int8 | int8_float16 | float16 | float32
+  #   Leave as auto unless you know you need something specific.
+  compute_type: auto
+
+# ----------------------------------------------------------------------------
+#  Trigger — how you start dictating.
+# ----------------------------------------------------------------------------
+hotkey:
+  # toggle | push_to_talk
+  #   toggle        = tap the combo once to start, tap again to stop.
+  #   push_to_talk  = hold a single key while speaking, release to finish.
+  mode: toggle
+
+  # Used in "toggle" mode. Combine keys with '+'. Examples:
+  #   ctrl+alt+space   ctrl+shift+d   alt+`   f9
+  toggle_combo: ctrl+alt+space
+
+  # Used in "push_to_talk" mode. A single key you hold down. Examples:
+  #   ctrl_r (right Ctrl)   alt_r (right Alt)   f8   caps_lock
+  push_to_talk_key: ctrl_r
+
+# ----------------------------------------------------------------------------
+#  Output — where your dictated text goes.
+# ----------------------------------------------------------------------------
+output:
+  # auto | type | clipboard
+  #   auto      = type into the text box if one is focused, otherwise copy to
+  #               the clipboard (recommended).
+  #   type      = always type at the cursor.
+  #   clipboard = always copy; you paste with Ctrl+V yourself.
+  mode: auto
+
+  # How text is inserted when typing: paste | keystroke
+  #   paste     = uses the clipboard + Ctrl+V (fast, reliable, best for Unicode).
+  #   keystroke = simulates each key (use only if paste misbehaves in an app).
+  insertion: paste
+
+  # After pasting, put whatever was on your clipboard back. Keep this on.
+  restore_clipboard: true
+
+  # Add a single space after inserted text so back-to-back dictations don't
+  # run their words together.
+  trailing_space: true
+
+  # In "auto" mode, what to do when VibeFlow can't tell if a text box is
+  # focused: clipboard (safe, recommended) | type
+  auto_fallback: clipboard
+
+# ----------------------------------------------------------------------------
+#  Audio.
+# ----------------------------------------------------------------------------
+audio:
+  sample_rate: 16000          # Whisper models expect 16000; leave as-is.
+  input_device: default       # "default", or a device name fragment / number.
+                              # See your devices: python -m vibeflow --list-devices
+  min_seconds: 0.4            # Ignore accidental ultra-short recordings.
+  max_seconds: 120            # Safety cap for a single recording.
+
+# ----------------------------------------------------------------------------
+#  Feedback.
+# ----------------------------------------------------------------------------
+feedback:
+  sounds: true                # Short beep when recording starts / stops.
+  notifications: true         # Small pop-up messages from the tray icon.
+
+# ----------------------------------------------------------------------------
+#  Text tidy-up applied to every transcript.
+# ----------------------------------------------------------------------------
+text:
+  strip: true                 # Trim surrounding whitespace.
+  capitalize_first: false     # Capitalise the first letter.
+  remove_trailing_period: false  # Drop a trailing '.' (handy for chat apps).

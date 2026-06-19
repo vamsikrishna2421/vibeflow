@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vibeflow"
+version = "1.0.0"
+description = "Private, offline voice-to-text dictation — press a hotkey, speak, and your words appear anywhere."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "VibeFlow" }]
+keywords = ["dictation", "speech-to-text", "whisper", "offline", "voice-typing", "accessibility"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Win32 (MS Windows)",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+    "Topic :: Adaptive Technologies",
+]
+dependencies = [
+    "faster-whisper>=1.0.0",
+    "sounddevice>=0.4.6",
+    "numpy>=1.24",
+    "pynput>=1.7.6",
+    "pyperclip>=1.8.2",
+    "pystray>=0.19.5",
+    "Pillow>=10.0",
+    "PyYAML>=6.0",
+    "comtypes>=1.2.0 ; sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "PyYAML>=6.0"]
+
+[project.urls]
+Documentation = "https://github.com/your-org/vibeflow/blob/main/docs/USER_GUIDE.md"
+
+[project.scripts]
+vibeflow = "vibeflow.__main__:main"
+
+[project.gui-scripts]
+vibeflow-gui = "vibeflow.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"vibeflow.resources" = ["*.yaml"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

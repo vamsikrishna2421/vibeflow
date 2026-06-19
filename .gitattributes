@@ -1,0 +1,14 @@
+# Normalize text line endings on commit.
+* text=auto
+
+# Windows launchers/scripts must be CRLF so they always run correctly on Windows.
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Keep shell scripts LF.
+*.sh text eol=lf
+
+# Treat these as binary if ever added.
+*.png binary
+*.ico binary
+*.wav binary

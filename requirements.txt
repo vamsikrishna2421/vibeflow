@@ -1,0 +1,15 @@
+# VibeFlow runtime dependencies.
+# Install with:  pip install -r requirements.txt
+# (The provided installer script does this for you inside a virtual environment.)
+
+faster-whisper>=1.0.0     # offline speech-to-text engine (CTranslate2)
+sounddevice>=0.4.6        # microphone capture
+numpy>=1.24              # audio buffers
+pynput>=1.7.6            # global hotkeys + keyboard output
+pyperclip>=1.8.2         # clipboard access
+pystray>=0.19.5          # system tray icon
+Pillow>=10.0            # tray icon image
+PyYAML>=6.0             # human-friendly settings file
+
+# Windows-only: reliable detection of the focused text field.
+comtypes>=1.2.0 ; sys_platform == "win32"
