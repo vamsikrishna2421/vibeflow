@@ -60,19 +60,11 @@ def _apply_overrides(cfg: config_mod.Config, args: argparse.Namespace) -> None:
 
 
 def _configure_console() -> None:
-    """Make console output robust on Windows (default cp1252 can't encode many
-    characters, e.g. accented device names). Prefer UTF-8, and never crash on an
-    un-encodable character."""
-    for stream in (sys.stdout, sys.stderr):
-        if stream is None:
-            continue
-        try:
-            stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[attr-defined]
-        except Exception:
-            try:
-                stream.reconfigure(errors="replace")  # type: ignore[attr-defined]
-            except Exception:
-                pass
+    """Set up logging and make stdout/stderr safe — including windowed
+    (no-console) builds where they are ``None``. See :mod:`vibeflow.logsetup`."""
+    from .logsetup import setup
+
+    setup()
 
 
 def main(argv: list[str] | None = None) -> int:

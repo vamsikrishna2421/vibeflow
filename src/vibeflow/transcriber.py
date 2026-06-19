@@ -55,18 +55,29 @@ class Transcriber:
 
         device, compute_type = _resolve_device(self.device, self.compute_type)
         self._resolved = (device, compute_type)
-        try:
-            if self.models_dir:
+        if self.models_dir:
+            try:
                 Path(self.models_dir).mkdir(parents=True, exist_ok=True)
-            self._model = WhisperModel(
-                self.size,
-                device=device,
-                compute_type=compute_type,
-                download_root=self.models_dir,
-            )
+            except Exception:
+                pass
+
+        common = dict(
+            device=device,
+            compute_type=compute_type,
+            download_root=self.models_dir,
+        )
+        try:
+            # Offline-first: if the model is already downloaded, load it with no
+            # network access at all (true offline + faster startup, and avoids a
+            # huggingface.co call that crashed the windowed build). Only reach the
+            # internet if the model isn't cached yet (first-ever run).
+            try:
+                self._model = WhisperModel(self.size, local_files_only=True, **common)
+            except Exception:
+                self._model = WhisperModel(self.size, local_files_only=False, **common)
         except Exception as exc:
             raise TranscriptionError(
-                f"Could not load the '{self.size}' model on {device}: {exc}"
+                f"Could not load the '{self.size}' model on {device}/{compute_type}: {exc}"
             ) from exc
 
     def transcribe(self, audio) -> str:

@@ -4,6 +4,21 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.1.1] — 2026-06-19
+
+### Fixed
+- **Packaged app showed "Model failed to load."** The windowed `VibeFlow.exe`
+  has no console, so `sys.stdout`/`sys.stderr` are `None`; libraries that wrote
+  to them while loading the speech model crashed. Output is now routed to a log
+  file and the streams are always valid.
+- **Truly offline startup.** The model now loads from the local cache *without*
+  contacting huggingface.co (only the very first run downloads it). Faster, and
+  fully offline as intended.
+
+### Added
+- **File logging** at `%APPDATA%\VibeFlow\vibeflow.log` — makes the windowed app
+  diagnosable (great for beta feedback: "send me your vibeflow.log").
+
 ## [1.1.0] — 2026-06-19
 
 ### Added

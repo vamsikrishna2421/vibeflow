@@ -215,11 +215,22 @@ class VibeFlowApp:
             self.transcriber.load()
             self._model_ready = True
             self._set_status("Ready")
+            import logging
+
+            logging.getLogger("vibeflow").info(
+                "Model ready: %s %s", self.cfg.get("model.size"), self.transcriber._resolved
+            )
             self._notify(
                 __app_name__,
                 f"Ready. {self._trigger_hint()} to dictate.",
             )
-        except TranscriptionError as exc:
+        except Exception as exc:
+            import logging
+            import traceback
+
+            logging.getLogger("vibeflow").error(
+                "Model load failed:\n%s", traceback.format_exc()
+            )
             self._set_status("Model failed to load")
             self._notify("Could not load speech model", str(exc))
         finally:
