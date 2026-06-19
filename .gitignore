@@ -38,3 +38,7 @@ Thumbs.db
 .claude/
 .claude-flow/
 CLAUDE.md
+
+# Published one-file installer — committed so testers can download it directly.
+# (Overrides the *.exe rule above for this one tracked artifact.)
+!installer/VibeFlowSetup.exe

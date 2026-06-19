@@ -26,7 +26,8 @@ $cmd = Get-Command iscc -ErrorAction SilentlyContinue
 if ($cmd) { $Iscc = $cmd.Source }
 foreach ($p in @(
     "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
-    "C:\Program Files\Inno Setup 6\ISCC.exe")) {
+    "C:\Program Files\Inno Setup 6\ISCC.exe",
+    "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe")) {
     if (-not $Iscc -and (Test-Path $p)) { $Iscc = $p }
 }
 if (-not $Iscc) {

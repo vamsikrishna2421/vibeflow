@@ -33,7 +33,26 @@ nothing sent to the cloud. Your voice never leaves your computer.
 
 ---
 
-## 🚀 Get started in 3 steps (Windows)
+## ⬇️ Install in one click (easiest)
+
+**[⬇️ Download VibeFlowSetup.exe](https://github.com/vamsikrishna2421/vibeflow/raw/main/installer/VibeFlowSetup.exe)**
+(~70 MB) — then double-click it and click **Next → Next → Finish**.
+
+- ✅ Installs **just for you** — no admin password needed.
+- ✅ Optional **Start with Windows**; lives in the system tray with the VibeFlow logo.
+- ✅ Windows shows *"Microphone in use by: **VibeFlow**"*.
+- ✅ Only **one** VibeFlow ever runs at a time (no accidental duplicates).
+- ✅ Clean **uninstall** any time via *Settings → Apps → VibeFlow*.
+
+> On first dictation, VibeFlow downloads the speech model once (a few hundred MB),
+> then runs **fully offline**. With the installer you don't need Python at all.
+
+After installing, press **`Ctrl + Win`**, speak, then press it again — your words
+appear wherever your cursor is. 🎉
+
+---
+
+## 🛠️ Run from source instead (developers)
 
 > You need **Windows 10 or 11**, a **microphone**, and **Python 3.9+**
 > ([download here](https://www.python.org/downloads/) — tick *"Add python.exe to
