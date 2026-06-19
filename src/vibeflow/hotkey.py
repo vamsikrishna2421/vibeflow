@@ -75,6 +75,17 @@ def normalize_key_name(name: str) -> str:
     return canonical_token(name)
 
 
+def parse_hold_combo(combo: str) -> list:
+    """Canonical key targets for a push-to-talk hold combo.
+
+    ``"ctrl+win"`` -> ``["ctrl", "cmd"]`` (every key must be held at once). A
+    single key like ``"ctrl_r"`` yields a one-element list.
+    """
+    if not combo or not combo.strip():
+        return []
+    return [canonical_token(part) for part in combo.split("+") if part.strip()]
+
+
 def _event_key_name(key) -> str:
     """Best-effort canonical name for a pynput key event."""
     char = getattr(key, "char", None)
@@ -132,15 +143,24 @@ class HotkeyManager:
         self._listeners.append(listener)
 
     def _start_push_to_talk(self, keyboard) -> None:
-        target = normalize_key_name(self.push_to_talk_key)
+        targets = parse_hold_combo(self.push_to_talk_key)
+        held = set()
 
         def on_press(key):
-            if _matches(key, target) and not self._ptt_down:
+            for target in targets:
+                if _matches(key, target):
+                    held.add(target)
+            if targets and all(t in held for t in targets) and not self._ptt_down:
                 self._ptt_down = True
                 self._safe(self.on_start)
 
         def on_release(key):
-            if _matches(key, target) and self._ptt_down:
+            released = False
+            for target in targets:
+                if _matches(key, target):
+                    held.discard(target)
+                    released = True
+            if released and self._ptt_down:
                 self._ptt_down = False
                 self._safe(self.on_stop)
 

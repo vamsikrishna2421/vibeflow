@@ -31,9 +31,9 @@ DEFAULTS: dict[str, Any] = {
         "compute_type": "auto",  # auto | int8 | int8_float16 | float16 | float32
     },
     "hotkey": {
-        "mode": "toggle",                  # toggle | push_to_talk
-        "toggle_combo": "ctrl+win",        # used in toggle mode (Ctrl + Windows key)
-        "push_to_talk_key": "ctrl_r",      # used in push_to_talk mode
+        "mode": "push_to_talk",            # push_to_talk only (toggle disabled for now)
+        "toggle_combo": "ctrl+win",        # (unused while toggle is disabled)
+        "push_to_talk_key": "ctrl+win",    # hold to talk; release to transcribe
     },
     "output": {
         "mode": "auto",              # auto | type | clipboard
@@ -51,6 +51,7 @@ DEFAULTS: dict[str, Any] = {
     "feedback": {
         "sounds": True,          # short beeps on start/stop
         "notifications": True,   # tray pop-up messages
+        "overlay": True,         # on-screen status (Listening/Transcribing/Done)
     },
     "text": {
         "strip": True,

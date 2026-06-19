@@ -25,6 +25,7 @@ from . import (
     config as config_mod,
     icons,
     notifier,
+    overlay as overlay_mod,
 )
 from .audio import AudioError, Recorder
 from .focus_detect import detect_focus
@@ -66,6 +67,9 @@ class VibeFlowApp:
         self.recorder = self._build_recorder()
         self.transcriber = self._build_transcriber()
         self.hotkeys = self._build_hotkeys()
+        self.overlay = overlay_mod.StatusOverlay(
+            enabled=bool(self.cfg.get("feedback.overlay", True))
+        )
         self.icon = None  # set in run()
 
     # ------------------------------------------------------------------
@@ -88,9 +92,9 @@ class VibeFlowApp:
 
     def _build_hotkeys(self) -> HotkeyManager:
         return HotkeyManager(
-            mode=self.cfg.get("hotkey.mode", "toggle"),
+            mode=self.cfg.get("hotkey.mode", "push_to_talk"),
             toggle_combo=self.cfg.get("hotkey.toggle_combo", "ctrl+win"),
-            push_to_talk_key=self.cfg.get("hotkey.push_to_talk_key", "ctrl_r"),
+            push_to_talk_key=self.cfg.get("hotkey.push_to_talk_key", "ctrl+win"),
             on_start=self.start_recording,
             on_stop=self.stop_recording,
         )
@@ -119,6 +123,7 @@ class VibeFlowApp:
             return
 
         notifier.play(notifier.START, self._sounds)
+        self.overlay.show("listening")
         self._set_status("Listening…")
         self._refresh()
 
@@ -131,6 +136,7 @@ class VibeFlowApp:
 
         audio = self.recorder.stop()
         notifier.play(notifier.STOP, self._sounds)
+        self.overlay.show("transcribing")
         self._set_status("Transcribing…")
         self._refresh()
 
@@ -141,6 +147,7 @@ class VibeFlowApp:
             seconds = self.recorder.duration(audio)
             min_seconds = float(self.cfg.get("audio.min_seconds", 0.4))
             if seconds < min_seconds:
+                self.overlay.show("info", "VibeFlow · Too short — ignored")
                 self._notify(__app_name__, "Recording too short — ignored.")
                 return
 
@@ -155,6 +162,7 @@ class VibeFlowApp:
                 ),
             )
             if not text:
+                self.overlay.show("info", "VibeFlow · No speech detected")
                 self._notify(__app_name__, "No speech detected.")
                 return
 
@@ -168,12 +176,17 @@ class VibeFlowApp:
                 auto_fallback=self.cfg.get("output.auto_fallback", "clipboard"),
             )
             if result == COPIED:
+                self.overlay.show("clipboard")
                 self._notify("Copied to clipboard", preview(text))
+            else:
+                self.overlay.show("done")
         except TranscriptionError as exc:
             notifier.play(notifier.ERROR, self._sounds)
+            self.overlay.show("error", "VibeFlow · Transcription error")
             self._notify("Transcription error", str(exc))
         except Exception as exc:  # pragma: no cover - defensive
             notifier.play(notifier.ERROR, self._sounds)
+            self.overlay.show("error", "VibeFlow · Something went wrong")
             self._notify("Unexpected error", str(exc))
         finally:
             with self._lock:
@@ -207,6 +220,7 @@ class VibeFlowApp:
         icon.visible = True
         self._set_status("Loading model…")
         self._refresh()
+        self.overlay.start()
         self.hotkeys.start()
         threading.Thread(target=self._preload_model, daemon=True).start()
 
@@ -241,24 +255,8 @@ class VibeFlowApp:
         Menu = pystray.Menu
         return Menu(
             Item(lambda _: self._status, None, enabled=False),
+            Item(lambda _: f"Hold {self._hotkey_label()} to talk", None, enabled=False),
             Menu.SEPARATOR,
-            Item(
-                "Trigger",
-                Menu(
-                    Item(
-                        "Toggle (tap to start/stop)",
-                        lambda i: self._set_mode("toggle"),
-                        checked=lambda i: self.cfg.get("hotkey.mode") == "toggle",
-                        radio=True,
-                    ),
-                    Item(
-                        "Push-to-talk (hold key)",
-                        lambda i: self._set_mode("push_to_talk"),
-                        checked=lambda i: self.cfg.get("hotkey.mode") == "push_to_talk",
-                        radio=True,
-                    ),
-                ),
-            ),
             Item(
                 "Output",
                 Menu(
@@ -288,6 +286,11 @@ class VibeFlowApp:
             Item("Reload settings", self._reload),
             Menu.SEPARATOR,
             Item(
+                "Show on-screen status",
+                self._toggle_overlay,
+                checked=lambda i: bool(self.cfg.get("feedback.overlay", True)),
+            ),
+            Item(
                 "Start with Windows",
                 self._toggle_autostart,
                 checked=lambda i: autostart.is_enabled(),
@@ -297,14 +300,6 @@ class VibeFlowApp:
         )
 
     # -- menu actions ---------------------------------------------------
-    def _set_mode(self, mode: str) -> None:
-        self.cfg.set("hotkey.mode", mode)
-        self._save_config()
-        self.hotkeys.stop()
-        self.hotkeys = self._build_hotkeys()
-        self.hotkeys.start()
-        self._notify(__app_name__, f"Trigger: {self._trigger_hint()}")
-
     def _set_output(self, mode: str) -> None:
         self.cfg.set("output.mode", mode)
         self._save_config()
@@ -325,6 +320,7 @@ class VibeFlowApp:
         self.hotkeys.stop()
         self.hotkeys = self._build_hotkeys()
         self.hotkeys.start()
+        self.overlay.set_enabled(bool(self.cfg.get("feedback.overlay", True)))
         threading.Thread(target=self._preload_model, daemon=True).start()
         self._notify(__app_name__, "Settings reloaded.")
 
@@ -343,9 +339,21 @@ class VibeFlowApp:
             else "VibeFlow will no longer start with Windows.",
         )
 
+    def _toggle_overlay(self, *_args) -> None:
+        enabled = not bool(self.cfg.get("feedback.overlay", True))
+        self.cfg.set("feedback.overlay", enabled)
+        self._save_config()
+        self.overlay.set_enabled(enabled)
+        if enabled:
+            self.overlay.show("info", "VibeFlow · On-screen status on")
+
     def _quit(self, *_args) -> None:
         try:
             self.hotkeys.stop()
+        except Exception:
+            pass
+        try:
+            self.overlay.stop()
         except Exception:
             pass
         if self.icon is not None:
@@ -358,10 +366,12 @@ class VibeFlowApp:
     def _sounds(self) -> bool:
         return bool(self.cfg.get("feedback.sounds", True))
 
+    def _hotkey_label(self) -> str:
+        key = str(self.cfg.get("hotkey.push_to_talk_key", "ctrl+win"))
+        return "+".join(p.strip().capitalize() for p in key.split("+") if p.strip())
+
     def _trigger_hint(self) -> str:
-        if self.cfg.get("hotkey.mode") == "push_to_talk":
-            return f"Hold {self.cfg.get('hotkey.push_to_talk_key', 'ctrl_r')}"
-        return f"Press {self.cfg.get('hotkey.toggle_combo', 'ctrl+win')}"
+        return f"Hold {self._hotkey_label()}"
 
     def _save_config(self) -> None:
         try:

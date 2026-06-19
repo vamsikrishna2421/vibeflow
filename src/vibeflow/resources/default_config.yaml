@@ -33,18 +33,17 @@ model:
 #  Trigger — how you start dictating.
 # ----------------------------------------------------------------------------
 hotkey:
-  # toggle | push_to_talk
-  #   toggle        = tap the combo once to start, tap again to stop.
-  #   push_to_talk  = hold a single key while speaking, release to finish.
-  mode: toggle
+  # How you talk. For now VibeFlow is push-to-talk only — toggle on/off is
+  # disabled while we focus on the core experience.
+  #   push_to_talk = hold the key(s) below while speaking, release to transcribe.
+  mode: push_to_talk
 
-  # Used in "toggle" mode. Combine keys with '+'. Examples:
-  #   ctrl+win   ctrl+alt+space   ctrl+shift+d   f9
+  # Hold these key(s) to talk. Combine multiple with '+'. Examples:
+  #   ctrl+win   ctrl_r (right Ctrl)   alt_r   f8   caps_lock
+  push_to_talk_key: ctrl+win
+
+  # (Unused for now — toggle mode is disabled.)
   toggle_combo: ctrl+win
-
-  # Used in "push_to_talk" mode. A single key you hold down. Examples:
-  #   ctrl_r (right Ctrl)   alt_r (right Alt)   f8   caps_lock
-  push_to_talk_key: ctrl_r
 
 # ----------------------------------------------------------------------------
 #  Output — where your dictated text goes.
@@ -89,6 +88,7 @@ audio:
 feedback:
   sounds: true                # Short beep when recording starts / stops.
   notifications: true         # Small pop-up messages from the tray icon.
+  overlay: true               # On-screen status pill (Listening / Transcribing / Done).
 
 # ----------------------------------------------------------------------------
 #  Text tidy-up applied to every transcript.

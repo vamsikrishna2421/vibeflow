@@ -75,3 +75,12 @@ def test_matches_modifier_family():
     assert _matches(_Named("ctrl_l"), "ctrl")
     assert _matches(_Named("ctrl_r"), "ctrl")
     assert not _matches(_Named("alt_l"), "ctrl")
+
+
+def test_parse_hold_combo():
+    from vibeflow.hotkey import parse_hold_combo
+
+    assert parse_hold_combo("ctrl+win") == ["ctrl", "cmd"]   # Win -> cmd
+    assert parse_hold_combo("ctrl_r") == ["ctrl_r"]           # single key
+    assert parse_hold_combo("alt+shift+a") == ["alt", "shift", "a"]
+    assert parse_hold_combo("  ") == []

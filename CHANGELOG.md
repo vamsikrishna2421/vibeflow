@@ -4,6 +4,22 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] — 2026-06-19
+
+### Added
+- **On-screen status overlay (HUD).** A small pill near the bottom of the screen
+  shows *"VibeFlow · Listening…"*, *"Transcribing…"*, *"Completed successfully"*,
+  or *"Copied to clipboard"*, then auto-hides — so you don't have to watch the
+  tray. It's a non-activating, click-through window, so it never steals keyboard
+  focus from the field you're dictating into. Toggle via the tray ("Show
+  on-screen status") or `feedback.overlay` in settings.
+
+### Changed
+- **Push-to-talk is the only trigger now** (toggle on/off is disabled for now to
+  keep things simple). Default: **hold `Ctrl+Win`** to talk, release to
+  transcribe. Push-to-talk now supports key *combos* (e.g. `ctrl+win`), not just
+  single keys.
+
 ## [1.1.1] — 2026-06-19
 
 ### Fixed
