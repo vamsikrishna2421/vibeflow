@@ -16,19 +16,42 @@ Design notes:
 from __future__ import annotations
 
 import json
+import re
 import urllib.request
+
+_FIRST_PERSON = re.compile(
+    r"\b(i|i'm|i've|i'll|i'd|me|my|mine|myself|we|we're|we've|we'll|we'd|our|ours|us|ourselves)\b",
+    re.IGNORECASE,
+)
+
+
+def _preserves_voice(original: str, formatted: str) -> bool:
+    """True unless the formatter dropped the speaker's first-person voice.
+
+    If the original dictation is first-person but the formatted text has no
+    first-person pronouns (rewritten as "you…" / "the user…"), the point of view
+    was changed and we must not use that output.
+    """
+    if not _FIRST_PERSON.search(original or ""):
+        return True  # nothing first-person to preserve
+    if not _FIRST_PERSON.search(formatted or ""):
+        return False  # lost all first-person -> POV shifted
+    low_f, low_o = (formatted or "").lower(), (original or "").lower()
+    if "the user" in low_f and "the user" not in low_o:
+        return False
+    return True
 
 DEFAULT_ENDPOINT = "http://127.0.0.1:11434"
 DEFAULT_MODEL = "qwen2.5:1.5b"  # benchmark winner: fast, tiny, clean, reliable
 
 _DEFAULT_PROMPT = (
-    "You clean up dictated text. Rewrite the text below with correct "
-    "capitalization, punctuation, and paragraph breaks, and fix obvious "
-    "speech-to-text errors. Preserve the original meaning, wording, and point of "
-    "view: keep the speaker's exact pronouns and voice — if the text is in the "
-    "first person (I, we, my), keep it first person; never rewrite it in the "
-    "third person or as a description of 'the user'. Do not add commentary, "
-    "explanations, or quotation marks. Output ONLY the cleaned-up text."
+    "You lightly clean up dictated text. Fix ONLY capitalization, punctuation, "
+    "paragraph breaks, and obvious speech-to-text errors. Keep the speaker's own "
+    "words, phrasing, and tone — do not paraphrase, summarise, reword, or make it "
+    "more formal. Keep the point of view and pronouns EXACTLY: if it is first "
+    "person (I, we, my), keep it first person; never address or describe the "
+    "speaker as 'you' or 'the user'. Do not add commentary or quotation marks. "
+    "Output ONLY the cleaned-up text."
 )
 
 
@@ -61,20 +84,29 @@ def _ollama_generate(text: str, cfg, persona: str | None = None) -> str | None:
     prompt = (cfg.get("ai.prompt") or "").strip() or _DEFAULT_PROMPT
     if persona and persona.strip():
         prompt = (
-            f"{prompt}\n\nUse the following only to guide word choice and tone — "
-            f"do NOT change the point of view, do NOT narrate about the author, "
-            f"and do NOT mention this. The author's background: {persona.strip()}"
+            f"{prompt}\n\nUse the following ONLY to spell domain names/terms "
+            f"correctly and pick natural wording — do NOT change the meaning, "
+            f"tone, or point of view, and do NOT mention it. The speaker's "
+            f"domain: {persona.strip()}"
         )
 
     payload = {
         "model": model,
         "prompt": f"{prompt}\n\nText:\n{text}\n\nCleaned text:",
         "stream": False,
-        "options": {"temperature": 0.2},
+        "options": {"temperature": 0},
     }
     body = _post_json(f"{endpoint}/api/generate", payload, timeout)
     result = (body.get("response") or "").strip()
-    return result or None
+    if not result:
+        return None
+    # Deterministic guard: never ship output that dropped the speaker's
+    # first-person voice (a weak model may turn "I did" into "you did" /
+    # "the user did" despite the prompt). Fall back to the plain transcript.
+    if not _preserves_voice(text, result):
+        _warn("AI formatting changed the point of view; keeping the plain transcript")
+        return None
+    return result
 
 
 _PERSONA_PROMPT = (

@@ -453,13 +453,13 @@ class VibeFlowApp:
                         radio=True,
                     ),
                     Item(
-                        "Fast — qwen2.5:1.5b (1 GB · recommended)",
+                        "Fast — qwen2.5:1.5b (1 GB · fastest, may reword)",
                         lambda i: self._set_ai_model("fast"),
                         checked=lambda i: self._ai_tier() == "fast",
                         radio=True,
                     ),
                     Item(
-                        "Balanced — qwen2.5:3b (2 GB)",
+                        "Balanced — qwen2.5:3b (2 GB · recommended, keeps your words)",
                         lambda i: self._set_ai_model("balanced"),
                         checked=lambda i: self._ai_tier() == "balanced",
                         radio=True,

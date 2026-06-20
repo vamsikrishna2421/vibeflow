@@ -4,6 +4,22 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.6.5] — 2026-06-20
+
+### Fixed
+- **AI formatting keeps your voice *and* your words.** Following the
+  point-of-view bug, the 1.5b model was still rewriting first-person dictation
+  into the second person ("I did…" → "You conducted…") and over-formalizing it.
+  Three changes:
+  1. The formatter prompt is now **conservative** — light cleanup only (no
+     paraphrasing, rewording, or formalizing), at temperature 0.
+  2. A **deterministic voice guard** rejects any AI output that drops your
+     first-person voice and falls back to your plain (deterministically-curated)
+     words — so a weak model can never change your point of view.
+  3. The default AI-formatting model is now **qwen2.5:3b**, which keeps your
+     exact words; `qwen2.5:1.5b` (faster but paraphrases) is no longer the
+     recommended tier for formatting. The persona is scoped to terminology only.
+
 ## [1.6.4] — 2026-06-20
 
 ### Fixed

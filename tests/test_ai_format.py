@@ -50,3 +50,17 @@ def test_parse_terms_drops_hallucinations():
 def test_extract_terms_empty_is_no_network():
     # Empty corrected text returns [] without touching the network.
     assert ai_format.extract_terms("", _Cfg({})) == []
+
+
+def test_preserves_voice_guard():
+    pv = ai_format._preserves_voice
+    # First-person kept -> OK
+    assert pv("I did a test", "I did a test.") is True
+    # First-person -> rewritten as second person ("you") -> rejected
+    assert pv("I did a test", "You conducted a test.") is False
+    # First-person -> "the user" third person -> rejected
+    assert pv("I did a test", "The user did a test.") is False
+    # No first-person to begin with -> nothing to preserve -> OK
+    assert pv("The build works fine", "The build works fine.") is True
+    # "we/our" first person preserved
+    assert pv("we should deploy our app", "We should deploy our app.") is True

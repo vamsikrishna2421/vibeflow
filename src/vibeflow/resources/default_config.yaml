@@ -135,6 +135,6 @@ ai:
   enabled: false                       # true = use the local LLM to format text
   provider: ollama                     # ollama (local)
   endpoint: http://127.0.0.1:11434     # where Ollama is listening
-  model: qwen2.5:1.5b                  # benchmark winner; or qwen2.5:3b / gemma2:2b
+  model: qwen2.5:3b                    # keeps your exact words; qwen2.5:1.5b is faster but paraphrases
   timeout: 20                          # seconds before giving up (falls back to plain)
   prompt: ""                          # empty = built-in formatting prompt
