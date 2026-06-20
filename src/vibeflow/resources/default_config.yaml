@@ -100,6 +100,11 @@ text:
   capitalize_first: false     # Capitalise only the very first letter.
   remove_trailing_period: false  # Drop a trailing '.' (handy for chat apps).
 
+  # Adaptive vocabulary — learns your names/jargon so they transcribe correctly.
+  vocabulary: []              # seed terms, e.g. [Kubernetes, kubectl, Acme]; auto-grows.
+  learn_vocabulary: true      # learn term-like words from your dictations.
+  teach_back: true            # learn from your edits: just cut/copy the corrected text.
+
 # ----------------------------------------------------------------------------
 #  AI formatting (OPTIONAL) — "voice to text WITH AI".
 #  Off by default = plain, fast voice-to-text. Turn this on to have a LOCAL LLM

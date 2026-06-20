@@ -80,8 +80,12 @@ class Transcriber:
                 f"Could not load the '{self.size}' model on {device}/{compute_type}: {exc}"
             ) from exc
 
-    def transcribe(self, audio) -> str:
-        """Transcribe a float32 numpy audio array (16 kHz) into text."""
+    def transcribe(self, audio, prompt: str | None = None) -> str:
+        """Transcribe a float32 numpy audio array (16 kHz) into text.
+
+        ``prompt`` is passed as Whisper's ``initial_prompt`` to bias decoding
+        toward the user's adaptive vocabulary (names, jargon, acronyms).
+        """
         if self._model is None:
             self.load()
 
@@ -92,6 +96,7 @@ class Transcriber:
                 language=language,
                 beam_size=self.beam_size,
                 vad_filter=self.vad_filter,
+                initial_prompt=prompt or None,
             )
             return "".join(segment.text for segment in segments)
         except Exception as exc:

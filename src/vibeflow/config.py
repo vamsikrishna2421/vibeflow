@@ -59,6 +59,9 @@ DEFAULTS: dict[str, Any] = {
         "spoken_commands": True,        # "new line" / "new paragraph" become breaks
         "capitalize_first": False,
         "remove_trailing_period": False,
+        "vocabulary": [],               # domain terms (auto-grows; also editable)
+        "learn_vocabulary": True,       # learn term-like words from dictations
+        "teach_back": True,             # learn from your edits (copy/cut corrected text)
     },
     "ai": {
         "enabled": False,            # voice-to-text + AI formatting (needs a local LLM)

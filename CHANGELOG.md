@@ -4,6 +4,25 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.4.1] — 2026-06-20
+
+### Added
+- **Adaptive vocabulary** (`vocabulary.py`): VibeFlow learns your names/jargon and
+  biases Whisper toward them (Whisper `initial_prompt`), so they transcribe
+  correctly over time. Two learning signals:
+  - **Teach-back** — when you edit VibeFlow's output and copy/cut the corrected
+    text, it diffs old vs new and learns the *correct* spelling (deterministic, no
+    LLM, never learns the mistake). Toggle in the tray: "Learn from my edits".
+  - **Safe frequency** — recurring term-like words (CamelCase, ACRONYMs,
+    identifiers, things with digits) from your dictations, with a gibberish gate.
+  - Seed/edit terms via `text.vocabulary`; stored in `%APPDATA%\VibeFlow\
+    vocabulary.json`.
+
+### Changed
+- Speech tiers trimmed to **Fast (base)** and **Balanced (small)**; large-v3 was
+  dropped (impractical on CPU — see `benchmarks/asr_results.md`). The "Fast"
+  options (base speech, qwen2.5:1.5b AI) are now marked **recommended**.
+
 ## [1.4.0] — 2026-06-20
 
 ### Added

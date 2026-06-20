@@ -17,6 +17,7 @@ from __future__ import annotations
 import os
 import sys
 import threading
+import time
 
 from . import (
     __app_name__,
@@ -36,6 +37,7 @@ from .output import COPIED, deliver
 from .curate import curate
 from .text import clean_transcript, preview
 from .transcriber import Transcriber, TranscriptionError
+from .vocabulary import Vocabulary
 
 _APP_USER_MODEL_ID = "VibeFlow.Dictation"
 
@@ -73,6 +75,11 @@ class VibeFlowApp:
         self.overlay = overlay_mod.StatusOverlay(
             enabled=bool(self.cfg.get("feedback.overlay", True))
         )
+        self.vocabulary = self._build_vocabulary()
+        self._last_output = None        # what we last produced (for teach-back)
+        self._last_output_ts = 0.0
+        self._clip_last = None
+        self._stopping = False
         self.icon = None  # set in run()
 
     # ------------------------------------------------------------------
@@ -100,6 +107,12 @@ class VibeFlowApp:
             push_to_talk_key=self.cfg.get("hotkey.push_to_talk_key", "ctrl+win"),
             on_start=self.start_recording,
             on_stop=self.stop_recording,
+        )
+
+    def _build_vocabulary(self) -> Vocabulary:
+        return Vocabulary(
+            path=config_mod.config_dir() / "vocabulary.json",
+            seed=self.cfg.get("text.vocabulary", []) or [],
         )
 
     # ------------------------------------------------------------------
@@ -154,7 +167,7 @@ class VibeFlowApp:
                 self._notify(__app_name__, "Recording too short — ignored.")
                 return
 
-            text = self.transcriber.transcribe(audio)
+            text = self.transcriber.transcribe(audio, prompt=self.vocabulary.prompt())
             self._model_ready = True
             text = clean_transcript(
                 text,
@@ -191,6 +204,14 @@ class VibeFlowApp:
                 trailing_space=bool(self.cfg.get("output.trailing_space", True)),
                 auto_fallback=self.cfg.get("output.auto_fallback", "clipboard"),
             )
+            # Remember our output so we can learn from later edits (teach-back),
+            # and learn obvious term-like words now (safe frequency).
+            self._last_output = text.strip()
+            self._last_output_ts = time.time()
+            if bool(self.cfg.get("text.learn_vocabulary", True)):
+                if self.vocabulary.learn_from_text(text):
+                    self.vocabulary.save()
+
             import logging
 
             logging.getLogger("vibeflow").info(
@@ -215,6 +236,47 @@ class VibeFlowApp:
             self.hotkeys.reset_toggle()
             self._set_status("Ready")
             self._refresh()
+
+    # ------------------------------------------------------------------
+    # Teach-back: learn from the user's edits (copied/cut corrected text)
+    # ------------------------------------------------------------------
+    def _clip_watch_loop(self) -> None:
+        try:
+            import pyperclip
+        except Exception:
+            return
+        while not self._stopping:
+            time.sleep(1.2)
+            if not bool(self.cfg.get("text.teach_back", True)):
+                continue
+            try:
+                clip = pyperclip.paste()
+            except Exception:
+                continue
+            if not isinstance(clip, str) or clip == self._clip_last:
+                continue
+            self._clip_last = clip
+            self._maybe_learn_from_clip(clip)
+
+    def _maybe_learn_from_clip(self, clip: str) -> None:
+        out = self._last_output
+        if not out or not clip or clip == out:
+            return
+        if time.time() - self._last_output_ts > 600:  # only within ~10 minutes
+            return
+        if not (5 <= len(clip) <= 5000):
+            return
+        import difflib
+
+        ratio = difflib.SequenceMatcher(None, out, clip).ratio()
+        if not (0.5 <= ratio < 0.999):  # a similar-but-edited version of our output
+            return
+        learned = self.vocabulary.learn_from_correction(out, clip)
+        self._last_output = None  # consume so we don't re-learn the same edit
+        if learned:
+            self.vocabulary.save()
+            terms = list(dict.fromkeys(learned))[:6]
+            self._notify(__app_name__, "Learned from your edit: " + ", ".join(terms))
 
     # ------------------------------------------------------------------
     # Tray UI
@@ -243,6 +305,7 @@ class VibeFlowApp:
         self._refresh()
         self.overlay.start()
         self.hotkeys.start()
+        threading.Thread(target=self._clip_watch_loop, daemon=True).start()
         threading.Thread(target=self._preload_model, daemon=True).start()
 
     def _preload_model(self) -> None:
@@ -358,6 +421,11 @@ class VibeFlowApp:
                 checked=lambda i: bool(self.cfg.get("feedback.overlay", True)),
             ),
             Item(
+                "Learn from my edits",
+                self._toggle_teachback,
+                checked=lambda i: bool(self.cfg.get("text.teach_back", True)),
+            ),
+            Item(
                 "Start with Windows",
                 self._toggle_autostart,
                 checked=lambda i: autostart.is_enabled(),
@@ -383,6 +451,7 @@ class VibeFlowApp:
         self.cfg = config_mod.load_config(self.cfg.path)
         self.recorder = self._build_recorder()
         self.transcriber = self._build_transcriber()
+        self.vocabulary = self._build_vocabulary()
         self._model_ready = False
         self.hotkeys.stop()
         self.hotkeys = self._build_hotkeys()
@@ -413,6 +482,17 @@ class VibeFlowApp:
         self.overlay.set_enabled(enabled)
         if enabled:
             self.overlay.show("info", "VibeFlow · On-screen status on")
+
+    def _toggle_teachback(self, *_args) -> None:
+        enabled = not bool(self.cfg.get("text.teach_back", True))
+        self.cfg.set("text.teach_back", enabled)
+        self._save_config()
+        self._notify(
+            __app_name__,
+            "Will learn from your edits — just cut/copy your corrected text."
+            if enabled
+            else "Stopped learning from your edits.",
+        )
 
     def _set_accuracy(self, size: str) -> None:
         self.cfg.set("model.size", size)
@@ -470,6 +550,11 @@ class VibeFlowApp:
         self._refresh()
 
     def _quit(self, *_args) -> None:
+        self._stopping = True
+        try:
+            self.vocabulary.save()
+        except Exception:
+            pass
         try:
             self.hotkeys.stop()
         except Exception:
