@@ -21,6 +21,7 @@ import threading
 from . import (
     __app_name__,
     __version__,
+    ai_format,
     autostart,
     config as config_mod,
     icons,
@@ -31,6 +32,7 @@ from .audio import AudioError, Recorder
 from .focus_detect import detect_focus
 from .hotkey import HotkeyManager
 from .output import COPIED, deliver
+from .curate import curate
 from .text import clean_transcript, preview
 from .transcriber import Transcriber, TranscriptionError
 
@@ -166,14 +168,32 @@ class VibeFlowApp:
                 self._notify(__app_name__, "No speech detected.")
                 return
 
+            # Stage 4: deterministic offline curation, then optional AI cleanup.
+            text = curate(
+                text,
+                spoken_commands=bool(self.cfg.get("text.spoken_commands", True)),
+                capitalize_sentences=bool(
+                    self.cfg.get("text.capitalize_sentences", True)
+                ),
+            )
+            if ai_format.is_enabled(self.cfg):
+                ai_text = ai_format.format_text(text, self.cfg)
+                if ai_text:
+                    text = ai_text
+
+            focus = detect_focus()
             result = deliver(
                 text,
                 output_mode=self.cfg.get("output.mode", "auto"),
-                focus_state=detect_focus(),
+                focus_state=focus,
                 insertion=self.cfg.get("output.insertion", "paste"),
-                restore_clipboard=bool(self.cfg.get("output.restore_clipboard", True)),
                 trailing_space=bool(self.cfg.get("output.trailing_space", True)),
                 auto_fallback=self.cfg.get("output.auto_fallback", "clipboard"),
+            )
+            import logging
+
+            logging.getLogger("vibeflow").info(
+                "delivered: focus=%s result=%s chars=%d", focus, result, len(text)
             )
             if result == COPIED:
                 self.overlay.show("clipboard")
@@ -291,6 +311,11 @@ class VibeFlowApp:
                 checked=lambda i: bool(self.cfg.get("feedback.overlay", True)),
             ),
             Item(
+                "AI formatting (local LLM)",
+                self._toggle_ai,
+                checked=lambda i: bool(self.cfg.get("ai.enabled", False)),
+            ),
+            Item(
                 "Start with Windows",
                 self._toggle_autostart,
                 checked=lambda i: autostart.is_enabled(),
@@ -346,6 +371,19 @@ class VibeFlowApp:
         self.overlay.set_enabled(enabled)
         if enabled:
             self.overlay.show("info", "VibeFlow · On-screen status on")
+
+    def _toggle_ai(self, *_args) -> None:
+        enabled = not bool(self.cfg.get("ai.enabled", False))
+        self.cfg.set("ai.enabled", enabled)
+        self._save_config()
+        if not enabled:
+            self._notify(__app_name__, "AI formatting off — plain voice-to-text.")
+            return
+        ok, message = ai_format.check(self.cfg)
+        self._notify(
+            "AI formatting ON" if ok else "AI formatting ON (no local LLM yet)",
+            message,
+        )
 
     def _quit(self, *_args) -> None:
         try:

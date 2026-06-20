@@ -49,6 +49,33 @@ def detect_focus() -> str:
 # ---------------------------------------------------------------------------
 # UI Automation
 # ---------------------------------------------------------------------------
+def _prepare_comtypes_gen() -> None:
+    """Point comtypes code generation at a writable folder.
+
+    In a packaged (PyInstaller) build the app directory is read-only, so comtypes
+    cannot write the generated UI Automation wrapper there — which silently broke
+    focus detection and made everything fall back to the clipboard. Writing the
+    wrapper into the per-user app-data folder fixes that.
+    """
+    try:
+        import os
+        import sys
+
+        import comtypes.client
+        import comtypes.gen
+        from .config import config_dir
+
+        gen = str(config_dir() / "comtypes_gen")
+        os.makedirs(gen, exist_ok=True)
+        comtypes.client.gen_dir = gen
+        if gen not in comtypes.gen.__path__:
+            comtypes.gen.__path__.insert(0, gen)
+        if gen not in sys.path:
+            sys.path.insert(0, gen)
+    except Exception:
+        pass
+
+
 def _get_uia():
     """Create (and cache) the UI Automation root object, or return None."""
     if "obj" in _uia_cache:
@@ -56,6 +83,7 @@ def _get_uia():
     try:
         import comtypes.client
 
+        _prepare_comtypes_gen()
         comtypes.client.GetModule("UIAutomationCore.dll")
         from comtypes.gen import UIAutomationClient as UIA  # type: ignore
 

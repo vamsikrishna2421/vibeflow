@@ -95,5 +95,22 @@ feedback:
 # ----------------------------------------------------------------------------
 text:
   strip: true                 # Trim surrounding whitespace.
-  capitalize_first: false     # Capitalise the first letter.
+  capitalize_sentences: true  # Capitalise the start of each sentence (Stage-4 tidy-up).
+  spoken_commands: true       # Say "new line" / "new paragraph" to insert breaks.
+  capitalize_first: false     # Capitalise only the very first letter.
   remove_trailing_period: false  # Drop a trailing '.' (handy for chat apps).
+
+# ----------------------------------------------------------------------------
+#  AI formatting (OPTIONAL) — "voice to text WITH AI".
+#  Off by default = plain, fast voice-to-text. Turn this on to have a LOCAL LLM
+#  clean up and format your dictation. Everything still stays on your computer.
+#  Setup once:  install Ollama (https://ollama.com), then:  ollama pull llama3.2:3b
+#  Test it:     scripts\run.ps1 --check-ai
+# ----------------------------------------------------------------------------
+ai:
+  enabled: false                       # true = use the local LLM to format text
+  provider: ollama                     # ollama (local)
+  endpoint: http://127.0.0.1:11434     # where Ollama is listening
+  model: llama3.2:3b                   # any model you've pulled (e.g. qwen2.5:3b)
+  timeout: 20                          # seconds before giving up (falls back to plain)
+  prompt: ""                          # empty = built-in formatting prompt

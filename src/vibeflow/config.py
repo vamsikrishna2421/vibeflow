@@ -55,8 +55,18 @@ DEFAULTS: dict[str, Any] = {
     },
     "text": {
         "strip": True,
+        "capitalize_sentences": True,   # capitalise the start of each sentence
+        "spoken_commands": True,        # "new line" / "new paragraph" become breaks
         "capitalize_first": False,
         "remove_trailing_period": False,
+    },
+    "ai": {
+        "enabled": False,            # voice-to-text + AI formatting (needs a local LLM)
+        "provider": "ollama",        # ollama (local, runs on your machine)
+        "endpoint": "http://127.0.0.1:11434",
+        "model": "llama3.2:3b",
+        "timeout": 20,
+        "prompt": "",                # empty = use the built-in formatting prompt
     },
 }
 

@@ -4,6 +4,29 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] — 2026-06-19
+
+### Fixed
+- **Packaged app now types into the focused text field (not only the clipboard).**
+  The generated UI Automation wrapper wasn't in the bundle and couldn't be created
+  in the read-only app folder, so focus detection failed and everything fell back
+  to the clipboard. The wrapper is now bundled and code-generation is redirected
+  to a writable folder.
+
+### Changed
+- **Output now always copies to the clipboard *and* pastes into the focused
+  field.** The transcript is always left on your clipboard (paste it anywhere),
+  and additionally inserted into the text box when one is focused.
+
+### Added
+- **Stage 4 — offline text curation** (`curate.py`): capitalises sentences, fixes
+  the lone pronoun "i" → "I", tidies spacing/punctuation, and supports spoken
+  layout commands ("new line", "new paragraph"). Configurable via `text.*`.
+- **Optional local-LLM AI formatting** (`ai_format.py`): set `ai.enabled` (or use
+  the tray "AI formatting (local LLM)" toggle) to have a local **Ollama** model
+  rewrite dictation into clean prose — fully offline, **off by default**, and it
+  silently falls back to plain text if no LLM is available. Test with `--check-ai`.
+
 ## [1.2.0] — 2026-06-19
 
 ### Added

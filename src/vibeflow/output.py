@@ -55,75 +55,56 @@ def deliver(
     output_mode: str,
     focus_state: str,
     insertion: str = "paste",
-    restore_clipboard: bool = True,
     trailing_space: bool = True,
     auto_fallback: str = "clipboard",
+    **_legacy,
 ) -> str:
-    """Route ``text`` to the cursor or the clipboard and report what happened.
+    """Deliver ``text``: always copy to the clipboard, and also paste into the
+    focused field when there is one.
 
-    Returns :data:`TYPED` or :data:`COPIED`.
+    The transcript is *always* placed on the clipboard — guaranteed delivery, and
+    it stays there so you can paste it manually anywhere. If a text field is
+    focused, it is also inserted there. Returns :data:`TYPED` (inserted + copied)
+    or :data:`COPIED` (clipboard only).
     """
     if not text:
         return COPIED
 
+    payload = with_trailing_space(text, trailing_space)
+    copy_to_clipboard(payload)
+
     target = decide_target(output_mode, focus_state, auto_fallback)
     if target == "type":
-        payload = with_trailing_space(text, trailing_space)
-        insert_text(payload, method=insertion, restore_clipboard=restore_clipboard)
+        if insertion == "keystroke":
+            _type_keystrokes(payload)
+        else:
+            _send_paste()
         return TYPED
-
-    copy_to_clipboard(text)
     return COPIED
 
 
 # ---------------------------------------------------------------------------
 # Insertion back-ends
 # ---------------------------------------------------------------------------
-def insert_text(text: str, *, method: str = "paste", restore_clipboard: bool = True) -> None:
-    """Insert ``text`` at the current cursor position."""
-    if method == "keystroke":
-        _type_keystrokes(text)
-    else:
-        _paste_via_clipboard(text, restore=restore_clipboard)
+def _send_paste() -> None:
+    """Send Ctrl+V to paste whatever is currently on the clipboard.
+
+    Pasting is more reliable than simulating each keystroke for long text and
+    Unicode, and it respects the user's keyboard layout / IME.
+    """
+    from pynput.keyboard import Controller, Key
+
+    time.sleep(0.03)  # let the clipboard settle before pasting
+    keyboard = Controller()
+    with keyboard.pressed(Key.ctrl):
+        keyboard.press("v")
+        keyboard.release("v")
 
 
 def copy_to_clipboard(text: str) -> None:
     import pyperclip
 
     pyperclip.copy(text)
-
-
-def _paste_via_clipboard(text: str, *, restore: bool = True) -> None:
-    """Put text on the clipboard and send Ctrl+V, optionally restoring after.
-
-    Pasting is far more reliable than simulating keystrokes for long text and
-    Unicode, and it preserves the user's keyboard layout/IME behaviour.
-    """
-    import pyperclip
-    from pynput.keyboard import Controller, Key
-
-    previous = None
-    if restore:
-        try:
-            previous = pyperclip.paste()
-        except Exception:
-            previous = None
-
-    pyperclip.copy(text)
-    time.sleep(0.03)  # let the clipboard settle before pasting
-
-    keyboard = Controller()
-    with keyboard.pressed(Key.ctrl):
-        keyboard.press("v")
-        keyboard.release("v")
-
-    if restore and previous is not None:
-        # Give the target app a moment to read the clipboard before we restore.
-        time.sleep(0.2)
-        try:
-            pyperclip.copy(previous)
-        except Exception:
-            pass
 
 
 def _type_keystrokes(text: str) -> None:

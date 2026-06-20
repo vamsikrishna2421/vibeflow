@@ -47,6 +47,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--print-config", action="store_true", help="Print effective settings and exit."
     )
+    p.add_argument(
+        "--check-ai",
+        action="store_true",
+        help="Test the local-LLM (AI formatting) connection and exit.",
+    )
     return p
 
 
@@ -73,6 +78,8 @@ def main(argv: list[str] | None = None) -> int:
     cfg = config_mod.load_config(args.config)
     _apply_overrides(cfg, args)
 
+    if args.check_ai:
+        return _check_ai(cfg)
     if args.list_devices:
         return _list_devices()
     if args.print_config:
@@ -103,6 +110,14 @@ def _run(cfg: config_mod.Config) -> int:
     finally:
         instance.release()
     return 0
+
+
+def _check_ai(cfg: config_mod.Config) -> int:
+    from . import ai_format
+
+    ok, message = ai_format.check(cfg)
+    print(("OK: " if ok else "NOT READY: ") + message)
+    return 0 if ok else 1
 
 
 def _list_devices() -> int:
