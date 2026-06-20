@@ -38,6 +38,7 @@ from .output import COPIED, deliver
 from .curate import curate
 from .text import clean_transcript, preview
 from .transcriber import Transcriber, TranscriptionError
+from .persona import Persona
 from .vocabulary import Vocabulary
 
 _APP_USER_MODEL_ID = "VibeFlow.Dictation"
@@ -77,6 +78,7 @@ class VibeFlowApp:
             enabled=bool(self.cfg.get("feedback.overlay", True))
         )
         self.vocabulary = self._build_vocabulary()
+        self.persona = self._build_persona()
         self._last_output = None        # what we last produced (for teach-back)
         self._last_output_ts = 0.0
         self._clip_last = None
@@ -116,6 +118,9 @@ class VibeFlowApp:
             path=config_mod.config_dir() / "vocabulary.json",
             seed=self.cfg.get("text.vocabulary", []) or [],
         )
+
+    def _build_persona(self) -> Persona:
+        return Persona(path=config_mod.config_dir() / "persona.json")
 
     # ------------------------------------------------------------------
     # Recording lifecycle (called from hotkey threads)
@@ -192,8 +197,10 @@ class VibeFlowApp:
                     self.cfg.get("text.capitalize_sentences", True)
                 ),
             )
+            persona_on = bool(self.cfg.get("text.persona", False))
             if ai_format.is_enabled(self.cfg):
-                ai_text = ai_format.format_text(text, self.cfg)
+                profile = self.persona.profile_text() if persona_on else None
+                ai_text = ai_format.format_text(text, self.cfg, persona=profile)
                 if ai_text:
                     text = ai_text
 
@@ -217,6 +224,12 @@ class VibeFlowApp:
             logging.getLogger("vibeflow").info(
                 "delivered: focus=%s result=%s chars=%d", focus, result, len(text)
             )
+            # Persona profiling (opt-in): keep a capped local sample of what you
+            # dictate, and periodically distil a short style profile (background).
+            if persona_on and self.persona.add_sample(text):
+                self.persona.save()
+                if self.persona.needs_profile():
+                    threading.Thread(target=self._profile_worker, daemon=True).start()
             if result == COPIED:
                 self.overlay.show("clipboard")
                 self._notify("Copied to clipboard", preview(text))
@@ -474,6 +487,21 @@ class VibeFlowApp:
                 self._open_vocabulary,
             ),
             Item(
+                "Personalized AI",
+                Menu(
+                    Item(
+                        "Match my writing style",
+                        self._toggle_persona,
+                        checked=lambda i: bool(self.cfg.get("text.persona", False)),
+                    ),
+                    Item(
+                        lambda i: f"View my profile ({len(self.persona.samples)} samples)…",
+                        self._open_persona,
+                    ),
+                    Item("Forget my writing style", self._forget_persona),
+                ),
+            ),
+            Item(
                 "Start with Windows",
                 self._toggle_autostart,
                 checked=lambda i: autostart.is_enabled(),
@@ -500,6 +528,7 @@ class VibeFlowApp:
         self.recorder = self._build_recorder()
         self.transcriber = self._build_transcriber()
         self.vocabulary = self._build_vocabulary()
+        self.persona = self._build_persona()
         self._model_ready = False
         self.hotkeys.stop()
         self.hotkeys = self._build_hotkeys()
@@ -584,6 +613,74 @@ class VibeFlowApp:
             if removed:
                 bits.append(f"{removed} removed")
             self._notify(__app_name__, "Vocabulary updated — " + ", ".join(bits) + ".")
+
+    # -- persona profiling (opt-in) ------------------------------------
+    def _toggle_persona(self, *_args) -> None:
+        enabled = not bool(self.cfg.get("text.persona", False))
+        self.cfg.set("text.persona", enabled)
+        self._save_config()
+        if enabled:
+            self._notify(
+                __app_name__,
+                "Personalized AI on. VibeFlow keeps a small, local sample of your "
+                "dictation and learns your domain & tone to format text more like "
+                "you. Works with AI formatting; nothing leaves your PC. View or "
+                "clear it anytime in the tray.",
+            )
+        else:
+            self._notify(__app_name__, "Personalized AI off.")
+        self._refresh()
+
+    def _profile_worker(self) -> None:
+        try:
+            profile = ai_format.build_persona_profile(
+                self.persona.sample_texts(), self.cfg
+            )
+        except Exception:
+            profile = None
+        if profile:
+            self.persona.set_profile(profile)
+            self.persona.save()
+            logging.getLogger("vibeflow").info(
+                "persona profile updated (%d chars, %d samples)",
+                len(profile),
+                len(self.persona.samples),
+            )
+            self._notify(
+                __app_name__, "Updated your writing profile from recent dictation."
+            )
+
+    def _open_persona(self, *_args) -> None:
+        path = config_mod.config_dir() / "my_writing_profile.txt"
+        profile = self.persona.profile_text() or (
+            "(Not enough dictation yet — keep using VibeFlow and it will learn "
+            "your style.)"
+        )
+        body = (
+            "# VibeFlow — your writing profile\n"
+            "#\n"
+            "# What VibeFlow has learned about your domain and tone from your\n"
+            "# recent dictation. Used (only when 'Match my writing style' AND AI\n"
+            "# formatting are on) to format text more like you. Local to this PC.\n"
+            "# To reset it, choose 'Forget my writing style' in the tray.\n"
+            "# ------------------------------------------------------------------\n\n"
+            f"{profile}\n\n"
+            f"(based on {len(self.persona.samples)} recent dictations)\n"
+        )
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(body, encoding="utf-8")
+        except Exception:
+            return
+        self._open_path(str(path))
+
+    def _forget_persona(self, *_args) -> None:
+        self.persona.clear()
+        self.persona.save()
+        self._notify(
+            __app_name__, "Forgot your writing profile. It will rebuild as you dictate."
+        )
+        self._refresh()
 
     def _toggle_ai_learning(self, *_args) -> None:
         """Opt in/out of AI-powered background learning (a local LLM picks the

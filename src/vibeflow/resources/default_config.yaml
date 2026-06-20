@@ -110,6 +110,12 @@ text:
   # Turn on via the tray "Adaptive learning (AI)" toggle or the installer checkbox.
   ai_learning: false
   teach_back_model: qwen2.5:3b  # model used for term extraction (3b is the sweet spot)
+  # OPT-IN: personalize AI formatting to your style. VibeFlow keeps a small,
+  # capped, LOCAL sample of your recent dictation and periodically distils a
+  # short profile (your domain/sector and tone) that nudges the AI formatter to
+  # write more like you. Needs AI formatting on. View/clear it from the tray
+  # ("Personalized AI"). Nothing leaves your computer.
+  persona: false
 
 # ----------------------------------------------------------------------------
 #  AI formatting (OPTIONAL) — "voice to text WITH AI".

@@ -4,6 +4,23 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.6.0] — 2026-06-20
+
+### Added
+- **Personalized AI formatting (opt-in).** VibeFlow can learn your domain and
+  tone from your own dictation and format text more like *you*. A local LLM
+  periodically distils a short profile (e.g. *"DevOps/cloud background;
+  professional, concise; uses terms like kubectl, Postgres"*) which is fed to the
+  AI formatter so it keeps your voice and terminology. Turn it on under the tray
+  "Personalized AI ▸ Match my writing style"; view it ("View my profile…") or
+  reset it ("Forget my writing style") anytime.
+  - **Private by design:** only a small, capped rolling window of recent
+    transcripts is kept locally (`%APPDATA%\VibeFlow\persona.json`); nothing is
+    uploaded, and the profile is regenerated on-device. Off by default; works
+    alongside AI formatting.
+  - New `persona.py` (sample window + profile state) and
+    `ai_format.build_persona_profile`; config key `text.persona`.
+
 ## [1.5.3] — 2026-06-20
 
 ### Added

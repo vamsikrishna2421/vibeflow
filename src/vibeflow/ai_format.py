@@ -34,25 +34,34 @@ def is_enabled(cfg) -> bool:
     return bool(cfg.get("ai.enabled", False))
 
 
-def format_text(text: str, cfg) -> str | None:
-    """Return an AI-formatted version of ``text``, or ``None`` to fall back."""
+def format_text(text: str, cfg, persona: str | None = None) -> str | None:
+    """Return an AI-formatted version of ``text``, or ``None`` to fall back.
+
+    When ``persona`` (a short profile of the user's domain/tone) is given, the
+    formatter is nudged to keep the output in the user's voice.
+    """
     if not text or not is_enabled(cfg):
         return None
     provider = str(cfg.get("ai.provider", "ollama")).lower()
     try:
         if provider == "ollama":
-            return _ollama_generate(text, cfg)
+            return _ollama_generate(text, cfg, persona=persona)
         return None
     except Exception as exc:  # never break dictation because of AI
         _warn(f"AI formatting unavailable ({exc}); using plain transcript")
         return None
 
 
-def _ollama_generate(text: str, cfg) -> str | None:
+def _ollama_generate(text: str, cfg, persona: str | None = None) -> str | None:
     endpoint = str(cfg.get("ai.endpoint", DEFAULT_ENDPOINT)).rstrip("/")
     model = str(cfg.get("ai.model", DEFAULT_MODEL))
     timeout = float(cfg.get("ai.timeout", 20))
     prompt = (cfg.get("ai.prompt") or "").strip() or _DEFAULT_PROMPT
+    if persona and persona.strip():
+        prompt = (
+            f"{prompt}\n\nContext about the author (match their voice and "
+            f"terminology, do not mention this context): {persona.strip()}"
+        )
 
     payload = {
         "model": model,
@@ -63,6 +72,49 @@ def _ollama_generate(text: str, cfg) -> str | None:
     body = _post_json(f"{endpoint}/api/generate", payload, timeout)
     result = (body.get("response") or "").strip()
     return result or None
+
+
+_PERSONA_PROMPT = (
+    "Below are short samples of one person's dictated text. In 2-3 sentences, "
+    "describe their professional domain or sector, the kind of content they "
+    "usually produce, and their tone and style. Be specific and concise. Start "
+    "with 'The user'. Do NOT quote or list the samples back.\n\n"
+    "Samples:\n{samples}\n\nProfile:"
+)
+
+
+def build_persona_profile(samples, cfg, timeout: float | None = None):
+    """Summarise the user's dictation samples into a short style profile.
+
+    Returns a profile string, or ``None`` when no local LLM is reachable or
+    there isn't enough material. Never raises. Uses the more accurate extraction
+    model (qwen2.5:3b when present) since this is a background task.
+    """
+    texts = [s for s in (samples or []) if s and s.strip()]
+    if len(texts) < 3:
+        return None
+    endpoint = str(cfg.get("ai.endpoint", DEFAULT_ENDPOINT)).rstrip("/")
+    model = _pick_extract_model(cfg)
+    if not model:
+        return None
+    t = float(timeout if timeout is not None else cfg.get("ai.teach_back_timeout", 30))
+    joined = "\n".join(f"- {s.strip()}" for s in texts[-30:])
+    payload = {
+        "model": model,
+        "prompt": _PERSONA_PROMPT.format(samples=joined),
+        "stream": False,
+        "options": {"temperature": 0.3},
+    }
+    try:
+        body = _post_json(f"{endpoint}/api/generate", payload, t)
+    except Exception as exc:
+        _warn(f"persona profiling unavailable ({exc})")
+        return None
+    profile = (body.get("response") or "").strip()
+    # Keep it short and clean (defensive against a chatty model).
+    if not profile:
+        return None
+    return profile[:600]
 
 
 # ---------------------------------------------------------------------------
