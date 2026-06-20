@@ -1,7 +1,18 @@
 """Tests for the output routing decision (type vs clipboard)."""
 
-from vibeflow.focus_detect import EDITABLE, NON_EDITABLE, UNKNOWN
+from vibeflow.focus_detect import EDITABLE, NON_EDITABLE, UNKNOWN, _class_is_terminal
 from vibeflow.output import decide_target
+
+
+def test_terminal_window_classes_are_typeable():
+    # Terminals/consoles accept pasted input -> treated as typeable.
+    assert _class_is_terminal("CASCADIA_HOSTING_WINDOW_CLASS")   # Windows Terminal
+    assert _class_is_terminal("ConsoleWindowClass")              # cmd / PowerShell
+    assert _class_is_terminal("PseudoConsoleWindow")
+    # Ordinary windows are not terminals.
+    assert not _class_is_terminal("Chrome_WidgetWin_1")
+    assert not _class_is_terminal("Notepad")
+    assert not _class_is_terminal("")
 
 
 def test_explicit_type_always_types():

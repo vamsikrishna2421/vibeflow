@@ -4,6 +4,22 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.5.3] — 2026-06-20
+
+### Added
+- **See and prune your vocabulary.** The tray menu now has
+  "My vocabulary (N words)…" — it opens a clean, editable list of every word
+  VibeFlow has learned. Delete a line to make it forget a word, add your own
+  words to teach them directly, then save; changes apply automatically (no
+  restart). Stored at `%APPDATA%\VibeFlow\my_vocabulary.txt`.
+
+### Fixed
+- **Dictation now types into terminals/consoles** — Windows Terminal,
+  PowerShell/cmd, and CLI tools running in them. Terminals accept pasted input
+  but don't expose an editable UI Automation field, so VibeFlow had been falling
+  back to clipboard-only there (you had to paste manually). They're now detected
+  by window class and typed into directly, like any other text field.
+
 ## [1.5.2] — 2026-06-20
 
 ### Fixed

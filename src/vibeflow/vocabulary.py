@@ -27,6 +27,18 @@ from pathlib import Path
 _WORD = re.compile(r"[A-Za-z][A-Za-z0-9'._\-]*")
 MAX_TERMS = 60  # cap for the initial_prompt (Whisper prompt budget is limited)
 
+# Header for the friendly, user-editable word list (see write_wordlist).
+WORDLIST_HEADER = (
+    "# VibeFlow vocabulary — the words it has learned to spell from your speech.\n"
+    "#\n"
+    "#   - Delete a line (then save) to make VibeFlow FORGET that word.\n"
+    "#   - Add your own words, one per line, to TEACH them directly.\n"
+    "#   - Just save and close — your changes apply automatically.\n"
+    "#\n"
+    "# Lines starting with '#' and blank lines are ignored.\n"
+    "# ---------------------------------------------------------------------\n"
+)
+
 # Ordinary function words we must never learn as "vocabulary" (they would just
 # waste the prompt budget and bias Whisper toward noise).
 _STOPWORDS = frozenset(
@@ -101,6 +113,54 @@ class Vocabulary:
             )
         except Exception:
             pass
+
+    # -- viewing / pruning (user-friendly) -----------------------------
+    def list_terms(self) -> list:
+        """All learned display terms, sorted case-insensitively."""
+        return sorted((e["term"] for e in self.terms.values()), key=str.lower)
+
+    def remove(self, term: str) -> bool:
+        """Forget a single term. Returns True if it was present."""
+        key = (term or "").strip().lower()
+        if key in self.terms:
+            del self.terms[key]
+            return True
+        return False
+
+    def write_wordlist(self, path) -> Path:
+        """Write a friendly, editable word list (one term per line)."""
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        body = "\n".join(self.list_terms())
+        path.write_text(WORDLIST_HEADER + body + "\n", encoding="utf-8")
+        return path
+
+    def sync_from_wordlist(self, path) -> tuple:
+        """Reconcile the vocabulary with a user-edited word list.
+
+        Words the user removed from the file are forgotten; words they added are
+        learned (weight 5). Returns ``(added, removed)``. Existing words keep
+        their learned weight. Comments (``#``) and blank lines are ignored.
+        """
+        path = Path(path)
+        if not path.exists():
+            return (0, 0)
+        wanted = []
+        for line in path.read_text(encoding="utf-8").splitlines():
+            s = line.strip()
+            if s and not s.startswith("#"):
+                wanted.append(s)
+        wanted_keys = {w.lower() for w in wanted}
+        removed = 0
+        for key in list(self.terms.keys()):
+            if key not in wanted_keys:
+                del self.terms[key]
+                removed += 1
+        added = 0
+        for w in wanted:
+            if w.lower() not in self.terms and self.add(w, weight=5):
+                added += 1
+        return (added, removed)
 
     # -- learning ------------------------------------------------------
     def add(self, term: str, weight: int = 1) -> bool:

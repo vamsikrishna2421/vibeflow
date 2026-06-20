@@ -92,6 +92,35 @@ def test_learn_from_text_is_conservative():
     assert "today" not in prompt
 
 
+def test_remove_and_list_terms():
+    v = Vocabulary()
+    v.add("Kubernetes", 5)
+    v.add("Grafana", 4)
+    assert v.list_terms() == ["Grafana", "Kubernetes"]   # sorted, case-insensitive
+    assert v.remove("kubernetes") is True                # case-insensitive
+    assert v.remove("nope") is False
+    assert v.list_terms() == ["Grafana"]
+
+
+def test_wordlist_roundtrip_and_edits(tmp_path):
+    v = Vocabulary()
+    for t in ("Kubernetes", "Grafana", "Atlan"):
+        v.add(t, 4)
+    wl = tmp_path / "my_vocabulary.txt"
+    v.write_wordlist(wl)
+    content = wl.read_text(encoding="utf-8")
+    assert "Kubernetes" in content and content.startswith("#")  # has header + terms
+
+    # User deletes "Atlan", adds "ArgoCD", keeps the rest.
+    kept = [ln for ln in content.splitlines() if ln and not ln.startswith("#") and ln != "Atlan"]
+    wl.write_text("\n".join(["# header"] + kept + ["ArgoCD"]) + "\n", encoding="utf-8")
+    added, removed = v.sync_from_wordlist(wl)
+    assert added == 1 and removed == 1
+    terms = set(v.list_terms())
+    assert "ArgoCD" in terms and "Atlan" not in terms
+    assert "Kubernetes" in terms and "Grafana" in terms
+
+
 def test_empty():
     v = Vocabulary()
     assert v.prompt() == ""

@@ -35,11 +35,47 @@ _UIA_TEXT_PATTERN = 10014
 
 _uia_cache: dict = {}
 
+# Window classes for terminals/consoles. These accept pasted input (Ctrl+V) but
+# do NOT expose an editable UI Automation text field, so UIA reports them as
+# non-editable and dictation wrongly fell back to clipboard-only. We detect them
+# by window class and treat them as typeable.
+_TERMINAL_CLASSES = (
+    "cascadia_hosting_window_class",  # Windows Terminal
+    "consolewindowclass",             # classic console host (cmd, PowerShell, conhost)
+    "pseudoconsolewindow",            # pseudo-console
+    "windowsterminal",
+)
+
+
+def _class_is_terminal(cls: str) -> bool:
+    cls = (cls or "").lower()
+    return any(k in cls for k in _TERMINAL_CLASSES)
+
+
+def _foreground_is_terminal() -> bool:
+    """True if the foreground window is a terminal/console."""
+    try:
+        import ctypes
+
+        user32 = ctypes.windll.user32
+        hwnd = user32.GetForegroundWindow()
+        if not hwnd:
+            return False
+        buf = ctypes.create_unicode_buffer(256)
+        user32.GetClassNameW(hwnd, buf, 256)
+        return _class_is_terminal(buf.value or "")
+    except Exception:
+        return False
+
 
 def detect_focus() -> str:
     """Return :data:`EDITABLE`, :data:`NON_EDITABLE`, or :data:`UNKNOWN`."""
     if sys.platform != "win32":
         return UNKNOWN
+    # Terminals accept pasted input but don't expose an editable UIA field, so
+    # check for them first and treat them as typeable.
+    if _foreground_is_terminal():
+        return EDITABLE
     state = _detect_uia()
     if state != UNKNOWN:
         return state

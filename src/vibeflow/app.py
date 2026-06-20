@@ -81,6 +81,7 @@ class VibeFlowApp:
         self._last_output_ts = 0.0
         self._clip_last = None
         self._stopping = False
+        self._vocab_wordlist_mtime = None  # set when the user opens the word list
         self.icon = None  # set in run()
 
     # ------------------------------------------------------------------
@@ -246,6 +247,7 @@ class VibeFlowApp:
             return
         while not self._stopping:
             time.sleep(1.2)
+            self._maybe_apply_vocab_edits()
             if not bool(self.cfg.get("text.teach_back", True)):
                 continue
             try:
@@ -468,6 +470,10 @@ class VibeFlowApp:
                 checked=lambda i: bool(self.cfg.get("text.ai_learning", False)),
             ),
             Item(
+                lambda i: f"My vocabulary ({len(self.vocabulary.terms)} words)…",
+                self._open_vocabulary,
+            ),
+            Item(
                 "Start with Windows",
                 self._toggle_autostart,
                 checked=lambda i: autostart.is_enabled(),
@@ -535,6 +541,49 @@ class VibeFlowApp:
             if enabled
             else "Stopped learning from your edits.",
         )
+
+    # -- vocabulary viewing / pruning ----------------------------------
+    def _vocab_wordlist_path(self):
+        return config_mod.config_dir() / "my_vocabulary.txt"
+
+    def _open_vocabulary(self, *_args) -> None:
+        """Write the learned words to a friendly, editable list and open it."""
+        path = self._vocab_wordlist_path()
+        try:
+            self.vocabulary.write_wordlist(path)
+            # Baseline the mtime so writing it now isn't seen as a user edit;
+            # only the user's subsequent save will trigger a reconcile.
+            self._vocab_wordlist_mtime = path.stat().st_mtime
+        except Exception:
+            self._vocab_wordlist_mtime = None
+        self._open_path(str(path))
+
+    def _maybe_apply_vocab_edits(self) -> None:
+        """Apply the user's edits to the word list (delete/add words) when they
+        save it. Watched from the clipboard loop; only active after the user has
+        opened the list this session."""
+        if self._vocab_wordlist_mtime is None:
+            return
+        path = self._vocab_wordlist_path()
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            return
+        if mtime == self._vocab_wordlist_mtime:
+            return
+        self._vocab_wordlist_mtime = mtime
+        try:
+            added, removed = self.vocabulary.sync_from_wordlist(path)
+        except Exception:
+            return
+        if added or removed:
+            self.vocabulary.save()
+            bits = []
+            if added:
+                bits.append(f"{added} added")
+            if removed:
+                bits.append(f"{removed} removed")
+            self._notify(__app_name__, "Vocabulary updated — " + ", ".join(bits) + ".")
 
     def _toggle_ai_learning(self, *_args) -> None:
         """Opt in/out of AI-powered background learning (a local LLM picks the
