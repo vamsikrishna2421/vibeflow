@@ -4,6 +4,16 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.6.1] — 2026-06-20
+
+### Fixed
+- **The AI-formatting tray menu now updates immediately.** Picking a model tier
+  really did turn AI formatting on (and saved it), but the menu kept showing
+  "Off" because the tray menu wasn't being redrawn after the change — so it
+  looked like the choice reverted. The menu is now refreshed (`update_menu()`)
+  whenever settings change, so the selected AI tier and the other toggles always
+  show their true state. Also added AI-setup logging for easier diagnosis.
+
 ## [1.6.0] — 2026-06-20
 
 ### Added

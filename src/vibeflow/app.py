@@ -515,6 +515,7 @@ class VibeFlowApp:
         self.cfg.set("output.mode", mode)
         self._save_config()
         self._notify(__app_name__, f"Output set to '{mode}'.")
+        self._refresh()
 
     def _open_config(self, *_args) -> None:
         path = config_mod.ensure_user_config()
@@ -559,6 +560,7 @@ class VibeFlowApp:
         self.overlay.set_enabled(enabled)
         if enabled:
             self.overlay.show("info", "VibeFlow · On-screen status on")
+        self._refresh()
 
     def _toggle_teachback(self, *_args) -> None:
         enabled = not bool(self.cfg.get("text.teach_back", True))
@@ -570,6 +572,7 @@ class VibeFlowApp:
             if enabled
             else "Stopped learning from your edits.",
         )
+        self._refresh()
 
     # -- vocabulary viewing / pruning ----------------------------------
     def _vocab_wordlist_path(self):
@@ -805,6 +808,9 @@ class VibeFlowApp:
             self._refresh()
 
         ok, message = ai_setup.setup(model, progress=progress)
+        logging.getLogger("vibeflow").info(
+            "AI setup: model=%s ok=%s msg=%s", model, ok, message
+        )
         if ok:
             self.cfg.set("ai.enabled", True)
             self.cfg.set("ai.model", model)
@@ -867,6 +873,12 @@ class VibeFlowApp:
         try:
             self.icon.icon = icons.make_tray_image(self._state_name())
             self.icon.title = self._tooltip()
+        except Exception:
+            pass
+        # Re-render the menu so radio/checkbox state (e.g. the selected AI tier)
+        # reflects the current config instead of a stale value from startup.
+        try:
+            self.icon.update_menu()
         except Exception:
             pass
 
