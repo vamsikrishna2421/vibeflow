@@ -48,6 +48,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--print-config", action="store_true", help="Print effective settings and exit."
     )
     p.add_argument(
+        "--vocab-manager",
+        action="store_true",
+        help="Open the interactive vocabulary manager window and exit.",
+    )
+    p.add_argument(
         "--check-ai",
         action="store_true",
         help="Test the local-LLM (AI formatting) connection and exit.",
@@ -87,6 +92,10 @@ def main(argv: list[str] | None = None) -> int:
     cfg = config_mod.load_config(args.config)
     _apply_overrides(cfg, args)
 
+    if args.vocab_manager:
+        from .vocab_window import run as run_vocab_manager
+
+        return run_vocab_manager(str(config_mod.config_dir() / "vocabulary.json"))
     if args.check_ai:
         return _check_ai(cfg)
     if args.setup_ai:

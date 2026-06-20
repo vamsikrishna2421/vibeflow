@@ -89,6 +89,7 @@ class Vocabulary:
         self.path = Path(path) if path else None
         self.terms: dict = {}  # lowercase key -> {"term": display, "w": int, "t": ts}
         self._load()
+        self._mtime = self._file_mtime()
         for term in seed or []:
             self.add(term, weight=5)
 
@@ -111,8 +112,26 @@ class Vocabulary:
                 json.dumps({"terms": self.terms}, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
+            self._mtime = self._file_mtime()
         except Exception:
             pass
+
+    def _file_mtime(self):
+        try:
+            return self.path.stat().st_mtime if self.path and self.path.exists() else None
+        except Exception:
+            return None
+
+    def reload_if_changed(self) -> bool:
+        """Re-read the store if the file changed underneath us (e.g. the
+        vocabulary manager window deleted some words). Returns True if reloaded.
+        """
+        m = self._file_mtime()
+        if m is not None and m != self._mtime:
+            self._load()
+            self._mtime = m
+            return True
+        return False
 
     # -- viewing / pruning (user-friendly) -----------------------------
     def list_terms(self) -> list:

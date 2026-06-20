@@ -197,7 +197,7 @@ class VibeFlowApp:
                     self.cfg.get("text.capitalize_sentences", True)
                 ),
             )
-            persona_on = bool(self.cfg.get("text.persona", False))
+            persona_on = bool(self.cfg.get("text.persona", True))
             if ai_format.is_enabled(self.cfg):
                 profile = self.persona.profile_text() if persona_on else None
                 ai_text = ai_format.format_text(text, self.cfg, persona=profile)
@@ -261,6 +261,7 @@ class VibeFlowApp:
         while not self._stopping:
             time.sleep(1.2)
             self._maybe_apply_vocab_edits()
+            self.vocabulary.reload_if_changed()  # pick up manager-window deletes
             if not bool(self.cfg.get("text.teach_back", True)):
                 continue
             try:
@@ -492,7 +493,7 @@ class VibeFlowApp:
                     Item(
                         "Match my writing style",
                         self._toggle_persona,
-                        checked=lambda i: bool(self.cfg.get("text.persona", False)),
+                        checked=lambda i: bool(self.cfg.get("text.persona", True)),
                     ),
                     Item(
                         lambda i: f"View my profile ({len(self.persona.samples)} samples)…",
@@ -579,7 +580,10 @@ class VibeFlowApp:
         return config_mod.config_dir() / "my_vocabulary.txt"
 
     def _open_vocabulary(self, *_args) -> None:
-        """Write the learned words to a friendly, editable list and open it."""
+        """Open the interactive vocabulary manager window. Falls back to a
+        plain editable text list if the window can't be launched."""
+        if self._launch_vocab_manager():
+            return
         path = self._vocab_wordlist_path()
         try:
             self.vocabulary.write_wordlist(path)
@@ -589,6 +593,21 @@ class VibeFlowApp:
         except Exception:
             self._vocab_wordlist_mtime = None
         self._open_path(str(path))
+
+    def _launch_vocab_manager(self) -> bool:
+        import subprocess
+
+        try:
+            if getattr(sys, "frozen", False):
+                args = [sys.executable, "--vocab-manager"]
+            else:
+                args = [sys.executable, "-m", "vibeflow", "--vocab-manager"]
+            subprocess.Popen(
+                args, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
+            )
+            return True
+        except Exception:
+            return False
 
     def _maybe_apply_vocab_edits(self) -> None:
         """Apply the user's edits to the word list (delete/add words) when they
@@ -619,7 +638,7 @@ class VibeFlowApp:
 
     # -- persona profiling (opt-in) ------------------------------------
     def _toggle_persona(self, *_args) -> None:
-        enabled = not bool(self.cfg.get("text.persona", False))
+        enabled = not bool(self.cfg.get("text.persona", True))
         self.cfg.set("text.persona", enabled)
         self._save_config()
         if enabled:

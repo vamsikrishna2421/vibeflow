@@ -4,6 +4,24 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.6.2] — 2026-06-20
+
+### Added
+- **Interactive vocabulary window.** Tray → "My vocabulary…" now opens a real
+  window with a checkbox per learned word — tick the ones to forget and click
+  **Delete selected** (or **Add word…** to teach one directly). It runs as its
+  own lightweight process so it never disturbs the tray app or your hotkey, and
+  the running app applies the changes immediately. (The editable text-file list
+  remains as an automatic fallback.)
+
+### Changed
+- **Personalized AI is ON by default.** Learning your style is a core VibeFlow
+  feature, so it's enabled out of the box — it quietly builds a small, **local**
+  profile of your domain and tone from your dictation and personalizes
+  AI-formatted output. It's still a simple on/off in the tray ("Personalized AI
+  ▸ Match my writing style"); turn it off anytime, and view or clear what it
+  learned.
+
 ## [1.6.1] — 2026-06-20
 
 ### Fixed
