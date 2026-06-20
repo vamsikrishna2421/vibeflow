@@ -4,6 +4,17 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.4.2] — 2026-06-20
+
+### Fixed
+- **Teach-back now actually fires and learns correctly.** Two bugs: (1) the
+  clipboard watcher cleared the remembered "last output" the moment it saw
+  VibeFlow's own copy, so your correction had nothing to diff against; (2) the
+  "safe frequency" learner read the *raw* transcript and therefore learned the
+  *mistakes* (e.g. "CubeCTL") and biased Whisper toward them. The vocabulary now
+  grows **only** from your verified corrections (teach-back) — never from raw
+  output — and teach-back attempts are logged for transparency.
+
 ## [1.4.1] — 2026-06-20
 
 ### Added

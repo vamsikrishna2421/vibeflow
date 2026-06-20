@@ -101,8 +101,7 @@ text:
   remove_trailing_period: false  # Drop a trailing '.' (handy for chat apps).
 
   # Adaptive vocabulary — learns your names/jargon so they transcribe correctly.
-  vocabulary: []              # seed terms, e.g. [Kubernetes, kubectl, Acme]; auto-grows.
-  learn_vocabulary: true      # learn term-like words from your dictations.
+  vocabulary: []              # seed terms, e.g. [Kubernetes, kubectl, Acme]; grows as you teach it.
   teach_back: true            # learn from your edits: just cut/copy the corrected text.
 
 # ----------------------------------------------------------------------------

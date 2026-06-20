@@ -204,13 +204,11 @@ class VibeFlowApp:
                 trailing_space=bool(self.cfg.get("output.trailing_space", True)),
                 auto_fallback=self.cfg.get("output.auto_fallback", "clipboard"),
             )
-            # Remember our output so we can learn from later edits (teach-back),
-            # and learn obvious term-like words now (safe frequency).
+            # Remember our output so we can learn from your later edits
+            # (teach-back). We deliberately do NOT learn from this raw output —
+            # it may contain mistakes, and we must never bias toward those.
             self._last_output = text.strip()
             self._last_output_ts = time.time()
-            if bool(self.cfg.get("text.learn_vocabulary", True)):
-                if self.vocabulary.learn_from_text(text):
-                    self.vocabulary.save()
 
             import logging
 
@@ -272,8 +270,13 @@ class VibeFlowApp:
         if not (0.5 <= ratio < 0.999):  # a similar-but-edited version of our output
             return
         learned = self.vocabulary.learn_from_correction(out, clip)
-        self._last_output = None  # consume so we don't re-learn the same edit
+        import logging
+
+        logging.getLogger("vibeflow").info(
+            "teach-back: ratio=%.2f learned=%s", ratio, learned
+        )
         if learned:
+            self._last_output = None  # consume only after we actually learned
             self.vocabulary.save()
             terms = list(dict.fromkeys(learned))[:6]
             self._notify(__app_name__, "Learned from your edit: " + ", ".join(terms))
