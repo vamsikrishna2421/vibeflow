@@ -4,6 +4,18 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.8.3] — 2026-06-20
+
+### Fixed
+- **Auto-update reliably loads the speech model (real fix).** 1.8.2's retry was
+  too short *and* too slow: right after a silent update, antivirus rescans the
+  ~hundreds-of-MB model file for ~10s, and each retry wastefully fell through to
+  a network reload, so only ~5 attempts fit in ~9s — about a second short, and
+  the model stayed unloaded until a manual restart. The retry is now **offline-
+  only** (each attempt is a fast local open, no network) and polls for up to
+  **45 s**, comfortably outlasting the lock. The tray shows "Loading model…" and
+  recovers on its own — no restart needed.
+
 ## [1.8.2] — 2026-06-20
 
 ### Fixed

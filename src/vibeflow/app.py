@@ -430,6 +430,8 @@ class VibeFlowApp:
     def _preload_model(self) -> None:
         try:
             if not self._model_cached():
+                # First-ever run: the model isn't on disk yet. Download it (needs
+                # internet, and there is no file to be locked, so no retry).
                 self._set_status("Downloading speech model…")
                 self._refresh()
                 self._notify(
@@ -438,23 +440,34 @@ class VibeFlowApp:
                     "happens once and needs internet — after that VibeFlow runs "
                     "fully offline.",
                 )
-            # Retry the load: right after an auto-update relaunch, the
-            # just-closed previous instance may still hold the model file open
-            # for a moment (sharing violation). The file frees within ~1-2s.
-            last_err = None
-            for attempt in range(5):
-                try:
-                    self.transcriber.load()
-                    last_err = None
-                    break
-                except Exception as exc:  # noqa: BLE001
-                    last_err = exc
-                    if attempt < 4:
+                self.transcriber.load()
+            else:
+                # Cached model: load offline-only, but retry over a generous
+                # window. Right after a silent auto-update relaunch, model.bin
+                # (hundreds of MB) is locked for ~10s while antivirus rescans it
+                # (and the just-closed previous instance releases its handle).
+                # Each offline open is fast (no network), so we poll every ~2s
+                # for up to ~45s — comfortably outlasting that lock — instead of
+                # the old 5×1.5s window that ran out ~1s too soon.
+                deadline = time.monotonic() + 45.0
+                last_err = None
+                while True:
+                    try:
+                        self.transcriber.load(allow_download=False)
+                        last_err = None
+                        break
+                    except Exception as exc:  # noqa: BLE001
+                        last_err = exc
+                        if time.monotonic() >= deadline:
+                            break
                         self._set_status("Loading model…")
                         self._refresh()
-                        time.sleep(1.5)
-            if last_err is not None:
-                raise last_err
+                        time.sleep(2.0)
+                if last_err is not None:
+                    # Offline path never recovered. As a last resort allow a
+                    # network reload once — covers a genuinely incomplete/corrupt
+                    # cache (not a lock), and surfaces a clear error if offline.
+                    self.transcriber.load(allow_download=True)
             self._model_ready = True
             self._set_status("Ready")
             logging.getLogger("vibeflow").info(

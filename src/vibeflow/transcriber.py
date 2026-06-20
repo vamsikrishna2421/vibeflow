@@ -41,8 +41,13 @@ class Transcriber:
     def is_loaded(self) -> bool:
         return self._model is not None
 
-    def load(self) -> None:
-        """Load the model into memory (downloading it on first ever use)."""
+    def load(self, allow_download: bool = True) -> None:
+        """Load the model into memory (downloading it on first ever use).
+
+        ``allow_download=False`` forces a pure offline open and never touches the
+        network: used when retrying a model that is already cached but briefly
+        locked (e.g. antivirus scanning model.bin right after an auto-update).
+        """
         if self._model is not None:
             return
         try:
@@ -74,6 +79,12 @@ class Transcriber:
             try:
                 self._model = WhisperModel(self.size, local_files_only=True, **common)
             except Exception:
+                # The caller is retrying a *cached* model that is momentarily
+                # locked (antivirus scan after an update); a slow network
+                # fallback on every attempt would burn the retry budget, so
+                # re-raise and let the caller retry the fast offline path.
+                if not allow_download:
+                    raise
                 self._model = WhisperModel(self.size, local_files_only=False, **common)
         except Exception as exc:
             raise TranscriptionError(
