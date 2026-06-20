@@ -4,6 +4,20 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.5.2] — 2026-06-20
+
+### Fixed
+- **Push-to-talk no longer mis-fires on plain Ctrl (e.g. Ctrl+C).** The Windows
+  key often swallows its own key-release (it opens the Start menu), so `Win` got
+  "stuck" in the internally-tracked held-keys set — after which any lone Ctrl
+  press satisfied the Ctrl+Win combo and started a phantom recording ("Listening
+  → Transcribing → no words found"). Those phantom recordings also hijacked the
+  on-screen overlay, hiding the "Learned" confirmation. Push-to-talk now asks
+  the OS for the **real, physical** key state (`GetAsyncKeyState`) at trigger
+  time instead of trusting the tracked set, so a stuck/missed release can't
+  cause a false trigger. With the phantom recordings gone, the "Learning…/
+  Learned" pills display reliably.
+
 ## [1.5.1] — 2026-06-20
 
 ### Fixed

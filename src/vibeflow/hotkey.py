@@ -13,6 +13,7 @@ are pure and unit-tested. ``pynput`` is imported lazily inside :meth:`start`.
 
 from __future__ import annotations
 
+import os
 import re
 from typing import Callable
 
@@ -107,6 +108,42 @@ def _matches(key, target: str) -> bool:
     return False
 
 
+# Virtual-key codes for the modifier families (Windows). The Windows key has a
+# left and a right variant.
+_VK_MODIFIERS = {
+    "ctrl": (0x11,),   # VK_CONTROL
+    "alt": (0x12,),    # VK_MENU
+    "shift": (0x10,),  # VK_SHIFT
+    "cmd": (0x5B, 0x5C),  # VK_LWIN, VK_RWIN
+}
+
+
+def _os_modifier_down(target: str):
+    """Is this modifier *physically* pressed right now, per the OS?
+
+    Returns True/False on Windows for a known modifier family, or ``None`` when
+    we can't tell (non-Windows, a non-modifier key, or the API is unavailable) —
+    in which case callers fall back to the event-tracked ``held`` set.
+
+    This is the authority for triggering push-to-talk: pynput can miss a
+    key-release (the Windows key often swallows its own release when it opens the
+    Start menu), leaving a modifier "stuck" in the tracked set and mis-firing on
+    the next plain Ctrl press (e.g. Ctrl+C). Asking the OS avoids that entirely.
+    """
+    if os.name != "nt":
+        return None
+    vks = _VK_MODIFIERS.get(target)
+    if not vks:
+        return None
+    try:
+        import ctypes
+
+        get_state = ctypes.windll.user32.GetAsyncKeyState
+        return any(bool(get_state(vk) & 0x8000) for vk in vks)
+    except Exception:
+        return None
+
+
 class HotkeyManager:
     """Listens for the configured trigger and calls back start/stop."""
 
@@ -146,11 +183,29 @@ class HotkeyManager:
         targets = parse_hold_combo(self.push_to_talk_key)
         held = set()
 
-        def on_press(key):
+        def all_targets_down(just) -> bool:
+            """Are ALL target keys held? The just-pressed key counts as down;
+            every other target is checked against the OS (authoritative), with
+            the tracked ``held`` set as a fallback when the OS can't tell."""
+            if not targets:
+                return False
             for target in targets:
-                if _matches(key, target):
-                    held.add(target)
-            if targets and all(t in held for t in targets) and not self._ptt_down:
+                if target in just:
+                    continue  # the key whose press we're handling — definitely down
+                state = _os_modifier_down(target)
+                if state is None:          # non-Windows / non-modifier: use tracking
+                    if target not in held:
+                        return False
+                elif not state:            # OS says it's physically up
+                    return False
+            return True
+
+        def on_press(key):
+            matched = {t for t in targets if _matches(key, t)}
+            if not matched:
+                return
+            held.update(matched)
+            if not self._ptt_down and all_targets_down(matched):
                 self._ptt_down = True
                 self._safe(self.on_start)
 
