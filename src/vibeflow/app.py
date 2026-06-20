@@ -176,6 +176,10 @@ class VibeFlowApp:
 
             text = self.transcriber.transcribe(audio, prompt=self.vocabulary.prompt())
             self._model_ready = True
+            if bool(self.cfg.get("text.debug_log", False)):
+                logging.getLogger("vibeflow").info(
+                    "debug raw transcript: %r", (text or "")[:240]
+                )
             text = clean_transcript(
                 text,
                 strip=bool(self.cfg.get("text.strip", True)),
@@ -297,6 +301,10 @@ class VibeFlowApp:
         logging.getLogger("vibeflow").info(
             "teach-back: ratio=%.2f (out_len=%d clip_len=%d)", ratio, len(out), len(clip)
         )
+        if bool(self.cfg.get("text.debug_log", False)):
+            logging.getLogger("vibeflow").info(
+                "debug correction: out=%r clip=%r", out[:240], clip[:240]
+            )
         if not (0.5 <= ratio < 0.999):
             return
 
@@ -508,6 +516,11 @@ class VibeFlowApp:
                 self._toggle_autostart,
                 checked=lambda i: autostart.is_enabled(),
             ),
+            Item(
+                "Detailed logging (troubleshooting)",
+                self._toggle_debug_log,
+                checked=lambda i: bool(self.cfg.get("text.debug_log", False)),
+            ),
             Item(f"About {__app_name__} {__version__}", self._about),
             Item("Quit", self._quit),
         )
@@ -573,6 +586,19 @@ class VibeFlowApp:
             "Will learn from your edits — just cut/copy your corrected text."
             if enabled
             else "Stopped learning from your edits.",
+        )
+        self._refresh()
+
+    def _toggle_debug_log(self, *_args) -> None:
+        enabled = not bool(self.cfg.get("text.debug_log", False))
+        self.cfg.set("text.debug_log", enabled)
+        self._save_config()
+        self._notify(
+            __app_name__,
+            "Detailed logging ON — your raw transcript and corrections go to "
+            "vibeflow.log (for troubleshooting)."
+            if enabled
+            else "Detailed logging off.",
         )
         self._refresh()
 

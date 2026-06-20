@@ -117,6 +117,11 @@ text:
   # formatting is on. View/clear it from the tray ("Personalized AI"). Nothing
   # leaves your computer; turn it off here or in the tray if you prefer.
   persona: true
+  # OPT-IN troubleshooting: when on, VibeFlow writes the raw transcript and your
+  # before/after correction text (truncated) to vibeflow.log so a specific
+  # mis-hearing can be diagnosed. Off by default; it stores dictation snippets in
+  # the log, so only turn it on while investigating something.
+  debug_log: false
 
 # ----------------------------------------------------------------------------
 #  AI formatting (OPTIONAL) — "voice to text WITH AI".

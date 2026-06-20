@@ -24,9 +24,11 @@ DEFAULT_MODEL = "qwen2.5:1.5b"  # benchmark winner: fast, tiny, clean, reliable
 _DEFAULT_PROMPT = (
     "You clean up dictated text. Rewrite the text below with correct "
     "capitalization, punctuation, and paragraph breaks, and fix obvious "
-    "speech-to-text errors. Preserve the original meaning and wording as much as "
-    "possible. Do not add commentary, explanations, or quotation marks. Output "
-    "ONLY the cleaned-up text."
+    "speech-to-text errors. Preserve the original meaning, wording, and point of "
+    "view: keep the speaker's exact pronouns and voice — if the text is in the "
+    "first person (I, we, my), keep it first person; never rewrite it in the "
+    "third person or as a description of 'the user'. Do not add commentary, "
+    "explanations, or quotation marks. Output ONLY the cleaned-up text."
 )
 
 
@@ -59,8 +61,9 @@ def _ollama_generate(text: str, cfg, persona: str | None = None) -> str | None:
     prompt = (cfg.get("ai.prompt") or "").strip() or _DEFAULT_PROMPT
     if persona and persona.strip():
         prompt = (
-            f"{prompt}\n\nContext about the author (match their voice and "
-            f"terminology, do not mention this context): {persona.strip()}"
+            f"{prompt}\n\nUse the following only to guide word choice and tone — "
+            f"do NOT change the point of view, do NOT narrate about the author, "
+            f"and do NOT mention this. The author's background: {persona.strip()}"
         )
 
     payload = {

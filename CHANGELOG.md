@@ -4,6 +4,23 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.6.4] — 2026-06-20
+
+### Fixed
+- **AI formatting now keeps your point of view.** With Personalized AI on, the
+  model could rewrite your first-person dictation ("I checked…") into the third
+  person about "the user" ("The user has seen…"), because the persona profile
+  (phrased "The user is…") bled into the output's voice. The formatter now
+  explicitly preserves the speaker's pronouns/voice, and the persona is used
+  *only* to guide word choice and tone — never the point of view.
+
+### Added
+- **Opt-in detailed logging** (tray → "Detailed logging (troubleshooting)", or
+  `text.debug_log`). When on, the raw transcript and your before/after correction
+  text (truncated) are written to `vibeflow.log`, so a specific mis-hearing can
+  be pinpointed. Off by default; it stores dictation snippets, so use it only
+  while investigating.
+
 ## [1.6.3] — 2026-06-20
 
 ### Added

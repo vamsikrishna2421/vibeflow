@@ -64,6 +64,7 @@ DEFAULTS: dict[str, Any] = {
         "ai_learning": False,           # OPT-IN: use a local LLM to spot technical terms
         "teach_back_model": "qwen2.5:3b",  # model used for background term extraction
         "persona": True,                # core feature: learn your domain/tone (on; toggle off in tray)
+        "debug_log": False,             # OPT-IN: log raw transcript + correction text for troubleshooting
     },
     "ai": {
         "enabled": False,            # voice-to-text + AI formatting (needs a local LLM)
