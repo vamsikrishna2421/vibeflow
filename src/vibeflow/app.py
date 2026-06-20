@@ -14,6 +14,7 @@ responsive.
 
 from __future__ import annotations
 
+import logging
 import os
 import sys
 import threading
@@ -209,9 +210,9 @@ class VibeFlowApp:
             # it may contain mistakes, and we must never bias toward those.
             self._last_output = text.strip()
             self._last_output_ts = time.time()
-
-            import logging
-
+            logging.getLogger("vibeflow").info(
+                "teach-back armed: output_len=%d", len(self._last_output)
+            )
             logging.getLogger("vibeflow").info(
                 "delivered: focus=%s result=%s chars=%d", focus, result, len(text)
             )
@@ -254,6 +255,9 @@ class VibeFlowApp:
             if not isinstance(clip, str) or clip == self._clip_last:
                 continue
             self._clip_last = clip
+            logging.getLogger("vibeflow").info(
+                "clip changed: len=%d armed=%s", len(clip), self._last_output is not None
+            )
             self._maybe_learn_from_clip(clip)
 
     def _maybe_learn_from_clip(self, clip: str) -> None:
@@ -267,14 +271,11 @@ class VibeFlowApp:
         import difflib
 
         ratio = difflib.SequenceMatcher(None, out, clip).ratio()
+        logging.getLogger("vibeflow").info("teach-back: ratio=%.2f (out_len=%d clip_len=%d)", ratio, len(out), len(clip))
         if not (0.5 <= ratio < 0.999):  # a similar-but-edited version of our output
             return
         learned = self.vocabulary.learn_from_correction(out, clip)
-        import logging
-
-        logging.getLogger("vibeflow").info(
-            "teach-back: ratio=%.2f learned=%s", ratio, learned
-        )
+        logging.getLogger("vibeflow").info("teach-back learned=%s", learned)
         if learned:
             self._last_output = None  # consume only after we actually learned
             self.vocabulary.save()
@@ -316,8 +317,6 @@ class VibeFlowApp:
             self.transcriber.load()
             self._model_ready = True
             self._set_status("Ready")
-            import logging
-
             logging.getLogger("vibeflow").info(
                 "Model ready: %s %s", self.cfg.get("model.size"), self.transcriber._resolved
             )
@@ -326,7 +325,6 @@ class VibeFlowApp:
                 f"Ready. {self._trigger_hint()} to dictate.",
             )
         except Exception as exc:
-            import logging
             import traceback
 
             logging.getLogger("vibeflow").error(
@@ -554,10 +552,8 @@ class VibeFlowApp:
 
     def _quit(self, *_args) -> None:
         self._stopping = True
-        try:
-            self.vocabulary.save()
-        except Exception:
-            pass
+        # Note: vocabulary is saved on every learn, so we do NOT save on quit —
+        # that prevents a stale instance from clobbering good data with old data.
         try:
             self.hotkeys.stop()
         except Exception:

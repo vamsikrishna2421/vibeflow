@@ -4,6 +4,17 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.4.3] — 2026-06-20
+
+### Fixed
+- Vocabulary is no longer saved on quit (only on each learn), so a stale/older
+  instance can't overwrite good vocabulary with old data.
+
+### Changed
+- Added detailed **teach-back diagnostics** to `vibeflow.log` (output armed,
+  clipboard changes, similarity ratio, learned terms) so the feature is fully
+  observable while we validate it.
+
 ## [1.4.2] — 2026-06-20
 
 ### Fixed
