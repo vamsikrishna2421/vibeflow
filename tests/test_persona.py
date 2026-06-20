@@ -51,3 +51,18 @@ def test_clear_and_persistence(tmp_path):
 
     reloaded.clear()
     assert reloaded.profile_text() == "" and reloaded.samples == []
+
+
+def test_reload_if_changed(tmp_path):
+    path = tmp_path / "persona.json"
+    a = Persona(path=path)
+    a.add_sample("a dictation about data pipelines and warehouses today")
+    a.save()
+    # A second handle (like the manager window) edits and saves.
+    b = Persona(path=path)
+    b.set_profile("The user is a data engineer.")
+    b.save()
+    # The first handle picks up the change.
+    assert a.reload_if_changed() is True
+    assert a.profile_text() == "The user is a data engineer."
+    assert a.reload_if_changed() is False   # no further change

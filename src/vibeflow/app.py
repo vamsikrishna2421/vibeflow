@@ -262,6 +262,7 @@ class VibeFlowApp:
             time.sleep(1.2)
             self._maybe_apply_vocab_edits()
             self.vocabulary.reload_if_changed()  # pick up manager-window deletes
+            self.persona.reload_if_changed()     # pick up profile-window edits
             if not bool(self.cfg.get("text.teach_back", True)):
                 continue
             try:
@@ -582,7 +583,7 @@ class VibeFlowApp:
     def _open_vocabulary(self, *_args) -> None:
         """Open the interactive vocabulary manager window. Falls back to a
         plain editable text list if the window can't be launched."""
-        if self._launch_vocab_manager():
+        if self._launch_manager("--vocab-manager"):
             return
         path = self._vocab_wordlist_path()
         try:
@@ -594,14 +595,15 @@ class VibeFlowApp:
             self._vocab_wordlist_mtime = None
         self._open_path(str(path))
 
-    def _launch_vocab_manager(self) -> bool:
+    def _launch_manager(self, flag: str) -> bool:
+        """Launch a standalone manager window (own process, own Tk loop)."""
         import subprocess
 
         try:
             if getattr(sys, "frozen", False):
-                args = [sys.executable, "--vocab-manager"]
+                args = [sys.executable, flag]
             else:
-                args = [sys.executable, "-m", "vibeflow", "--vocab-manager"]
+                args = [sys.executable, "-m", "vibeflow", flag]
             subprocess.Popen(
                 args, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
             )
@@ -673,6 +675,8 @@ class VibeFlowApp:
             )
 
     def _open_persona(self, *_args) -> None:
+        if self._launch_manager("--persona-manager"):
+            return
         path = config_mod.config_dir() / "my_writing_profile.txt"
         profile = self.persona.profile_text() or (
             "(Not enough dictation yet — keep using VibeFlow and it will learn "

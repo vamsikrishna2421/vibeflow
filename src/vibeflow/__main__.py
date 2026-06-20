@@ -53,6 +53,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Open the interactive vocabulary manager window and exit.",
     )
     p.add_argument(
+        "--persona-manager",
+        action="store_true",
+        help="Open the interactive Personalized-AI profile window and exit.",
+    )
+    p.add_argument(
         "--check-ai",
         action="store_true",
         help="Test the local-LLM (AI formatting) connection and exit.",
@@ -96,6 +101,10 @@ def main(argv: list[str] | None = None) -> int:
         from .vocab_window import run as run_vocab_manager
 
         return run_vocab_manager(str(config_mod.config_dir() / "vocabulary.json"))
+    if args.persona_manager:
+        from .persona_window import run as run_persona_manager
+
+        return run_persona_manager(str(config_mod.config_dir() / "persona.json"))
     if args.check_ai:
         return _check_ai(cfg)
     if args.setup_ai:

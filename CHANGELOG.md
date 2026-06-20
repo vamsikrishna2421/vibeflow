@@ -4,6 +4,16 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.6.3] — 2026-06-20
+
+### Added
+- **Interactive "Personalized AI" window.** Tray → Personalized AI ▸ "View my
+  profile…" now opens a window instead of a text file: view and **edit** your
+  writing profile, **Regenerate** it on demand from your recent dictation, see
+  and **delete** the stored samples (full transparency/privacy), or **Forget
+  everything**. Runs as its own process; the app reloads the profile when it
+  changes (`Persona.reload_if_changed`).
+
 ## [1.6.2] — 2026-06-20
 
 ### Added

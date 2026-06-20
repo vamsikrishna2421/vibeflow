@@ -37,6 +37,7 @@ class Persona:
         self.profile: str = ""    # the distilled profile string
         self.profiled_count: int = 0  # number of samples at last profiling
         self._load()
+        self._mtime = self._file_mtime()
 
     # -- persistence ---------------------------------------------------
     def _load(self) -> None:
@@ -66,8 +67,25 @@ class Persona:
                 ),
                 encoding="utf-8",
             )
+            self._mtime = self._file_mtime()
         except Exception:
             pass
+
+    def _file_mtime(self):
+        try:
+            return self.path.stat().st_mtime if self.path and self.path.exists() else None
+        except Exception:
+            return None
+
+    def reload_if_changed(self) -> bool:
+        """Re-read from disk if the file changed (e.g. the profile manager
+        window edited it). Returns True if reloaded."""
+        m = self._file_mtime()
+        if m is not None and m != self._mtime:
+            self._load()
+            self._mtime = m
+            return True
+        return False
 
     # -- sample collection ---------------------------------------------
     def add_sample(self, text: str) -> bool:
