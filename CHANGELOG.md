@@ -4,6 +4,16 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.8.2] — 2026-06-20
+
+### Fixed
+- **Auto-update no longer leaves the speech model unloaded.** After a silent
+  update relaunched the new version, the just-closed previous instance could
+  still hold the model file open for a moment, so the model failed to load until
+  a manual restart. The model load now retries for a couple of seconds, clearing
+  that race — auto-updates are fully hands-free end to end (silent install, no
+  close-error, no browser, no manual restart).
+
 ## [1.8.1] — 2026-06-20
 
 ### Fixed

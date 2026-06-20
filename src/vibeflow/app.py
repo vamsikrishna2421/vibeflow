@@ -438,7 +438,23 @@ class VibeFlowApp:
                     "happens once and needs internet — after that VibeFlow runs "
                     "fully offline.",
                 )
-            self.transcriber.load()
+            # Retry the load: right after an auto-update relaunch, the
+            # just-closed previous instance may still hold the model file open
+            # for a moment (sharing violation). The file frees within ~1-2s.
+            last_err = None
+            for attempt in range(5):
+                try:
+                    self.transcriber.load()
+                    last_err = None
+                    break
+                except Exception as exc:  # noqa: BLE001
+                    last_err = exc
+                    if attempt < 4:
+                        self._set_status("Loading model…")
+                        self._refresh()
+                        time.sleep(1.5)
+            if last_err is not None:
+                raise last_err
             self._model_ready = True
             self._set_status("Ready")
             logging.getLogger("vibeflow").info(
