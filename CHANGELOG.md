@@ -4,6 +4,30 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.5.0] — 2026-06-20
+
+### Added
+- **AI-powered adaptive learning (opt-in).** When you fix a transcript and copy
+  the whole corrected line, a **local** LLM reads it and pulls out the technical
+  terms worth remembering (product names, tools, commands, jargon) — no need to
+  select single words. Those terms then bias future transcription so they come
+  out right. Picks the most accurate *installed* model (prefers `qwen2.5:3b`,
+  which in testing nailed every term with zero false positives). The
+  deterministic offline learner remains as a precise safety net, so nothing
+  regresses when no LLM is present.
+- **Optional at install, with full disclosure.** A new (unchecked) installer
+  checkbox — and a tray toggle, "Adaptive learning (AI)" — turns it on. Both
+  state the cost up front: one-time ~1.8 GB model download; ~2 GB RAM **only
+  while learning** (freed when idle; it runs only when you edit and copy a
+  transcript). Ticking the box sets the model up automatically on first run
+  (zero-touch, with progress). Off by default.
+- Config: `text.ai_learning` (opt-in flag) and `text.teach_back_model`
+  (extraction model, default `qwen2.5:3b`).
+
+### Changed
+- Teach-back no longer needs single-word selection — **just copy the whole
+  corrected text**. The LLM (or the offline learner) finds the terms for you.
+
 ## [1.4.4] — 2026-06-20
 
 ### Fixed

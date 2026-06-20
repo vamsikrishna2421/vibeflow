@@ -65,6 +65,105 @@ def _ollama_generate(text: str, cfg) -> str | None:
     return result or None
 
 
+# ---------------------------------------------------------------------------
+# Teach-back: let the local LLM pick the technical terms out of corrected text
+# ---------------------------------------------------------------------------
+# A slightly larger model is far more *precise* at telling technical terms from
+# ordinary words (qwen2.5:1.5b misses terms and hallucinates "tool"/"quarterly";
+# qwen2.5:3b is clean). Teach-back runs in the background, so the extra latency
+# is invisible — we prefer the more accurate model when it is installed.
+EXTRACT_MODEL_PREFERENCE = ("qwen2.5:3b", "gemma2:2b", "qwen2.5:1.5b")
+
+_EXTRACT_PROMPT = (
+    "You extract technical vocabulary from text. List the technical terms - "
+    "product names, tools, commands, libraries, frameworks, acronyms, file or "
+    "function names, and domain jargon - that a dictation system should remember "
+    "how to spell. Ignore ordinary English words like 'tool', 'report', "
+    "'quarterly', 'meeting'. Reply with ONLY a comma-separated list of those "
+    "terms exactly as written, nothing else. If there are none, reply NONE.\n\n"
+    "Example text: Restart the Nginx server and run the database migration with Alembic.\n"
+    "Example answer: Nginx, Alembic\n\n"
+    "Text: {text}\nAnswer:"
+)
+
+
+def installed_models(cfg) -> list:
+    endpoint = str(cfg.get("ai.endpoint", DEFAULT_ENDPOINT)).rstrip("/")
+    body = _get_json(f"{endpoint}/api/tags", timeout=5)
+    return [m.get("name", "") for m in body.get("models", [])]
+
+
+def _pick_extract_model(cfg):
+    """Choose the most accurate *installed* model for term extraction."""
+    try:
+        names = installed_models(cfg)
+    except Exception:
+        return None
+    if not names:
+        return None
+    preferred = str(cfg.get("text.teach_back_model", "") or "").strip()
+    order = ([preferred] if preferred else []) + list(EXTRACT_MODEL_PREFERENCE)
+    order.append(str(cfg.get("ai.model", DEFAULT_MODEL)))
+    for want in order:
+        if not want:
+            continue
+        for n in names:
+            if n == want or n == f"{want}:latest" or n.split(":")[0] == want.split(":")[0]:
+                return n
+    return names[0]
+
+
+def extract_terms(corrected: str, cfg, timeout: float | None = None):
+    """Ask a local LLM which words in ``corrected`` are technical terms to learn.
+
+    Returns a list of terms (possibly empty) when a local LLM answered, or
+    ``None`` when no local LLM is reachable — so the caller can fall back to the
+    deterministic teach-back learner. Never raises.
+    """
+    if not corrected or not corrected.strip():
+        return []
+    endpoint = str(cfg.get("ai.endpoint", DEFAULT_ENDPOINT)).rstrip("/")
+    model = _pick_extract_model(cfg)
+    if not model:
+        return None
+    t = float(timeout if timeout is not None else cfg.get("ai.teach_back_timeout", 30))
+    payload = {
+        "model": model,
+        "prompt": _EXTRACT_PROMPT.format(text=corrected.strip()),
+        "stream": False,
+        "options": {"temperature": 0},
+    }
+    try:
+        body = _post_json(f"{endpoint}/api/generate", payload, t)
+    except Exception as exc:
+        _warn(f"teach-back term extraction unavailable ({exc}); using deterministic fallback")
+        return None
+    return _parse_terms(body.get("response") or "", corrected)
+
+
+def _parse_terms(raw: str, source: str) -> list:
+    """Parse the model's comma-separated answer into validated terms.
+
+    Only terms that actually appear in ``source`` are kept (anti-hallucination).
+    """
+    answer = (raw or "").strip()
+    if not answer or answer.upper().startswith("NONE"):
+        return []
+    src_low = source.lower()
+    out, seen = [], set()
+    for piece in answer.replace("\n", ",").split(","):
+        term = piece.strip().strip("\"'`.;:()[]{}").strip()
+        if not term or len(term) > 60:
+            continue
+        if term.lower() not in src_low:      # must be a word from the user's text
+            continue
+        if term.lower() in seen:
+            continue
+        seen.add(term.lower())
+        out.append(term)
+    return out[:12]
+
+
 def check(cfg) -> tuple[bool, str]:
     """Connectivity test for the local LLM. Returns ``(ok, message)``."""
     endpoint = str(cfg.get("ai.endpoint", DEFAULT_ENDPOINT)).rstrip("/")

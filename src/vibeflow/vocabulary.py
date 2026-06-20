@@ -178,6 +178,25 @@ class Vocabulary:
         )
         return learned
 
+    def learn_terms(self, terms) -> list:
+        """Add LLM-identified technical terms from the user's corrected text.
+
+        The model already judged what is technical; we split any multi-word
+        phrases into tokens and apply only light hygiene (length, stop-words)
+        before adding. Returns the list of terms actually stored.
+        """
+        learned = []
+        for term in terms or []:
+            for raw in _words(term):  # split "GitHub Actions" -> GitHub, Actions
+                w = _clean(raw)
+                if not (2 <= len(w) <= 40) or w.lower() in _STOPWORDS:
+                    continue
+                if self.add(w, weight=4):
+                    learned.append(w)
+        if learned:
+            self._prune()
+        return learned
+
     # -- use -----------------------------------------------------------
     def prompt(self) -> str:
         """The ``initial_prompt`` string biasing Whisper toward top terms."""

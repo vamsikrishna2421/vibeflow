@@ -61,6 +61,8 @@ DEFAULTS: dict[str, Any] = {
         "remove_trailing_period": False,
         "vocabulary": [],               # domain terms (grows via teach-back; editable)
         "teach_back": True,             # learn from your edits (copy/cut corrected text)
+        "ai_learning": False,           # OPT-IN: use a local LLM to spot technical terms
+        "teach_back_model": "qwen2.5:3b",  # model used for background term extraction
     },
     "ai": {
         "enabled": False,            # voice-to-text + AI formatting (needs a local LLM)

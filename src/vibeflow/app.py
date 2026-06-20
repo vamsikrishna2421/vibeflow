@@ -271,26 +271,42 @@ class VibeFlowApp:
             return
         if not (2 <= len(clip) <= 5000):
             return
-        # For a longer snippet, make sure it's an *edited copy of our output*
-        # (not some unrelated text the user happened to copy). A short snippet
-        # is treated as a single corrected term — its own word-level gate
-        # (similar-to-our-output / term-like) keeps unrelated copies out.
-        if len(clip) > 60 or len(clip.split()) > 6:
-            import difflib
+        # Only learn from an *edited copy of our own output* — i.e. you dictated,
+        # fixed a few words, and copied the whole thing. This keeps unrelated
+        # clipboard copies out. (No need to select single words — copy it all.)
+        import difflib
 
-            ratio = difflib.SequenceMatcher(None, out, clip).ratio()
-            logging.getLogger("vibeflow").info(
-                "teach-back: ratio=%.2f (out_len=%d clip_len=%d)", ratio, len(out), len(clip)
-            )
-            if not (0.5 <= ratio < 0.999):
-                return
-        learned = self.vocabulary.learn_from_correction(out, clip)
-        logging.getLogger("vibeflow").info("teach-back learned=%s", learned)
+        ratio = difflib.SequenceMatcher(None, out, clip).ratio()
+        logging.getLogger("vibeflow").info(
+            "teach-back: ratio=%.2f (out_len=%d clip_len=%d)", ratio, len(out), len(clip)
+        )
+        if not (0.5 <= ratio < 0.999):
+            return
+
+        # Primary: a local LLM reads the corrected text and names the technical
+        # terms worth remembering. Safety net: the deterministic learner (precise,
+        # offline, no model needed) catches corrected look-alikes the model may
+        # skip. Union the two so we get the LLM's breadth without ever regressing.
+        learned: list = []
+        terms = None
+        if bool(self.cfg.get("text.ai_learning", False)):
+            try:
+                from . import ai_format
+
+                terms = ai_format.extract_terms(clip, self.cfg)
+            except Exception:
+                terms = None
+            if terms:
+                learned += self.vocabulary.learn_terms(terms)
+        learned += self.vocabulary.learn_from_correction(out, clip)
+        learned = list(dict.fromkeys(learned))
+        logging.getLogger("vibeflow").info(
+            "teach-back llm_terms=%s learned=%s", terms, learned
+        )
         if learned:
             self._last_output = None  # consume only after we actually learned
             self.vocabulary.save()
-            terms = list(dict.fromkeys(learned))[:6]
-            self._notify(__app_name__, "Learned from your edit: " + ", ".join(terms))
+            self._notify(__app_name__, "Learned from your edit: " + ", ".join(learned[:6]))
 
     # ------------------------------------------------------------------
     # Tray UI
@@ -321,6 +337,7 @@ class VibeFlowApp:
         self.hotkeys.start()
         threading.Thread(target=self._clip_watch_loop, daemon=True).start()
         threading.Thread(target=self._preload_model, daemon=True).start()
+        self._apply_install_opt_ins()
 
     def _preload_model(self) -> None:
         try:
@@ -437,6 +454,11 @@ class VibeFlowApp:
                 checked=lambda i: bool(self.cfg.get("text.teach_back", True)),
             ),
             Item(
+                "Adaptive learning (AI · ~2 GB RAM while learning)",
+                self._toggle_ai_learning,
+                checked=lambda i: bool(self.cfg.get("text.ai_learning", False)),
+            ),
+            Item(
                 "Start with Windows",
                 self._toggle_autostart,
                 checked=lambda i: autostart.is_enabled(),
@@ -504,6 +526,82 @@ class VibeFlowApp:
             if enabled
             else "Stopped learning from your edits.",
         )
+
+    def _toggle_ai_learning(self, *_args) -> None:
+        """Opt in/out of AI-powered background learning (a local LLM picks the
+        technical terms out of your corrected text). Discloses the cost and
+        sets the model up automatically on opt-in."""
+        if bool(self.cfg.get("text.ai_learning", False)):
+            self.cfg.set("text.ai_learning", False)
+            self._save_config()
+            self._notify(
+                __app_name__,
+                "Adaptive AI learning off. Your edits are still learned offline.",
+            )
+            self._refresh()
+            return
+        model = str(self.cfg.get("text.teach_back_model", "qwen2.5:3b"))
+        self._notify(
+            __app_name__,
+            f"Setting up adaptive learning ({model}). One-time ~1.8 GB download, "
+            "then ~2 GB RAM only while learning (freed when idle, runs only when "
+            "you edit and copy a transcript). Watch the tray tooltip for progress.",
+        )
+        threading.Thread(
+            target=self._setup_learning_worker, args=(model,), daemon=True
+        ).start()
+
+    def _setup_learning_worker(self, model: str) -> None:
+        def progress(message: str) -> None:
+            self._set_status(message)
+            self._refresh()
+
+        ok, message = ai_setup.setup(model, progress=progress)
+        if ok:
+            self.cfg.set("text.ai_learning", True)
+            self.cfg.set("text.teach_back", True)  # learning rides on teach-back
+            self.cfg.set("text.teach_back_model", model)
+            self._save_config()
+        self._notify(
+            "Adaptive learning ready" if ok else "Adaptive learning setup failed",
+            message,
+        )
+        self._set_status("Ready")
+        self._refresh()
+
+    def _apply_install_opt_ins(self) -> None:
+        """Honor install-time opt-ins. The installer writes a one-shot HKCU
+        marker when the user ticks the optional 'adaptive learning' checkbox;
+        we enable it once (downloading the model with progress) and clear it."""
+        if os.name != "nt":
+            return
+        try:
+            import winreg
+
+            key = winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                r"Software\VibeFlow",
+                0,
+                winreg.KEY_READ | winreg.KEY_SET_VALUE,
+            )
+        except OSError:
+            return
+        try:
+            try:
+                value, _ = winreg.QueryValueEx(key, "EnableAiLearning")
+            except OSError:
+                value = None
+            if value:
+                winreg.DeleteValue(key, "EnableAiLearning")  # one-shot signal
+                if not bool(self.cfg.get("text.ai_learning", False)):
+                    model = str(self.cfg.get("text.teach_back_model", "qwen2.5:3b"))
+                    threading.Thread(
+                        target=self._setup_learning_worker, args=(model,), daemon=True
+                    ).start()
+        except OSError:
+            pass
+        finally:
+            winreg.CloseKey(key)
 
     def _set_accuracy(self, size: str) -> None:
         self.cfg.set("model.size", size)

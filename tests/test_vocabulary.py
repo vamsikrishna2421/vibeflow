@@ -70,6 +70,18 @@ def test_learn_skips_words_already_in_output():
     assert learned == []
 
 
+def test_learn_terms_from_llm():
+    """LLM-identified terms are added; multi-word phrases split; stop-words drop."""
+    v = Vocabulary()
+    learned = v.learn_terms(["Kubernetes", "kubectl", "GitHub Actions", "the"])
+    assert "Kubernetes" in learned
+    assert "kubectl" in learned
+    assert "GitHub" in learned and "Actions" in learned   # phrase split into tokens
+    assert "the" not in learned                            # stop-word rejected
+    assert v.learn_terms([]) == []
+    assert v.learn_terms(None) == []
+
+
 def test_learn_from_text_is_conservative():
     v = Vocabulary()
     v.learn_from_text("we deployed the service using kubeCtl and OAuth2 today")

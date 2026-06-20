@@ -11,7 +11,7 @@
 ; ============================================================================
 
 #define MyAppName "VibeFlow"
-#define MyAppVersion "1.4.4"
+#define MyAppVersion "1.5.0"
 #define MyAppPublisher "VibeFlow"
 #define MyAppExeName "VibeFlow.exe"
 
@@ -47,6 +47,12 @@ Name: "autostart"; GroupDescription: "Startup:"; \
     Flags: checkablealone
 Name: "desktopicon"; GroupDescription: "Additional shortcuts:"; \
     Description: "Create a desktop shortcut"; Flags: unchecked
+; Optional, opt-in AI learning. The description discloses the real cost so the
+; user can make an informed choice before ticking it.
+Name: "ailearning"; \
+    GroupDescription: "Optional AI feature (you can turn this on/off later in the tray):"; \
+    Description: "Adaptive vocabulary learning — a local AI model learns your technical terms (names, tools, jargon) so they transcribe correctly over time. One-time ~1.8 GB download; uses ~2 GB RAM only while learning, then frees it (runs only when you edit and copy a transcript). 100% offline — no account, nothing leaves your PC."; \
+    Flags: unchecked
 
 [Files]
 ; The PyInstaller one-folder build (release\VibeFlow\) is bundled here.
@@ -66,6 +72,11 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; \
     ValueType: string; ValueName: "VibeFlow"; \
     ValueData: """{app}\{#MyAppExeName}"""; \
     Tasks: autostart; Flags: uninsdeletevalue
+; One-shot marker: if the user opted into adaptive learning, the app enables it
+; on first run (downloading the model with progress) and clears this value.
+Root: HKCU; Subkey: "Software\VibeFlow"; ValueType: dword; \
+    ValueName: "EnableAiLearning"; ValueData: 1; \
+    Tasks: ailearning; Flags: uninsdeletevalue uninsdeletekeyifempty
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch VibeFlow now"; \

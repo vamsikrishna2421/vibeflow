@@ -102,7 +102,14 @@ text:
 
   # Adaptive vocabulary — learns your names/jargon so they transcribe correctly.
   vocabulary: []              # seed terms, e.g. [Kubernetes, kubectl, Acme]; grows as you teach it.
-  teach_back: true            # learn from your edits: just cut/copy the corrected text.
+  teach_back: true            # learn from your edits: just cut/copy the corrected text (offline).
+  # OPT-IN: AI-powered learning. A local LLM reads your corrected text and picks
+  # out the technical terms to remember — just copy the whole corrected line, no
+  # need to select single words. Cost: one-time ~1.8 GB model download; ~2 GB RAM
+  # ONLY while learning (freed when idle; runs only when you edit+copy a transcript).
+  # Turn on via the tray "Adaptive learning (AI)" toggle or the installer checkbox.
+  ai_learning: false
+  teach_back_model: qwen2.5:3b  # model used for term extraction (3b is the sweet spot)
 
 # ----------------------------------------------------------------------------
 #  AI formatting (OPTIONAL) — "voice to text WITH AI".
