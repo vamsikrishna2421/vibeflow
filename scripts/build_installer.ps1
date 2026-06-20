@@ -42,11 +42,28 @@ if (-not $Iscc) {
 # --- 3. Compile the installer ----------------------------------------------
 Write-Host "Step 2/2: building the installer with Inno Setup ..." -ForegroundColor Cyan
 & $Iscc "installer\vibeflow.iss"
-if ($LASTEXITCODE -eq 0) {
-    Write-Host ""
-    Write-Host "Done: release\installer\VibeFlowSetup.exe" -ForegroundColor Green
-    Write-Host "Give that single file to your testers - double-click, next, next, finish." -ForegroundColor Green
-} else {
+if ($LASTEXITCODE -ne 0) {
     Write-Host "Installer build failed. See the messages above." -ForegroundColor Red
     exit 1
 }
+
+# --- 4. Optional code signing (see docs\CODE_SIGNING.md) --------------------
+if ($env:VIBEFLOW_PFX) {
+    $Setup = Join-Path $Root "release\installer\VibeFlowSetup.exe"
+    $st = Get-Command signtool.exe -ErrorAction SilentlyContinue
+    if ($st) { $tool = $st.Source } else {
+        $tool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
+            Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
+    }
+    if ($tool) {
+        & $tool sign /f "$env:VIBEFLOW_PFX" /p "$env:VIBEFLOW_PFX_PASSWORD" /fd SHA256 `
+            /tr http://timestamp.digicert.com /td SHA256 $Setup
+        if ($LASTEXITCODE -eq 0) { Write-Host "Signed the installer." -ForegroundColor Green }
+    } else { Write-Host "signtool not found; installer left unsigned." -ForegroundColor Yellow }
+} else {
+    Write-Host "(installer not code-signed - set VIBEFLOW_PFX to sign; see docs\CODE_SIGNING.md)" -ForegroundColor DarkGray
+}
+
+Write-Host ""
+Write-Host "Done: release\installer\VibeFlowSetup.exe" -ForegroundColor Green
+Write-Host "Give that single file to your testers - double-click, next, next, finish." -ForegroundColor Green

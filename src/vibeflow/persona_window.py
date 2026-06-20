@@ -30,7 +30,20 @@ def _icon_path():
     return cand if os.path.exists(cand) else None
 
 
+def _make_dpi_aware() -> None:
+    try:
+        import ctypes
+
+        ctypes.windll.shcore.SetProcessDpiAwareness(1)
+    except Exception:
+        try:
+            ctypes.windll.user32.SetProcessDPIAware()
+        except Exception:
+            pass
+
+
 def run(persona_path: str) -> int:
+    _make_dpi_aware()
     try:
         import tkinter as tk
         from tkinter import messagebox, ttk

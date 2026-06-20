@@ -26,7 +26,7 @@ from typing import Any
 DEFAULTS: dict[str, Any] = {
     "model": {
         "size": "base",          # tiny | base | small | medium | large-v3
-        "language": "auto",      # auto, or a code like en, es, fr, de, hi
+        "language": "en",        # default English; "auto", or a code like es, fr, de, hi
         "device": "auto",        # auto | cpu | cuda
         "compute_type": "auto",  # auto | int8 | int8_float16 | float16 | float32
     },

@@ -4,6 +4,34 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.7.0] — 2026-06-20
+
+Beta-readiness release.
+
+### Added
+- **Automatic updates.** VibeFlow checks GitHub for a newer release shortly after
+  startup and offers **Install update** in the tray (plus **Check for updates**
+  any time). Choosing it downloads that release's installer and runs it
+  (`update_check.py`).
+- **Report a problem…** in the tray — opens your VibeFlow folder (with
+  `vibeflow.log`) and the GitHub issues page, so beta reports come with the log.
+- **First-run guidance** — a one-time welcome + privacy note, and a clear
+  *"downloading the speech model (~150 MB, once)"* message on a fresh machine.
+- **Docs for testers/maintainers:** `docs/GETTING_STARTED.md` (install incl. the
+  SmartScreen step, usage, privacy, updates, uninstall) and `docs/CODE_SIGNING.md`;
+  an **optional code-signing step** in the build scripts (set `VIBEFLOW_PFX`); and
+  a **CI workflow** that runs the test suite on every push.
+
+### Changed
+- **Default speech language is now English (`en`).** Auto-detect occasionally
+  misfired on short clips; set `model.language` back to `auto` (or another code)
+  any time.
+- **Uninstall can fully clean up.** It now offers to also remove the local AI
+  runtime (Ollama), all downloaded AI models (several GB), and your VibeFlow data
+  — or keep them if you decline.
+- The vocabulary and Personalized-AI windows are now **high-DPI aware** (crisp on
+  scaled displays).
+
 ## [1.6.5] — 2026-06-20
 
 ### Fixed

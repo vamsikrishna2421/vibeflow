@@ -53,11 +53,34 @@ Write-Host "Building VibeFlow.exe (this takes a few minutes) ..." -ForegroundCol
     --specpath build `
     scripts\launch.py
 
-if ($LASTEXITCODE -eq 0) {
-    Write-Host ""
-    Write-Host "Done: release\VibeFlow\VibeFlow.exe" -ForegroundColor Green
-    Write-Host "Tip: build the single-file installer with scripts\build_installer.ps1" -ForegroundColor Gray
-} else {
+if ($LASTEXITCODE -ne 0) {
     Write-Host "Build failed. See the messages above." -ForegroundColor Red
     exit 1
 }
+
+# --- Optional code signing ---------------------------------------------------
+# To remove the Windows SmartScreen "Unknown publisher" warning, set:
+#   $env:VIBEFLOW_PFX = "C:\path\to\codesign.pfx"
+#   $env:VIBEFLOW_PFX_PASSWORD = "..."
+# before building. Without these, signing is skipped (unsigned build). See
+# docs\CODE_SIGNING.md for how to obtain a certificate.
+function Invoke-CodeSign([string]$FilePath) {
+    if (-not $env:VIBEFLOW_PFX) {
+        Write-Host "  (code signing skipped - set VIBEFLOW_PFX to sign; see docs\CODE_SIGNING.md)" -ForegroundColor DarkGray
+        return
+    }
+    $st = Get-Command signtool.exe -ErrorAction SilentlyContinue
+    if ($st) { $tool = $st.Source } else {
+        $tool = Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe" -ErrorAction SilentlyContinue |
+            Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
+    }
+    if (-not $tool) { Write-Host "  signtool not found (install the Windows SDK)." -ForegroundColor Yellow; return }
+    & $tool sign /f "$env:VIBEFLOW_PFX" /p "$env:VIBEFLOW_PFX_PASSWORD" /fd SHA256 `
+        /tr http://timestamp.digicert.com /td SHA256 "$FilePath"
+    if ($LASTEXITCODE -eq 0) { Write-Host "  signed: $FilePath" -ForegroundColor Green }
+}
+Invoke-CodeSign (Join-Path $Root "release\VibeFlow\VibeFlow.exe")
+
+Write-Host ""
+Write-Host "Done: release\VibeFlow\VibeFlow.exe" -ForegroundColor Green
+Write-Host "Tip: build the single-file installer with scripts\build_installer.ps1" -ForegroundColor Gray

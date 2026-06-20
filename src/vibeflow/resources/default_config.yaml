@@ -17,9 +17,10 @@ model:
   #   medium / large-v3 = most accurate, needs a strong CPU or a GPU
   size: base
 
-  # Language of your speech. "auto" detects it for you, or set a code such as
-  # en (English), es (Spanish), fr (French), de (German), hi (Hindi)...
-  language: auto
+  # Language of your speech. Defaults to English ("en"). Use "auto" to detect it
+  # for you, or set a code such as es (Spanish), fr (French), de (German),
+  # hi (Hindi)... (auto can misfire on short clips, so English is the default.)
+  language: en
 
   # Where to run: auto | cpu | cuda
   #   auto picks your NVIDIA GPU if available, otherwise the CPU.

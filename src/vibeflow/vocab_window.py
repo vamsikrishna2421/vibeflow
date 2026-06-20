@@ -26,8 +26,22 @@ def _icon_path() -> str | None:
     return cand if os.path.exists(cand) else None
 
 
+def _make_dpi_aware() -> None:
+    """Crisp text on high-DPI / scaled displays."""
+    try:
+        import ctypes
+
+        ctypes.windll.shcore.SetProcessDpiAwareness(1)
+    except Exception:
+        try:
+            ctypes.windll.user32.SetProcessDPIAware()
+        except Exception:
+            pass
+
+
 def run(vocab_path: str) -> int:
     """Open the manager window for the vocabulary stored at ``vocab_path``."""
+    _make_dpi_aware()
     try:
         import tkinter as tk
         from tkinter import messagebox, simpledialog, ttk

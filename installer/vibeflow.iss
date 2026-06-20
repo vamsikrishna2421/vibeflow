@@ -11,7 +11,7 @@
 ; ============================================================================
 
 #define MyAppName "VibeFlow"
-#define MyAppVersion "1.6.5"
+#define MyAppVersion "1.7.0"
 #define MyAppPublisher "VibeFlow"
 #define MyAppExeName "VibeFlow.exe"
 
@@ -86,3 +86,36 @@ Filename: "{app}\{#MyAppExeName}"; Description: "Launch VibeFlow now"; \
 ; Make sure the tray app isn't running so its files can be removed.
 Filename: "{cmd}"; Parameters: "/C taskkill /IM {#MyAppExeName} /F"; \
     Flags: runhidden; RunOnceId: "StopVibeFlow"
+
+[Code]
+// On uninstall, offer to also remove the local AI runtime (Ollama), all
+// downloaded AI models (several GB), and VibeFlow's per-user data — so nothing
+// is left behind. The user can decline to keep Ollama (they may use it elsewhere).
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  ResultCode: Integer;
+begin
+  if CurUninstallStep = usUninstall then
+  begin
+    if MsgBox(
+      'Also remove the local AI runtime (Ollama) and ALL downloaded AI models'
+      + #13#10 + '(this can free several GB), plus your VibeFlow data'
+      + #13#10 + '(settings, vocabulary, writing profile, speech model)?'
+      + #13#10 + #13#10 + 'Choose No to keep Ollama and your data.',
+      mbConfirmation, MB_YESNO) = IDYES then
+    begin
+      // Stop and uninstall Ollama (silent; ignore any error).
+      Exec(ExpandConstant('{cmd}'), '/C taskkill /IM ollama.exe /F', '',
+        SW_HIDE, ewWaitUntilTerminated, ResultCode);
+      Exec('winget',
+        'uninstall --id Ollama.Ollama -e --silent --accept-source-agreements',
+        '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+      // Remove Ollama program, cache, and the downloaded models.
+      DelTree(ExpandConstant('{userprofile}\.ollama'), True, True, True);
+      DelTree(ExpandConstant('{localappdata}\Programs\Ollama'), True, True, True);
+      DelTree(ExpandConstant('{localappdata}\Ollama'), True, True, True);
+      // Remove VibeFlow per-user data (settings, vocab, persona, speech models, log).
+      DelTree(ExpandConstant('{userappdata}\VibeFlow'), True, True, True);
+    end;
+  end;
+end;

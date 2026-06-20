@@ -31,7 +31,7 @@ def test_load_overlays_user_on_defaults(tmp_path):
     )
     cfg = load_config(path)
     assert cfg.get("model.size") == "small"        # overridden
-    assert cfg.get("model.language") == "auto"     # default preserved
+    assert cfg.get("model.language") == "en"       # default preserved
     assert cfg.get("output.mode") == "clipboard"   # overridden
     assert cfg.get("output.insertion") == "paste"  # default preserved
 

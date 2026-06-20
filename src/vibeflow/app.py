@@ -84,6 +84,7 @@ class VibeFlowApp:
         self._clip_last = None
         self._stopping = False
         self._vocab_wordlist_mtime = None  # set when the user opens the word list
+        self._update_info = None  # set when a newer release is found
         self.icon = None  # set in run()
 
     # ------------------------------------------------------------------
@@ -372,9 +373,50 @@ class VibeFlowApp:
         threading.Thread(target=self._clip_watch_loop, daemon=True).start()
         threading.Thread(target=self._preload_model, daemon=True).start()
         self._apply_install_opt_ins()
+        self._first_run_notice()
+        threading.Thread(target=self._startup_update_check, daemon=True).start()
+
+    def _first_run_notice(self) -> None:
+        """One-time welcome + privacy note on the very first launch."""
+        marker = config_mod.config_dir() / ".welcomed"
+        try:
+            if marker.exists():
+                return
+        except Exception:
+            return
+        self._notify(
+            __app_name__,
+            f"Welcome! Hold {self._hotkey_label()} to dictate anywhere. Everything "
+            "runs on this PC. Personalized AI quietly learns your writing style "
+            "locally (nothing leaves your computer; turn it off or clear it any "
+            "time in the tray).",
+        )
+        try:
+            marker.parent.mkdir(parents=True, exist_ok=True)
+            marker.write_text("1", encoding="utf-8")
+        except Exception:
+            pass
+
+    def _model_cached(self) -> bool:
+        """Is the chosen speech model already downloaded? (False on a fresh PC.)"""
+        try:
+            size = self.cfg.get("model.size", "base")
+            base = config_mod.models_dir() / f"models--Systran--faster-whisper-{size}"
+            return base.exists() and any(base.rglob("model.bin"))
+        except Exception:
+            return True  # don't nag if we can't tell
 
     def _preload_model(self) -> None:
         try:
+            if not self._model_cached():
+                self._set_status("Downloading speech model…")
+                self._refresh()
+                self._notify(
+                    __app_name__,
+                    "First launch: downloading the speech model (~150 MB). This "
+                    "happens once and needs internet — after that VibeFlow runs "
+                    "fully offline.",
+                )
             self.transcriber.load()
             self._model_ready = True
             self._set_status("Ready")
@@ -521,6 +563,16 @@ class VibeFlowApp:
                 self._toggle_debug_log,
                 checked=lambda i: bool(self.cfg.get("text.debug_log", False)),
             ),
+            Menu.SEPARATOR,
+            Item("Report a problem…", self._report_problem),
+            Item(
+                lambda i: (
+                    f"⬆ Install update ({self._update_info['version']})…"
+                    if self._update_info
+                    else "Check for updates"
+                ),
+                self._update_action,
+            ),
             Item(f"About {__app_name__} {__version__}", self._about),
             Item("Quit", self._quit),
         )
@@ -601,6 +653,89 @@ class VibeFlowApp:
             else "Detailed logging off.",
         )
         self._refresh()
+
+    # -- updates & feedback --------------------------------------------
+    def _startup_update_check(self) -> None:
+        time.sleep(8)  # let everything settle before hitting the network
+        try:
+            from . import update_check
+
+            info = update_check.check()
+        except Exception:
+            info = None
+        if info and info.get("newer"):
+            self._update_info = info
+            self._notify(
+                __app_name__,
+                f"VibeFlow {info['version']} is available — open the tray menu to update.",
+            )
+            self._refresh()
+
+    def _update_action(self, *_args) -> None:
+        if self._update_info:
+            self._apply_update()
+        else:
+            self._check_updates()
+
+    def _check_updates(self, *_args) -> None:
+        def work():
+            try:
+                from . import update_check
+
+                info = update_check.check()
+            except Exception:
+                info = None
+            if info is None:
+                self._notify(__app_name__, "Couldn't check for updates (no internet?).")
+            elif info.get("newer"):
+                self._update_info = info
+                self._notify(
+                    __app_name__,
+                    f"VibeFlow {info['version']} is available — choose “Install "
+                    "update” in the tray menu.",
+                )
+            else:
+                self._notify(__app_name__, f"You're on the latest version (v{__version__}).")
+            self._refresh()
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _apply_update(self, *_args) -> None:
+        info = self._update_info
+        if not info:
+            return self._check_updates()
+        if not info.get("installer_url"):
+            self._open_path(info.get("page_url"))
+            return
+
+        def work():
+            from . import update_check
+
+            self._set_status("Downloading update…")
+            self._refresh()
+            path = update_check.download_installer(
+                info["installer_url"],
+                progress=lambda m: (self._set_status(m), self._refresh()),
+            )
+            if not path:
+                self._notify(__app_name__, "Update download failed — opening the page.")
+                self._open_path(info.get("page_url"))
+                self._set_status("Ready")
+                self._refresh()
+                return
+            self._notify(__app_name__, f"Installing VibeFlow {info['version']}…")
+            update_check.run_installer(path)  # closes this instance & relaunches
+
+        threading.Thread(target=work, daemon=True).start()
+
+    def _report_problem(self, *_args) -> None:
+        # Open the folder containing vibeflow.log, plus the issues page.
+        self._open_path(str(config_mod.config_dir()))
+        self._open_path("https://github.com/vamsikrishna2421/vibeflow/issues")
+        self._notify(
+            __app_name__,
+            "Opened your VibeFlow folder — please attach 'vibeflow.log' to your report.",
+        )
 
     # -- vocabulary viewing / pruning ----------------------------------
     def _vocab_wordlist_path(self):
