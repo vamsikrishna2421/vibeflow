@@ -72,8 +72,12 @@ class Persona:
             pass
 
     def _file_mtime(self):
+        # (mtime, size): size catches edits that land within the same mtime tick.
         try:
-            return self.path.stat().st_mtime if self.path and self.path.exists() else None
+            if self.path and self.path.exists():
+                st = self.path.stat()
+                return (st.st_mtime, st.st_size)
+            return None
         except Exception:
             return None
 

@@ -100,6 +100,13 @@ text:
   spoken_commands: true       # Say "new line" / "new paragraph" to insert breaks.
   capitalize_first: false     # Capitalise only the very first letter.
   remove_trailing_period: false  # Drop a trailing '.' (handy for chat apps).
+  # OPT-IN: remove vocalized fillers ("um", "uh"). Tiered: when AI formatting is
+  # on, the local LLM removes them context-aware (keeps "er" in "metoprolol er",
+  # "uh-huh", etc.); when AI is off, a conservative offline regex strips only the
+  # unambiguous standalone cases. Off by default; recover the raw text from the
+  # tray ("Copy last transcript (unedited)").
+  strip_fillers: false
+  fillers: []                 # Custom filler list; [] uses the built-in safe set.
 
   # Adaptive vocabulary — learns your names/jargon so they transcribe correctly.
   vocabulary: []              # seed terms, e.g. [Kubernetes, kubectl, Acme]; grows as you teach it.

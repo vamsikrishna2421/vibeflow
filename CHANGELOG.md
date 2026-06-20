@@ -4,6 +4,28 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.8.0] — 2026-06-20
+
+### Added
+- **Filler-word removal (opt-in) — done right, via a 4-architect design review.**
+  Turn on "Remove filler words (um, uh)" in the tray to strip vocalized fillers.
+  It's **tiered**: when AI formatting is on, the local LLM removes them
+  *context-aware* (it keeps "er" in "metoprolol er", "uh-huh", etc. — things a
+  regex can't); when AI is off, a conservative offline regex strips only the
+  unambiguous standalone cases. **Off by default.** Your unedited text is always
+  recoverable via the new tray **"Copy last transcript (unedited)"**, and an
+  all-filler utterance is never silently dropped (your raw words are inserted).
+  - The design was hardened through three rounds of adversarial review by four
+    solution architects (fintech, healthcare, consumer-UX, dev-tools), which
+    closed 2 blockers + 3 majors and steered the approach from regex-only to the
+    tiered LLM+regex design (regex can't disambiguate er/ER, lists, mis-segments).
+
+### Fixed
+- Sentence capitalization no longer corrupts case-bearing tokens at a sentence
+  start — **iOS, pH, eBay, tPA** are preserved (previously "iOS" → "IOS").
+- Vocabulary/persona reload-on-change is now robust to edits that land within the
+  same filesystem timestamp tick (compares size as well as mtime).
+
 ## [1.7.0] — 2026-06-20
 
 Beta-readiness release.

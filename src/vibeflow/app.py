@@ -85,6 +85,7 @@ class VibeFlowApp:
         self._stopping = False
         self._vocab_wordlist_mtime = None  # set when the user opens the word list
         self._update_info = None  # set when a newer release is found
+        self._last_raw_transcript = ""  # unedited transcript (for recovery)
         self.icon = None  # set in run()
 
     # ------------------------------------------------------------------
@@ -194,6 +195,16 @@ class VibeFlowApp:
                 self._notify(__app_name__, "No speech detected.")
                 return
 
+            # Keep the user's own words recoverable (for the empty-output guard
+            # and the tray "Copy last transcript (unedited)").
+            self._last_raw_transcript = text.strip()
+
+            # Filler removal is TIERED: when AI formatting is on, the local LLM
+            # removes fillers context-aware; when it's off, the conservative
+            # offline regex handles only the unambiguous cases.
+            strip_fillers = bool(self.cfg.get("text.strip_fillers", False))
+            ai_on = ai_format.is_enabled(self.cfg)
+
             # Stage 4: deterministic offline curation, then optional AI cleanup.
             text = curate(
                 text,
@@ -201,13 +212,23 @@ class VibeFlowApp:
                 capitalize_sentences=bool(
                     self.cfg.get("text.capitalize_sentences", True)
                 ),
+                strip_fillers=(strip_fillers and not ai_on),  # regex only when AI off
+                fillers=self.cfg.get("text.fillers", []) or None,
             )
             persona_on = bool(self.cfg.get("text.persona", True))
-            if ai_format.is_enabled(self.cfg):
+            if ai_on:
                 profile = self.persona.profile_text() if persona_on else None
-                ai_text = ai_format.format_text(text, self.cfg, persona=profile)
+                ai_text = ai_format.format_text(
+                    text, self.cfg, persona=profile, strip_fillers=strip_fillers
+                )
                 if ai_text:
                     text = ai_text
+
+            # Safety: never type nothing for non-empty speech (e.g. an
+            # all-filler utterance) — fall back to the user's raw words.
+            if not text.strip() and self._last_raw_transcript:
+                text = self._last_raw_transcript
+                self._notify(__app_name__, "Only filler heard — inserted as-is.")
 
             focus = detect_focus()
             result = deliver(
@@ -525,6 +546,11 @@ class VibeFlowApp:
                 checked=lambda i: bool(self.cfg.get("feedback.overlay", True)),
             ),
             Item(
+                "Remove filler words (um, uh)",
+                self._toggle_fillers,
+                checked=lambda i: bool(self.cfg.get("text.strip_fillers", True)),
+            ),
+            Item(
                 "Learn from my edits",
                 self._toggle_teachback,
                 checked=lambda i: bool(self.cfg.get("text.teach_back", True)),
@@ -564,6 +590,7 @@ class VibeFlowApp:
                 checked=lambda i: bool(self.cfg.get("text.debug_log", False)),
             ),
             Menu.SEPARATOR,
+            Item("Copy last transcript (unedited)", self._copy_raw_transcript),
             Item("Report a problem…", self._report_problem),
             Item(
                 lambda i: (
@@ -627,6 +654,19 @@ class VibeFlowApp:
         self.overlay.set_enabled(enabled)
         if enabled:
             self.overlay.show("info", "VibeFlow · On-screen status on")
+        self._refresh()
+
+    def _toggle_fillers(self, *_args) -> None:
+        enabled = not bool(self.cfg.get("text.strip_fillers", False))
+        self.cfg.set("text.strip_fillers", enabled)
+        self._save_config()
+        self._notify(
+            __app_name__,
+            "Filler words (um, uh) will be removed. Your unedited text stays "
+            "available via the tray's “Copy last transcript (unedited).”"
+            if enabled
+            else "Keeping filler words as spoken.",
+        )
         self._refresh()
 
     def _toggle_teachback(self, *_args) -> None:
@@ -727,6 +767,20 @@ class VibeFlowApp:
             update_check.run_installer(path)  # closes this instance & relaunches
 
         threading.Thread(target=work, daemon=True).start()
+
+    def _copy_raw_transcript(self, *_args) -> None:
+        """Put the last *unedited* transcript on the clipboard (recovery)."""
+        raw = self._last_raw_transcript
+        if not raw:
+            self._notify(__app_name__, "No recent dictation to recover yet.")
+            return
+        try:
+            import pyperclip
+
+            pyperclip.copy(raw)
+            self._notify(__app_name__, "Copied your last unedited transcript to the clipboard.")
+        except Exception:
+            pass
 
     def _report_problem(self, *_args) -> None:
         # Open the folder containing vibeflow.log, plus the issues page.

@@ -57,6 +57,8 @@ DEFAULTS: dict[str, Any] = {
         "strip": True,
         "capitalize_sentences": True,   # capitalise the start of each sentence
         "spoken_commands": True,        # "new line" / "new paragraph" become breaks
+        "strip_fillers": False,         # OPT-IN: remove fillers (LLM when AI on, else regex)
+        "fillers": [],                  # custom filler list ([] = built-in um/uh/...)
         "capitalize_first": False,
         "remove_trailing_period": False,
         "vocabulary": [],               # domain terms (grows via teach-back; editable)

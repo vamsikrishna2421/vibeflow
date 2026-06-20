@@ -54,34 +54,50 @@ _DEFAULT_PROMPT = (
     "Output ONLY the cleaned-up text."
 )
 
+# Appended to the prompt only when filler removal is enabled. Context-aware:
+# the model keeps "er" in "metoprolol er", "uh-huh", etc. (regex cannot).
+_FILLER_CLAUSE = (
+    " Also remove vocalized filler words (um, uh, er, erm, hmm) when they are "
+    "hesitations — but keep every OTHER word, and do NOT remove um/uh/er when they "
+    "are part of a real word, term, product name, or a yes/no answer like 'uh-huh'."
+)
+
 
 def is_enabled(cfg) -> bool:
     return bool(cfg.get("ai.enabled", False))
 
 
-def format_text(text: str, cfg, persona: str | None = None) -> str | None:
+def format_text(
+    text: str, cfg, persona: str | None = None, strip_fillers: bool = False
+) -> str | None:
     """Return an AI-formatted version of ``text``, or ``None`` to fall back.
 
     When ``persona`` (a short profile of the user's domain/tone) is given, the
-    formatter is nudged to keep the output in the user's voice.
+    formatter is nudged to keep the output in the user's voice. When
+    ``strip_fillers`` is set, the model also removes vocalized fillers
+    context-aware (it keeps "er" in "metoprolol er", "uh-huh", etc.).
     """
     if not text or not is_enabled(cfg):
         return None
     provider = str(cfg.get("ai.provider", "ollama")).lower()
     try:
         if provider == "ollama":
-            return _ollama_generate(text, cfg, persona=persona)
+            return _ollama_generate(text, cfg, persona=persona, strip_fillers=strip_fillers)
         return None
     except Exception as exc:  # never break dictation because of AI
         _warn(f"AI formatting unavailable ({exc}); using plain transcript")
         return None
 
 
-def _ollama_generate(text: str, cfg, persona: str | None = None) -> str | None:
+def _ollama_generate(
+    text: str, cfg, persona: str | None = None, strip_fillers: bool = False
+) -> str | None:
     endpoint = str(cfg.get("ai.endpoint", DEFAULT_ENDPOINT)).rstrip("/")
     model = str(cfg.get("ai.model", DEFAULT_MODEL))
     timeout = float(cfg.get("ai.timeout", 20))
     prompt = (cfg.get("ai.prompt") or "").strip() or _DEFAULT_PROMPT
+    if strip_fillers:
+        prompt = prompt + _FILLER_CLAUSE
     if persona and persona.strip():
         prompt = (
             f"{prompt}\n\nUse the following ONLY to spell domain names/terms "
