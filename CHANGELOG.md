@@ -4,6 +4,22 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.8.1] — 2026-06-20
+
+### Fixed
+- **Hands-free auto-update — for real this time.** The first auto-update had two
+  rough edges, both fixed:
+  1. **Installer couldn't close the tray app** ("Setup was unable to
+     automatically close all applications"). VibeFlow has no main window, so
+     Windows' Restart Manager couldn't close it. The installer now **force-closes
+     VibeFlow before installing** (and **relaunches it** after a silent update).
+  2. **Clicking "Install update" opened the browser** and required a manual
+     download + click-through. Causes: the release asset was still uploading at
+     check time (the app now **re-checks** before any page fallback), and the
+     installer ran with its wizard (the updater now runs it **silently**). So
+     "Install update" downloads and installs in the background and the app
+     reappears — no browser, no Next-Next.
+
 ## [1.8.0] — 2026-06-20
 
 ### Added

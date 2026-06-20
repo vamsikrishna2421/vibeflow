@@ -88,10 +88,17 @@ def download_installer(url: str, progress=lambda _m: None):
 
 
 def run_installer(path: str) -> bool:
-    """Launch the downloaded installer (visible wizard; it closes & relaunches
-    VibeFlow). Returns True if it started."""
+    """Launch the downloaded installer silently and return immediately.
+
+    The installer force-closes the running VibeFlow (PrepareToInstall) and
+    relaunches it after a silent install, so the whole update is hands-free —
+    no wizard, no "couldn't close the app" prompt.
+    """
     try:
-        subprocess.Popen([path])  # no silent flags: user sees it; [Run] relaunches
+        subprocess.Popen(
+            [path, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"],
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
         return True
     except Exception:
         return False

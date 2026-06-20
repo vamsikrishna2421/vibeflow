@@ -11,7 +11,7 @@
 ; ============================================================================
 
 #define MyAppName "VibeFlow"
-#define MyAppVersion "1.8.0"
+#define MyAppVersion "1.8.1"
 #define MyAppPublisher "VibeFlow"
 #define MyAppExeName "VibeFlow.exe"
 
@@ -79,8 +79,12 @@ Root: HKCU; Subkey: "Software\VibeFlow"; ValueType: dword; \
     Tasks: ailearning; Flags: uninsdeletevalue uninsdeletekeyifempty
 
 [Run]
+; Interactive install: offer a "Launch VibeFlow now" checkbox on the finish page.
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch VibeFlow now"; \
     Flags: nowait postinstall skipifsilent
+; Silent install (used by the in-app auto-updater): relaunch automatically so the
+; tray app comes back after a hands-free update.
+Filename: "{app}\{#MyAppExeName}"; Flags: nowait; Check: WizardSilent
 
 [UninstallRun]
 ; Make sure the tray app isn't running so its files can be removed.
@@ -88,6 +92,19 @@ Filename: "{cmd}"; Parameters: "/C taskkill /IM {#MyAppExeName} /F"; \
     Flags: runhidden; RunOnceId: "StopVibeFlow"
 
 [Code]
+// VibeFlow is a tray app with no main window, so Windows' Restart Manager can't
+// reliably close it ("Setup was unable to automatically close all applications").
+// Force-close it ourselves before copying files — this also makes hands-free
+// auto-updates work without that error dialog.
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  ResultCode: Integer;
+begin
+  Exec(ExpandConstant('{cmd}'), '/C taskkill /IM {#MyAppExeName} /F', '',
+    SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Result := '';
+end;
+
 // On uninstall, offer to also remove the local AI runtime (Ollama), all
 // downloaded AI models (several GB), and VibeFlow's per-user data — so nothing
 // is left behind. The user can decline to keep Ollama (they may use it elsewhere).

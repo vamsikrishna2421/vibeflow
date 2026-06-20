@@ -745,6 +745,20 @@ class VibeFlowApp:
         if not info:
             return self._check_updates()
         if not info.get("installer_url"):
+            # The release asset may not have finished uploading at the last
+            # check — re-check once before giving up to the browser.
+            try:
+                from . import update_check
+
+                fresh = update_check.check()
+                if fresh and fresh.get("installer_url"):
+                    self._update_info = info = fresh
+            except Exception:
+                pass
+        if not info.get("installer_url"):
+            self._notify(
+                __app_name__, "Update isn't downloadable yet — opening the release page."
+            )
             self._open_path(info.get("page_url"))
             return
 
