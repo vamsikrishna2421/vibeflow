@@ -262,18 +262,28 @@ class VibeFlowApp:
 
     def _maybe_learn_from_clip(self, clip: str) -> None:
         out = self._last_output
-        if not out or not clip or clip == out:
+        if not out or not clip:
+            return
+        clip = clip.strip()
+        if not clip or clip == out.strip():
             return
         if time.time() - self._last_output_ts > 600:  # only within ~10 minutes
             return
-        if not (5 <= len(clip) <= 5000):
+        if not (2 <= len(clip) <= 5000):
             return
-        import difflib
+        # For a longer snippet, make sure it's an *edited copy of our output*
+        # (not some unrelated text the user happened to copy). A short snippet
+        # is treated as a single corrected term — its own word-level gate
+        # (similar-to-our-output / term-like) keeps unrelated copies out.
+        if len(clip) > 60 or len(clip.split()) > 6:
+            import difflib
 
-        ratio = difflib.SequenceMatcher(None, out, clip).ratio()
-        logging.getLogger("vibeflow").info("teach-back: ratio=%.2f (out_len=%d clip_len=%d)", ratio, len(out), len(clip))
-        if not (0.5 <= ratio < 0.999):  # a similar-but-edited version of our output
-            return
+            ratio = difflib.SequenceMatcher(None, out, clip).ratio()
+            logging.getLogger("vibeflow").info(
+                "teach-back: ratio=%.2f (out_len=%d clip_len=%d)", ratio, len(out), len(clip)
+            )
+            if not (0.5 <= ratio < 0.999):
+                return
         learned = self.vocabulary.learn_from_correction(out, clip)
         logging.getLogger("vibeflow").info("teach-back learned=%s", learned)
         if learned:

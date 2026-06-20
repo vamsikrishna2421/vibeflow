@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import difflib
 import json
+import logging
 import re
 import time
 from pathlib import Path
@@ -26,9 +27,32 @@ from pathlib import Path
 _WORD = re.compile(r"[A-Za-z][A-Za-z0-9'._\-]*")
 MAX_TERMS = 60  # cap for the initial_prompt (Whisper prompt budget is limited)
 
+# Ordinary function words we must never learn as "vocabulary" (they would just
+# waste the prompt budget and bias Whisper toward noise).
+_STOPWORDS = frozenset(
+    """
+    a an and the this that these those of to in on at by for with from into onto
+    out up off over under above below as is are was were be been being am do does
+    did has have had having will would shall should can could may might must not
+    no nor so if then than too very just also still even here there it its it's
+    i you he she we they them him her us my your his our their me what which who
+    whom whose when where why how all any each few more most some such only own
+    same about after before between through during again once because while until
+    """.split()
+)
+
 
 def _words(text: str):
     return _WORD.findall(text or "")
+
+
+def _clean(word: str) -> str:
+    """Strip surrounding punctuation from a token."""
+    return (word or "").strip(".,!?;:\"'()[]{}").strip()
+
+
+def _similar(a: str, b: str) -> float:
+    return difflib.SequenceMatcher(None, a.lower(), b.lower()).ratio()
 
 
 def is_termlike(word: str) -> bool:
@@ -105,19 +129,53 @@ class Vocabulary:
             self._prune()
         return learned
 
+    def _should_learn(self, word: str, context):
+        """Return the cleaned term to learn, or ``None``.
+
+        A corrected word is worth learning only when it is a genuine term —
+        either *term-like* (CamelCase / ACRONYM / has-digit / dotted) or the
+        corrected spelling of a *similar-looking* word from our output (the
+        mistake it replaced, e.g. ``kubectl`` for ``CubeCTL``). Stop-words,
+        very short words and stray fragments are rejected so we never bias
+        Whisper toward noise.
+        """
+        w = _clean(word)
+        if not (3 <= len(w) <= 40):
+            return None
+        if w.lower() in _STOPWORDS:
+            return None
+        if is_termlike(w):
+            return w
+        for other in context:
+            oc = _clean(other)
+            if oc.lower() != w.lower() and _similar(oc, w) >= 0.6:
+                return w
+        return None
+
     def learn_from_correction(self, original: str, corrected: str) -> list:
-        """Teach-back: diff old vs new output; learn the corrected words."""
-        old, new = _words(original), _words(corrected)
-        matcher = difflib.SequenceMatcher(a=old, b=new, autojunk=False)
-        learned = []
-        for tag, _i1, _i2, j1, j2 in matcher.get_opcodes():
-            if tag in ("replace", "insert"):
-                for word in new[j1:j2]:
-                    # Strong signal: learn the user's spelling (weight high).
-                    if self.add(word, weight=4):
-                        learned.append(word)
+        """Teach-back: learn the *terms* the user fixed in our output.
+
+        We compare word-by-word rather than by positional diff (which mis-aligns
+        and flags unchanged words). For each word in the corrected text that is
+        **not already in our output**, we learn it when :meth:`_should_learn`
+        accepts it. This handles both a whole edited sentence and a single
+        copied term, and never re-learns words that were already correct.
+        """
+        ctx = _words(original)
+        ctx_lower = {_clean(w).lower() for w in ctx}
+        candidates, learned = [], []
+        for raw in _words(corrected):
+            candidates.append(raw)
+            if _clean(raw).lower() in ctx_lower:
+                continue  # already present in our output — not a correction
+            term = self._should_learn(raw, ctx)
+            if term and self.add(term, weight=4):
+                learned.append(term)
         if learned:
             self._prune()
+        logging.getLogger("vibeflow").info(
+            "teach-back diff: candidates=%s learned=%s", candidates, learned
+        )
         return learned
 
     # -- use -----------------------------------------------------------

@@ -4,6 +4,24 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.4.4] — 2026-06-20
+
+### Fixed
+- **Teach-back now learns the right term — and nothing else.** The old
+  positional diff mis-aligned sentences and learned *unchanged*/ordinary words
+  (in the field it stored "the", "tool", and the fragment "alation" instead of
+  the user's real term). Learning is now alignment-free: a word is learned only
+  when it is **not already in our output** *and* it is either a real term
+  (CamelCase / ACRONYM / has-digit / dotted) or the corrected spelling of a
+  **similar-looking mistake** it replaced (e.g. `kubectl` ← `CubeCTL`,
+  `Kubernetes` ← `Cubernetis`). Stop-words, fragments and ordinary words are
+  ignored, so the vocabulary never fills with noise.
+
+### Added
+- **Single-word corrections.** You no longer have to copy the whole sentence —
+  fix the one mis-heard term, select just that word, and copy it. VibeFlow
+  recognises it as a correction of your last dictation and learns it.
+
 ## [1.4.3] — 2026-06-20
 
 ### Fixed

@@ -21,14 +21,53 @@ def test_add_and_prompt():
     assert "Kubernetes" in prompt and "kubectl" in prompt
 
 
-def test_learn_from_correction_teaches_correct_spelling():
+def test_learn_from_correction_teaches_corrected_terms():
+    """Real Whisper mistakes are close mis-spellings of the right term."""
     v = Vocabulary()
     learned = v.learn_from_correction(
-        "deploy the Qbutternets pod using kubexlaplie",
+        "deploy the Cubernetis pod using CubeCTL",
         "deploy the Kubernetes pod using kubectl",
     )
-    assert "Kubernetes" in learned and "kubectl" in learned
-    assert "Kubernetes" in v.prompt()
+    assert "Kubernetes" in learned          # corrected spelling of a near-miss
+    assert "kubectl" in learned             # lowercase jargon, learned via similarity
+    p = v.prompt()
+    assert "Kubernetes" in p and "kubectl" in p
+
+
+def test_learn_from_single_word_correction():
+    """User fixes just the one term and copies only that word."""
+    v = Vocabulary()
+    learned = v.learn_from_correction("connect to the CubeCTL", "kubectl")
+    assert learned == ["kubectl"]
+
+
+def test_learn_termlike_new_word():
+    """A brand-new term-like word the user adds is learned even with no match."""
+    v = Vocabulary()
+    learned = v.learn_from_correction("we use REST", "we use REST and GraphQL")
+    assert "GraphQL" in learned
+
+
+def test_learn_ignores_stopwords_fragments_and_ordinary_words():
+    """The exact class of bug from the field: never learn noise.
+
+    Stop-words ('the'), ordinary nouns ('tool', 'report') and stray fragments
+    ('alation') must never be learned when they are not the corrected spelling
+    of a similar-looking mistake.
+    """
+    v = Vocabulary()
+    learned = v.learn_from_correction("send it now", "send the report tool alation")
+    assert learned == []
+
+
+def test_learn_skips_words_already_in_output():
+    """Words already correct in our output are not re-learned (no diff noise)."""
+    v = Vocabulary()
+    learned = v.learn_from_correction(
+        "the Kubernetes cluster is ready",
+        "the Kubernetes cluster is ready",
+    )
+    assert learned == []
 
 
 def test_learn_from_text_is_conservative():
