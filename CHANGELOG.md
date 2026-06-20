@@ -4,6 +4,18 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.5.1] — 2026-06-20
+
+### Fixed
+- **You can now actually *see* when VibeFlow learns.** The "Learned from your
+  edit" confirmation only went to a Windows tray balloon, which Win10/11 quietly
+  suppresses — so learning worked but felt invisible (it was firing several
+  seconds late too, after the local model warmed up). The confirmation now shows
+  on the **on-screen overlay** (the pill you already see for Listening/Completed):
+  a live "Learning your terms…" pill while the model works, then
+  "Learned: kubectl, Atlan, …" in green. The tray notification still fires as a
+  secondary channel.
+
 ## [1.5.0] — 2026-06-20
 
 ### Added

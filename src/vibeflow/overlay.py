@@ -26,6 +26,8 @@ _STATES = {
     "transcribing": ("#F0A52A", "VibeFlow · Transcribing…", None, False),
     "done": ("#39B36A", "VibeFlow · Completed successfully", 1900, False),
     "clipboard": ("#5B8DEF", "VibeFlow · Copied to clipboard", 2800, False),
+    "working": ("#F0A52A", "VibeFlow · Working…", None, True),   # stays until replaced
+    "learned": ("#39B36A", "VibeFlow · Learned", 4200, False),   # green, lingers to read
     "info": ("#9AA4B2", "VibeFlow", 2200, False),
     "error": ("#E23A3A", "VibeFlow", 3500, False),
 }

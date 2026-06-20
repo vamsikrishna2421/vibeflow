@@ -289,7 +289,10 @@ class VibeFlowApp:
         # skip. Union the two so we get the LLM's breadth without ever regressing.
         learned: list = []
         terms = None
-        if bool(self.cfg.get("text.ai_learning", False)):
+        ai_on = bool(self.cfg.get("text.ai_learning", False))
+        if ai_on:
+            # Show a live pill — the local model can take a few seconds to warm up.
+            self.overlay.show("working", "VibeFlow · Learning your terms…")
             try:
                 from . import ai_format
 
@@ -306,7 +309,13 @@ class VibeFlowApp:
         if learned:
             self._last_output = None  # consume only after we actually learned
             self.vocabulary.save()
-            self._notify(__app_name__, "Learned from your edit: " + ", ".join(learned[:6]))
+            shown = ", ".join(learned[:6])
+            # The overlay is what the user actually sees (tray balloons are
+            # unreliable on Windows); show it there *and* fire the notification.
+            self.overlay.show("learned", f"VibeFlow · Learned: {shown}")
+            self._notify(__app_name__, "Learned from your edit: " + shown)
+        elif ai_on:
+            self.overlay.hide()  # clear the "Learning…" pill if nothing qualified
 
     # ------------------------------------------------------------------
     # Tray UI
