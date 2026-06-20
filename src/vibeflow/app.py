@@ -305,21 +305,15 @@ class VibeFlowApp:
                 "Speech accuracy",
                 Menu(
                     Item(
-                        "Fast (base)",
+                        "Fast (base · ~0.9s, recommended)",
                         lambda i: self._set_accuracy("base"),
                         checked=lambda i: self.cfg.get("model.size") == "base",
                         radio=True,
                     ),
                     Item(
-                        "Balanced (small)",
+                        "Balanced (small · ~2.7s)",
                         lambda i: self._set_accuracy("small"),
                         checked=lambda i: self.cfg.get("model.size") == "small",
-                        radio=True,
-                    ),
-                    Item(
-                        "Accurate (large-v3)",
-                        lambda i: self._set_accuracy("large-v3"),
-                        checked=lambda i: self.cfg.get("model.size") == "large-v3",
                         radio=True,
                     ),
                 ),
@@ -334,7 +328,7 @@ class VibeFlowApp:
                         radio=True,
                     ),
                     Item(
-                        "Fast — qwen2.5:1.5b (1 GB)",
+                        "Fast — qwen2.5:1.5b (1 GB · recommended)",
                         lambda i: self._set_ai_model("fast"),
                         checked=lambda i: self._ai_tier() == "fast",
                         radio=True,
@@ -425,7 +419,7 @@ class VibeFlowApp:
         self._save_config()
         self.transcriber = self._build_transcriber()
         self._model_ready = False
-        labels = {"base": "Fast", "small": "Balanced", "large-v3": "Accurate"}
+        labels = {"base": "Fast", "small": "Balanced"}
         self._notify(
             __app_name__,
             f"Speech accuracy: {labels.get(size, size)}. The model downloads on "

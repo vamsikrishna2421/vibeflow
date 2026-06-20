@@ -21,6 +21,9 @@ models/
 *.bin
 *.pt
 
+# Generated benchmark audio (regenerate with benchmarks/gen_audio.ps1)
+benchmarks/audio/
+
 # Tooling / OS
 .pytest_cache/
 .mypy_cache/

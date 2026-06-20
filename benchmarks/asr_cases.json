@@ -1,0 +1,20 @@
+[
+  {"id": 1,  "text": "The server at 192.168.0.14 returned HTTP error 503 after 4500 milliseconds."},
+  {"id": 2,  "text": "Deploy the Kubernetes pod using kubectl apply and verify the YAML configuration."},
+  {"id": 3,  "text": "Vamsi and Nguyen reviewed the Qwen and Gemma benchmark results on Tuesday."},
+  {"id": 4,  "text": "They're driving to their house over there to debate the principal's core principle."},
+  {"id": 5,  "text": "The patient was prescribed 250 milligrams of amoxicillin to be taken twice daily."},
+  {"id": 6,  "text": "The meeting on March 3rd at 2:45 PM was rescheduled to the 17th at 11:30 AM."},
+  {"id": 7,  "text": "Add 2.5 liters of water and heat it to 350 degrees Fahrenheit for 25 minutes."},
+  {"id": 8,  "text": "Third quarter revenue grew 18.7 percent to 4.2 million dollars year over year."},
+  {"id": 9,  "text": "Run npm install, then npx vite build, and commit the changes to the main branch."},
+  {"id": 10, "text": "Please email john.doe@example.com and copy the team at support@acme.io."},
+  {"id": 11, "text": "We ordered croissants, gnocchi, and a jalapeno quesadilla for the office lunch."},
+  {"id": 12, "text": "The NASDAQ fell 2.3 percent while the S&P 500 rose 0.8 percent on Friday."},
+  {"id": 13, "text": "Mitochondria produce ATP through the process of oxidative phosphorylation."},
+  {"id": 14, "text": "Call me at 555 867 5309 or dial extension 42 any time after 5 PM."},
+  {"id": 15, "text": "The API uses OAuth 2.0 with JWT tokens sent over HTTPS on port 8443."},
+  {"id": 16, "text": "Notwithstanding the circumstances, the committee unanimously ratified the amended proposal."},
+  {"id": 17, "text": "Schedule the cron job for 0 30 4 every Sunday and log to var slash log slash app."},
+  {"id": 18, "text": "Doctor Smith said the acetaminophen dosage should not exceed 3000 milligrams per day."}
+]
