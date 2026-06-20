@@ -22,6 +22,7 @@ from . import (
     __app_name__,
     __version__,
     ai_format,
+    ai_setup,
     autostart,
     config as config_mod,
     icons,
@@ -300,6 +301,58 @@ class VibeFlowApp:
                     ),
                 ),
             ),
+            Item(
+                "Speech accuracy",
+                Menu(
+                    Item(
+                        "Fast (base)",
+                        lambda i: self._set_accuracy("base"),
+                        checked=lambda i: self.cfg.get("model.size") == "base",
+                        radio=True,
+                    ),
+                    Item(
+                        "Balanced (small)",
+                        lambda i: self._set_accuracy("small"),
+                        checked=lambda i: self.cfg.get("model.size") == "small",
+                        radio=True,
+                    ),
+                    Item(
+                        "Accurate (large-v3)",
+                        lambda i: self._set_accuracy("large-v3"),
+                        checked=lambda i: self.cfg.get("model.size") == "large-v3",
+                        radio=True,
+                    ),
+                ),
+            ),
+            Item(
+                "AI formatting",
+                Menu(
+                    Item(
+                        "Off (plain voice-to-text)",
+                        lambda i: self._set_ai_model("off"),
+                        checked=lambda i: not bool(self.cfg.get("ai.enabled", False)),
+                        radio=True,
+                    ),
+                    Item(
+                        "Fast — qwen2.5:1.5b (1 GB)",
+                        lambda i: self._set_ai_model("fast"),
+                        checked=lambda i: self._ai_tier() == "fast",
+                        radio=True,
+                    ),
+                    Item(
+                        "Balanced — qwen2.5:3b (2 GB)",
+                        lambda i: self._set_ai_model("balanced"),
+                        checked=lambda i: self._ai_tier() == "balanced",
+                        radio=True,
+                    ),
+                    Item(
+                        "Best — gemma2:2b (1.6 GB)",
+                        lambda i: self._set_ai_model("best"),
+                        checked=lambda i: self._ai_tier() == "best",
+                        radio=True,
+                    ),
+                ),
+            ),
             Menu.SEPARATOR,
             Item("Open settings file", self._open_config),
             Item("Open settings folder", self._open_config_dir),
@@ -309,11 +362,6 @@ class VibeFlowApp:
                 "Show on-screen status",
                 self._toggle_overlay,
                 checked=lambda i: bool(self.cfg.get("feedback.overlay", True)),
-            ),
-            Item(
-                "AI formatting (local LLM)",
-                self._toggle_ai,
-                checked=lambda i: bool(self.cfg.get("ai.enabled", False)),
             ),
             Item(
                 "Start with Windows",
@@ -372,18 +420,60 @@ class VibeFlowApp:
         if enabled:
             self.overlay.show("info", "VibeFlow · On-screen status on")
 
-    def _toggle_ai(self, *_args) -> None:
-        enabled = not bool(self.cfg.get("ai.enabled", False))
-        self.cfg.set("ai.enabled", enabled)
+    def _set_accuracy(self, size: str) -> None:
+        self.cfg.set("model.size", size)
         self._save_config()
-        if not enabled:
-            self._notify(__app_name__, "AI formatting off — plain voice-to-text.")
-            return
-        ok, message = ai_format.check(self.cfg)
+        self.transcriber = self._build_transcriber()
+        self._model_ready = False
+        labels = {"base": "Fast", "small": "Balanced", "large-v3": "Accurate"}
         self._notify(
-            "AI formatting ON" if ok else "AI formatting ON (no local LLM yet)",
-            message,
+            __app_name__,
+            f"Speech accuracy: {labels.get(size, size)}. The model downloads on "
+            "first use if it's new.",
         )
+        self._set_status("Loading model…")
+        self._refresh()
+        threading.Thread(target=self._preload_model, daemon=True).start()
+
+    def _ai_tier(self):
+        if not bool(self.cfg.get("ai.enabled", False)):
+            return None
+        model = self.cfg.get("ai.model")
+        for tier, (tier_model, _size) in ai_setup.MODEL_TIERS.items():
+            if tier_model == model:
+                return tier
+        return None
+
+    def _set_ai_model(self, tier: str) -> None:
+        if tier == "off":
+            self.cfg.set("ai.enabled", False)
+            self._save_config()
+            self._notify(__app_name__, "AI formatting off — plain voice-to-text.")
+            self._refresh()
+            return
+        model, size = ai_setup.MODEL_TIERS[tier]
+        self._notify(
+            __app_name__,
+            f"Setting up AI ({model}, {size}). I'll install and download everything "
+            "automatically — watch the tray tooltip for progress.",
+        )
+        threading.Thread(
+            target=self._setup_ai_worker, args=(model,), daemon=True
+        ).start()
+
+    def _setup_ai_worker(self, model: str) -> None:
+        def progress(message: str) -> None:
+            self._set_status(message)
+            self._refresh()
+
+        ok, message = ai_setup.setup(model, progress=progress)
+        if ok:
+            self.cfg.set("ai.enabled", True)
+            self.cfg.set("ai.model", model)
+            self._save_config()
+        self._notify("AI formatting ready" if ok else "AI setup failed", message)
+        self._set_status("Ready")
+        self._refresh()
 
     def _quit(self, *_args) -> None:
         try:

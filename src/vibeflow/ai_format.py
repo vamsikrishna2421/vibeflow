@@ -19,7 +19,7 @@ import json
 import urllib.request
 
 DEFAULT_ENDPOINT = "http://127.0.0.1:11434"
-DEFAULT_MODEL = "llama3.2:3b"
+DEFAULT_MODEL = "qwen2.5:1.5b"  # benchmark winner: fast, tiny, clean, reliable
 
 _DEFAULT_PROMPT = (
     "You clean up dictated text. Rewrite the text below with correct "

@@ -64,7 +64,7 @@ DEFAULTS: dict[str, Any] = {
         "enabled": False,            # voice-to-text + AI formatting (needs a local LLM)
         "provider": "ollama",        # ollama (local, runs on your machine)
         "endpoint": "http://127.0.0.1:11434",
-        "model": "llama3.2:3b",
+        "model": "qwen2.5:1.5b",
         "timeout": 20,
         "prompt": "",                # empty = use the built-in formatting prompt
     },

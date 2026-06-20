@@ -52,6 +52,15 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Test the local-LLM (AI formatting) connection and exit.",
     )
+    p.add_argument(
+        "--setup-ai",
+        metavar="TIER",
+        nargs="?",
+        const="fast",
+        default=None,
+        help="Managed AI setup: install Ollama + download a model tier "
+        "(fast|balanced|best) + enable AI, then exit.",
+    )
     return p
 
 
@@ -80,6 +89,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.check_ai:
         return _check_ai(cfg)
+    if args.setup_ai:
+        return _setup_ai(cfg, args.setup_ai)
     if args.list_devices:
         return _list_devices()
     if args.print_config:
@@ -117,6 +128,23 @@ def _check_ai(cfg: config_mod.Config) -> int:
 
     ok, message = ai_format.check(cfg)
     print(("OK: " if ok else "NOT READY: ") + message)
+    return 0 if ok else 1
+
+
+def _setup_ai(cfg: config_mod.Config, tier: str) -> int:
+    from . import ai_setup
+
+    model, size = ai_setup.MODEL_TIERS.get(tier, ai_setup.MODEL_TIERS["fast"])
+    print(f"Setting up AI formatting: {model} ({size})...")
+    ok, message = ai_setup.setup(model, progress=lambda m: print("  " + m))
+    if ok:
+        cfg.set("ai.enabled", True)
+        cfg.set("ai.model", model)
+        try:
+            cfg.save()
+        except Exception:
+            pass
+    print(("OK: " if ok else "FAILED: ") + message)
     return 0 if ok else 1
 
 

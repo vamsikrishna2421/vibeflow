@@ -4,6 +4,25 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.4.0] — 2026-06-20
+
+### Added
+- **Zero-touch local AI setup** (`ai_setup.py`). Pick an AI tier from the tray and
+  VibeFlow does everything itself — finds or silently installs the Ollama runtime,
+  starts its server, downloads the model with progress, and enables AI. No
+  terminal, no manual steps. Also scriptable: `--setup-ai fast|balanced|best`.
+- **AI model tiers**, chosen by a 20-case benchmark of 7 local models (see
+  `benchmarks/`): Fast = `qwen2.5:1.5b` (1 GB), Balanced = `qwen2.5:3b` (2 GB),
+  Best = `gemma2:2b` (1.6 GB). The default model is now `qwen2.5:1.5b`.
+- **Speech-accuracy tiers** in the tray: Fast (`base`), Balanced (`small`),
+  Accurate (`large-v3`) — to fix accent/pronunciation at the ASR layer (where it
+  has to be fixed), not in the text model.
+- The local-LLM benchmark harness and full results under `benchmarks/`.
+
+### Changed
+- The tray "AI formatting" control is now a managed tier picker
+  (Off / Fast / Balanced / Best) instead of a plain on/off toggle.
+
 ## [1.3.0] — 2026-06-19
 
 ### Fixed

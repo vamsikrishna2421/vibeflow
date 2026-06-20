@@ -104,13 +104,14 @@ text:
 #  AI formatting (OPTIONAL) — "voice to text WITH AI".
 #  Off by default = plain, fast voice-to-text. Turn this on to have a LOCAL LLM
 #  clean up and format your dictation. Everything still stays on your computer.
-#  Setup once:  install Ollama (https://ollama.com), then:  ollama pull llama3.2:3b
-#  Test it:     scripts\run.ps1 --check-ai
+#  Easiest: just pick a tier from the tray "AI formatting" menu — VibeFlow
+#  installs the runtime and downloads the model for you (zero-touch).
+#  Advanced:  scripts\run.ps1 --setup-ai fast   (or --check-ai)
 # ----------------------------------------------------------------------------
 ai:
   enabled: false                       # true = use the local LLM to format text
   provider: ollama                     # ollama (local)
   endpoint: http://127.0.0.1:11434     # where Ollama is listening
-  model: llama3.2:3b                   # any model you've pulled (e.g. qwen2.5:3b)
+  model: qwen2.5:1.5b                  # benchmark winner; or qwen2.5:3b / gemma2:2b
   timeout: 20                          # seconds before giving up (falls back to plain)
   prompt: ""                          # empty = built-in formatting prompt

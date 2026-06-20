@@ -1,0 +1,1276 @@
+{
+  "llama3.2:1b": [
+    {
+      "id": 1,
+      "expect": "list of 3 action items",
+      "raw": "so basically what i wanted to say is that we need to finish the report by friday and also we should probably loop in the marketing team and oh yeah dont forget to book the conference room for the review meeting",
+      "output": "We need to complete the report by Friday. Also, it would be helpful to involve the marketing team in this process. Additionally, we should reserve a conference room for the review meeting.",
+      "seconds": 5.35,
+      "tokens": 38,
+      "tok_per_s": 15.0
+    },
+    {
+      "id": 2,
+      "expect": "clean technical prose",
+      "raw": "um the the api keeps returning a 500 error when i send a post request to the users endpoint but it works fine for get requests so i think theres something wrong with how we handle the request body maybe its the json parsing",
+      "output": "Here is the cleaned text:\n\nThe API returns a 500 error when I send a POST request to the user's endpoint, but it works fine for GET requests. I suspect there's an issue with how we handle the request body, possibly related to JSON parsing.",
+      "seconds": 5.83,
+      "tokens": 54,
+      "tok_per_s": 12.7
+    },
+    {
+      "id": 3,
+      "expect": "narrative prose, maybe inline list of items bought",
+      "raw": "i went to the store today and i bought milk eggs bread and then i realized i forgot my wallet so i had to go back home and get it and then come back it was super annoying",
+      "output": "I went to the store today. I bought milk, eggs, and bread. Then I realized I forgot my wallet, so I had to go back home and retrieve it. After that, I came back. It was frustrating.",
+      "seconds": 5.88,
+      "tokens": 47,
+      "tok_per_s": 11.8
+    },
+    {
+      "id": 4,
+      "expect": "polite email request, 3 asks",
+      "raw": "can you send me the the quarterly numbers when you get a chance also i need the the breakdown by region and if possible the year over year comparison thanks",
+      "output": "Here is the cleaned text:\n\nCan you please send me the quarterly financial reports as soon as possible? Also, I would like to know the breakdown of expenses by region, and if that's feasible, a year-over-year comparison.",
+      "seconds": 9.41,
+      "tokens": 47,
+      "tok_per_s": 10.2
+    },
+    {
+      "id": 5,
+      "expect": "two date/time options, clearly formatted",
+      "raw": "the meeting is scheduled for march 3rd at 2 30 pm in the main office but if that doesnt work we can also do it on the 5th at 10 am just let me know which one works better for you",
+      "output": "Here is the cleaned text:\n\nThe meeting is scheduled for March 3rd at 2:30 pm in the main office. However, if that doesn't work out, we can also schedule it for March 5th at 10 am. Please let me know which one works better for you.",
+      "seconds": 10.19,
+      "tokens": 62,
+      "tok_per_s": 11.4
+    },
+    {
+      "id": 6,
+      "expect": "numbered list of 5 steps",
+      "raw": "okay so the the plan is first we gather all the requirements then we do a design review after that development starts and finally we have testing and deployment",
+      "output": "Here is the rewritten text:\n\nThe plan involves gathering all necessary requirements first. Then, a design review takes place. Development commences, followed by testing and deployment.",
+      "seconds": 5.57,
+      "tokens": 34,
+      "tok_per_s": 12.1
+    },
+    {
+      "id": 7,
+      "expect": "bulleted list of 3 issues",
+      "raw": "honestly i think the the new feature is great but theres a few issues like the loading is kind of slow and the the button placement is a bit weird and some users said the colors are hard to read",
+      "output": "Honestly, I think the new feature is great. However, there are a few issues with it. One problem is that the loading process can be quite slow. Additionally, the placement of certain buttons on the screen can be somewhat awkward for some users. Furthermore, many people have reported difficulty in reading the colors displayed on the screen due to their brightness.",
+      "seconds": 11.21,
+      "tokens": 71,
+      "tok_per_s": 10.5
+    },
+    {
+      "id": 8,
+      "expect": "prose; note: 'pacific' is an ASR homophone error for 'specific' (LLM ceiling case)",
+      "raw": "i was thinking maybe we could go to the pacific ocean wait no i mean we should be more specific about which beach we want to visit this summer",
+      "output": "I was thinking maybe we could go to the Pacific Ocean. Wait, I mean we should be more specific about which beach we want to visit this summer.",
+      "seconds": 5.14,
+      "tokens": 32,
+      "tok_per_s": 11.4
+    },
+    {
+      "id": 9,
+      "expect": "clean prose, preserve order number 45789",
+      "raw": "the customer called and said their order number 4 5 7 8 9 hasnt arrived yet even though the tracking says it was delivered three days ago so we need to investigate what happened",
+      "output": "The customer called and stated that their order number 4-5-7-8-9 had not arrived yet, despite the tracking indicating it was delivered three days ago. We need to investigate what happened.",
+      "seconds": 7.21,
+      "tokens": 43,
+      "tok_per_s": 10.1
+    },
+    {
+      "id": 10,
+      "expect": "remove heavy fillers, clean opinion prose",
+      "raw": "you know like i feel like we should um maybe reconsider the whole approach because like the current one is just not working and its causing a lot of frustration for everyone involved",
+      "output": "Here's the rewritten text:\n\nYou know that I feel like we should consider reevaluating our entire approach, as it appears to be failing and causing significant frustration among all parties involved.",
+      "seconds": 7.19,
+      "tokens": 38,
+      "tok_per_s": 9.6
+    },
+    {
+      "id": 11,
+      "expect": "numbered setup steps",
+      "raw": "to set up the environment you need to install python then create a virtual environment then activate it then run pip install of the requirements file and finally start the server",
+      "output": "Here is the rewritten text:\n\nTo set up the environment, you will first need to install Python. Then, you must create a virtual environment. Next, activate the environment. After that, you can install the required packages using pip. Finally, start the server.\n\n• Install Python\n• Create a virtual environment\n• Activate the environment\n• Install required packages with pip\n• Start the server",
+      "seconds": 10.23,
+      "tokens": 80,
+      "tok_per_s": 10.9
+    },
+    {
+      "id": 12,
+      "expect": "clean prose, preserve the hearsay/ambiguity",
+      "raw": "she said that he said that the project was delayed because of the the vendor issues but i heard from someone else that it was actually a budget problem so im not really sure whats going on",
+      "output": "She stated that he mentioned the project was delayed due to vendor issues, but I have been informed by another source that it may be related to a budget constraint.",
+      "seconds": 5.95,
+      "tokens": 33,
+      "tok_per_s": 10.9
+    },
+    {
+      "id": 13,
+      "expect": "recipe as ingredient list + method",
+      "raw": "the recipe is pretty simple you take two cups of flour one cup of sugar three eggs a teaspoon of vanilla mix it all together and bake at 350 for 25 minutes",
+      "output": "Here is the rewritten text:\n\nThe recipe is quite straightforward. You need to combine two cups of flour, one cup of sugar, three eggs, and a teaspoon of vanilla extract. Then, you should mix everything together and bake it in an oven at 350 degrees for 25 minutes.",
+      "seconds": 6.52,
+      "tokens": 59,
+      "tok_per_s": 13.7
+    },
+    {
+      "id": 14,
+      "expect": "bulleted list of 3 follow-ups",
+      "raw": "i need to follow up on three things the contract renewal the the invoice that was disputed and the onboarding for the new hire that starts next monday",
+      "output": "I need to follow up on three matters related to the contract renewal, the invoice that was disputed, and the onboarding process for the new hire who is scheduled to start next Monday.",
+      "seconds": 3.63,
+      "tokens": 38,
+      "tok_per_s": 15.5
+    },
+    {
+      "id": 15,
+      "expect": "problem statement + question, clean prose",
+      "raw": "the the wifi keeps disconnecting every few minutes its really frustrating ive tried restarting the router and reconnecting but nothing seems to work do you have any other suggestions",
+      "output": "Here is the rewritten text:\n\nThe WiFi keeps disconnecting every few minutes. It's really frustrating. I've tried restarting the router and reconnecting, but nothing seems to work. Do you have any other suggestions?",
+      "seconds": 3.96,
+      "tokens": 44,
+      "tok_per_s": 16.2
+    },
+    {
+      "id": 16,
+      "expect": "bulleted list of conference topics",
+      "raw": "during the conference we covered a lot of topics including ai ethics data privacy the future of work and there was also a really interesting session on quantum computing",
+      "output": "During the conference, we covered several topics, including AI ethics, data privacy, and the future of work. There was also an interesting session on quantum computing.",
+      "seconds": 3.02,
+      "tokens": 33,
+      "tok_per_s": 17.1
+    },
+    {
+      "id": 17,
+      "expect": "casual check-in, two questions",
+      "raw": "hey just wanted to quickly check in and see how youre doing with the the slides for tomorrow do you need any help and also did you get a chance to review the the budget i sent over",
+      "output": "Here is the cleaned text:\n\n\"Hey, I just wanted to check in and see how you're doing with the slides for tomorrow. Do you need any help? Also, did you get a chance to review the budget I sent over?\"",
+      "seconds": 5.4,
+      "tokens": 49,
+      "tok_per_s": 11.7
+    },
+    {
+      "id": 18,
+      "expect": "clean technical explanation prose",
+      "raw": "the the algorithm works by first sorting the array then it uses a binary search to find the target element which makes it much faster than a linear scan especially for large datasets",
+      "output": "The algorithm works by first sorting the array. It then uses a binary search to find the target element, making it much faster than a linear scan, especially for large datasets.",
+      "seconds": 4.39,
+      "tokens": 36,
+      "tok_per_s": 12.9
+    },
+    {
+      "id": 19,
+      "expect": "budget breakdown; resolve self-correction 30k->15k",
+      "raw": "so we have a budget of fifty thousand dollars and we need to allocate it across marketing which is about twenty thousand development thirty thousand wait no fifteen thousand and the rest for operations",
+      "output": "We have a budget of $50,000. We need to allocate it as follows: $20,000 for marketing, $30,000 for development, $15,000 for waiting period, and $10,000 for operations.",
+      "seconds": 4.91,
+      "tokens": 49,
+      "tok_per_s": 14.6
+    },
+    {
+      "id": 20,
+      "expect": "clean opinion prose, remove repetition/fillers",
+      "raw": "i really think that um we need to to address the the elephant in the room which is that the the deadline is just not realistic given the current resources and we should push it back at least two weeks",
+      "output": "I'm ready when you are.",
+      "seconds": 2.42,
+      "tokens": 8,
+      "tok_per_s": 11.9
+    }
+  ],
+  "qwen2.5:1.5b": [
+    {
+      "id": 1,
+      "expect": "list of 3 action items",
+      "raw": "so basically what i wanted to say is that we need to finish the report by friday and also we should probably loop in the marketing team and oh yeah dont forget to book the conference room for the review meeting",
+      "output": "We need to finish the report by Friday, loop in the marketing team, and don't forget to book the conference room for the review meeting.",
+      "seconds": 4.38,
+      "tokens": 30,
+      "tok_per_s": 16.9
+    },
+    {
+      "id": 2,
+      "expect": "clean technical prose",
+      "raw": "um the the api keeps returning a 500 error when i send a post request to the users endpoint but it works fine for get requests so i think theres something wrong with how we handle the request body maybe its the json parsing",
+      "output": "The API is returning a 500 error when sending a POST request to the users endpoint, but it works fine for GET requests. I suspect there might be an issue with how we handle the request body, possibly related to JSON parsing.",
+      "seconds": 4.42,
+      "tokens": 50,
+      "tok_per_s": 16.1
+    },
+    {
+      "id": 3,
+      "expect": "narrative prose, maybe inline list of items bought",
+      "raw": "i went to the store today and i bought milk eggs bread and then i realized i forgot my wallet so i had to go back home and get it and then come back it was super annoying",
+      "output": "I went to the store today and bought milk, eggs, and bread. Then I realized I forgot my wallet, so I had to go back home and get it. Finally, I came back, but it was very annoying.",
+      "seconds": 5.15,
+      "tokens": 47,
+      "tok_per_s": 11.8
+    },
+    {
+      "id": 4,
+      "expect": "polite email request, 3 asks",
+      "raw": "can you send me the the quarterly numbers when you get a chance also i need the the breakdown by region and if possible the year over year comparison thanks",
+      "output": "Sure, please send me the quarterly numbers when you have a chance. Additionally, I would appreciate the breakdown by region. If possible, include the year-over-year comparison as well. Thank you.",
+      "seconds": 3.18,
+      "tokens": 40,
+      "tok_per_s": 19.3
+    },
+    {
+      "id": 5,
+      "expect": "two date/time options, clearly formatted",
+      "raw": "the meeting is scheduled for march 3rd at 2 30 pm in the main office but if that doesnt work we can also do it on the 5th at 10 am just let me know which one works better for you",
+      "output": "The meeting is scheduled for March 3rd at 2:30 PM in the main office. If that doesn't work, we can also do it on the 5th at 10 AM. Let me know which time works best for you.",
+      "seconds": 4.29,
+      "tokens": 54,
+      "tok_per_s": 18.7
+    },
+    {
+      "id": 6,
+      "expect": "numbered list of 5 steps",
+      "raw": "okay so the the plan is first we gather all the requirements then we do a design review after that development starts and finally we have testing and deployment",
+      "output": "- The plan involves gathering requirements first  \n- Then a design review follows  \n- Development begins next  \n- Finally, testing and deployment are completed",
+      "seconds": 2.31,
+      "tokens": 29,
+      "tok_per_s": 20.8
+    },
+    {
+      "id": 7,
+      "expect": "bulleted list of 3 issues",
+      "raw": "honestly i think the the new feature is great but theres a few issues like the loading is kind of slow and the the button placement is a bit weird and some users said the colors are hard to read",
+      "output": "I honestly think the new feature is great, but there are a couple of issues. The loading speed is a bit slow, and the button placement seems a bit weird. Some users also mentioned that the colors are difficult to read.",
+      "seconds": 3.3,
+      "tokens": 47,
+      "tok_per_s": 20.9
+    },
+    {
+      "id": 8,
+      "expect": "prose; note: 'pacific' is an ASR homophone error for 'specific' (LLM ceiling case)",
+      "raw": "i was thinking maybe we could go to the pacific ocean wait no i mean we should be more specific about which beach we want to visit this summer",
+      "output": "I was thinking maybe we could go to a specific beach on the Pacific Ocean. We should be more specific about which beach we want to visit this summer.",
+      "seconds": 2.61,
+      "tokens": 32,
+      "tok_per_s": 19.8
+    },
+    {
+      "id": 9,
+      "expect": "clean prose, preserve order number 45789",
+      "raw": "the customer called and said their order number 4 5 7 8 9 hasnt arrived yet even though the tracking says it was delivered three days ago so we need to investigate what happened",
+      "output": "The customer reported that their order numbers 4, 5, 7, 8, and 9 have not arrived despite the tracking indicating delivery three days ago. We need to investigate what happened.",
+      "seconds": 3.22,
+      "tokens": 42,
+      "tok_per_s": 19.9
+    },
+    {
+      "id": 10,
+      "expect": "remove heavy fillers, clean opinion prose",
+      "raw": "you know like i feel like we should um maybe reconsider the whole approach because like the current one is just not working and its causing a lot of frustration for everyone involved",
+      "output": "You know, I feel like we should consider reevaluating the entire approach. The current method isn't working, and it's causing a lot of frustration among everyone involved.",
+      "seconds": 2.83,
+      "tokens": 36,
+      "tok_per_s": 19.3
+    },
+    {
+      "id": 11,
+      "expect": "numbered setup steps",
+      "raw": "to set up the environment you need to install python then create a virtual environment then activate it then run pip install of the requirements file and finally start the server",
+      "output": "To set up the environment, you need to:\n\n1. Install Python\n2. Create a virtual environment\n3. Activate it\n4. Run `pip install` on the requirements file\n5. Start the server",
+      "seconds": 2.86,
+      "tokens": 45,
+      "tok_per_s": 22.8
+    },
+    {
+      "id": 12,
+      "expect": "clean prose, preserve the hearsay/ambiguity",
+      "raw": "she said that he said that the project was delayed because of the the vendor issues but i heard from someone else that it was actually a budget problem so im not really sure whats going on",
+      "output": "She said he said the project was delayed due to vendor issues. However, I heard from another source that it was actually a budget problem. So, I'm not really sure what's going on.",
+      "seconds": 2.76,
+      "tokens": 41,
+      "tok_per_s": 22.6
+    },
+    {
+      "id": 13,
+      "expect": "recipe as ingredient list + method",
+      "raw": "the recipe is pretty simple you take two cups of flour one cup of sugar three eggs a teaspoon of vanilla mix it all together and bake at 350 for 25 minutes",
+      "output": "The recipe is quite simple. Mix two cups of flour, one cup of sugar, three eggs, and a teaspoon of vanilla. Bake at 350 degrees Fahrenheit for 25 minutes.",
+      "seconds": 3.77,
+      "tokens": 41,
+      "tok_per_s": 15.9
+    },
+    {
+      "id": 14,
+      "expect": "bulleted list of 3 follow-ups",
+      "raw": "i need to follow up on three things the contract renewal the the invoice that was disputed and the onboarding for the new hire that starts next monday",
+      "output": "- Need to follow up on three items: \n  1. Contract renewal\n  2. Invoice dispute\n  3. Onboarding for the new hire starting next Monday",
+      "seconds": 3.93,
+      "tokens": 38,
+      "tok_per_s": 14.0
+    },
+    {
+      "id": 15,
+      "expect": "problem statement + question, clean prose",
+      "raw": "the the wifi keeps disconnecting every few minutes its really frustrating ive tried restarting the router and reconnecting but nothing seems to work do you have any other suggestions",
+      "output": "The WiFi keeps disconnecting every few minutes. It's really frustrating. I've tried restarting the router and reconnecting, but it doesn't seem to work. Do you have any other suggestions?",
+      "seconds": 5.39,
+      "tokens": 40,
+      "tok_per_s": 11.6
+    },
+    {
+      "id": 16,
+      "expect": "bulleted list of conference topics",
+      "raw": "during the conference we covered a lot of topics including ai ethics data privacy the future of work and there was also a really interesting session on quantum computing",
+      "output": "During the conference, we covered a lot of topics, including AI ethics, data privacy, the future of work, and there was also an interesting session on quantum computing.",
+      "seconds": 4.31,
+      "tokens": 35,
+      "tok_per_s": 12.4
+    },
+    {
+      "id": 17,
+      "expect": "casual check-in, two questions",
+      "raw": "hey just wanted to quickly check in and see how youre doing with the the slides for tomorrow do you need any help and also did you get a chance to review the the budget i sent over",
+      "output": "Hey! Just wanted to check in on the slides for tomorrow. Do you need any help? Also, have you had a chance to review the budget I sent over?",
+      "seconds": 3.64,
+      "tokens": 35,
+      "tok_per_s": 16.5
+    },
+    {
+      "id": 18,
+      "expect": "clean technical explanation prose",
+      "raw": "the the algorithm works by first sorting the array then it uses a binary search to find the target element which makes it much faster than a linear scan especially for large datasets",
+      "output": "The algorithm works by first sorting the array and then using a binary search to find the target element, making it significantly faster than a linear scan, especially for large datasets.",
+      "seconds": 3.01,
+      "tokens": 35,
+      "tok_per_s": 18.7
+    },
+    {
+      "id": 19,
+      "expect": "budget breakdown; resolve self-correction 30k->15k",
+      "raw": "so we have a budget of fifty thousand dollars and we need to allocate it across marketing which is about twenty thousand development thirty thousand wait no fifteen thousand and the rest for operations",
+      "output": "We have a budget of $50,000. We need to allocate this amount across:\n- Marketing: $20,000\n- Development: $30,000\n- Operations: Remaining funds (which is the rest of the budget)",
+      "seconds": 5.94,
+      "tokens": 58,
+      "tok_per_s": 12.2
+    },
+    {
+      "id": 20,
+      "expect": "clean opinion prose, remove repetition/fillers",
+      "raw": "i really think that um we need to to address the the elephant in the room which is that the the deadline is just not realistic given the current resources and we should push it back at least two weeks",
+      "output": "I truly believe we need to address the elephant in the room, which is that the deadline is unrealistic given our current resources. We should push it back by at least two weeks.",
+      "seconds": 3.93,
+      "tokens": 37,
+      "tok_per_s": 15.3
+    }
+  ],
+  "gemma2:2b": [
+    {
+      "id": 1,
+      "expect": "list of 3 action items",
+      "raw": "so basically what i wanted to say is that we need to finish the report by friday and also we should probably loop in the marketing team and oh yeah dont forget to book the conference room for the review meeting",
+      "output": "* We need to finish the report by Friday. \n* We should also loop in the marketing team.\n* Don't forget to book the conference room for the review meeting.",
+      "seconds": 6.91,
+      "tokens": 41,
+      "tok_per_s": 11.2
+    },
+    {
+      "id": 2,
+      "expect": "clean technical prose",
+      "raw": "um the the api keeps returning a 500 error when i send a post request to the users endpoint but it works fine for get requests so i think theres something wrong with how we handle the request body maybe its the json parsing",
+      "output": "The API returns a 500 error when I send a POST request to the users endpoint. However, GET requests work correctly.  I suspect there is an issue with how we handle the request body, possibly related to JSON parsing.",
+      "seconds": 8.68,
+      "tokens": 51,
+      "tok_per_s": 10.4
+    },
+    {
+      "id": 3,
+      "expect": "narrative prose, maybe inline list of items bought",
+      "raw": "i went to the store today and i bought milk eggs bread and then i realized i forgot my wallet so i had to go back home and get it and then come back it was super annoying",
+      "output": "I went to the store today and purchased milk, eggs, bread.  However, I realized I had forgotten my wallet, so I returned home to retrieve it before heading back to the store. It was quite annoying.",
+      "seconds": 6.72,
+      "tokens": 47,
+      "tok_per_s": 13.7
+    },
+    {
+      "id": 4,
+      "expect": "polite email request, 3 asks",
+      "raw": "can you send me the the quarterly numbers when you get a chance also i need the the breakdown by region and if possible the year over year comparison thanks",
+      "output": "Can you please send me the quarterly numbers when you have a chance? I also need a breakdown by region, and if possible, the year-over-year comparison.",
+      "seconds": 5.55,
+      "tokens": 37,
+      "tok_per_s": 12.3
+    },
+    {
+      "id": 5,
+      "expect": "two date/time options, clearly formatted",
+      "raw": "the meeting is scheduled for march 3rd at 2 30 pm in the main office but if that doesnt work we can also do it on the 5th at 10 am just let me know which one works better for you",
+      "output": "The meeting is scheduled for March 3rd at 2:30 PM in the main office. However, if that time does not work, we can also do it on the 5th at 10 AM. Please let me know which date works best for you.",
+      "seconds": 8.24,
+      "tokens": 60,
+      "tok_per_s": 13.3
+    },
+    {
+      "id": 6,
+      "expect": "numbered list of 5 steps",
+      "raw": "okay so the the plan is first we gather all the requirements then we do a design review after that development starts and finally we have testing and deployment",
+      "output": "* The plan begins with gathering all requirements. \n* Following this, a design review takes place.\n* Development commences after the design review.\n* Testing follows development, culminating in deployment.",
+      "seconds": 6.38,
+      "tokens": 43,
+      "tok_per_s": 13.2
+    },
+    {
+      "id": 7,
+      "expect": "bulleted list of 3 issues",
+      "raw": "honestly i think the the new feature is great but theres a few issues like the loading is kind of slow and the the button placement is a bit weird and some users said the colors are hard to read",
+      "output": "I think the new feature is great, but there are a few issues. The loading is kind of slow, and the button placement is a bit awkward. Some users have also mentioned that the colors are difficult to read.",
+      "seconds": 6.83,
+      "tokens": 47,
+      "tok_per_s": 13.5
+    },
+    {
+      "id": 8,
+      "expect": "prose; note: 'pacific' is an ASR homophone error for 'specific' (LLM ceiling case)",
+      "raw": "i was thinking maybe we could go to the pacific ocean wait no i mean we should be more specific about which beach we want to visit this summer",
+      "output": "I was thinking maybe we could go to the Pacific Ocean.  Wait, I mean we should be more specific about which beach we want to visit this summer.",
+      "seconds": 5.64,
+      "tokens": 35,
+      "tok_per_s": 13.5
+    },
+    {
+      "id": 9,
+      "expect": "clean prose, preserve order number 45789",
+      "raw": "the customer called and said their order number 4 5 7 8 9 hasnt arrived yet even though the tracking says it was delivered three days ago so we need to investigate what happened",
+      "output": "The customer called and stated that their order number 45789 hasn't arrived yet, despite the tracking showing delivery three days ago. We need to investigate what happened.",
+      "seconds": 6.34,
+      "tokens": 40,
+      "tok_per_s": 13.6
+    },
+    {
+      "id": 10,
+      "expect": "remove heavy fillers, clean opinion prose",
+      "raw": "you know like i feel like we should um maybe reconsider the whole approach because like the current one is just not working and its causing a lot of frustration for everyone involved",
+      "output": "We should reconsider our approach because it's not working and is causing a lot of frustration.",
+      "seconds": 6.03,
+      "tokens": 22,
+      "tok_per_s": 9.4
+    },
+    {
+      "id": 11,
+      "expect": "numbered setup steps",
+      "raw": "to set up the environment you need to install python then create a virtual environment then activate it then run pip install of the requirements file and finally start the server",
+      "output": "To set up the environment, first install Python. Then, create a virtual environment. Activate it, then run `pip install` from the requirements file. Finally, start the server.",
+      "seconds": 5.63,
+      "tokens": 40,
+      "tok_per_s": 14.4
+    },
+    {
+      "id": 12,
+      "expect": "clean prose, preserve the hearsay/ambiguity",
+      "raw": "she said that he said that the project was delayed because of the the vendor issues but i heard from someone else that it was actually a budget problem so im not really sure whats going on",
+      "output": "She said that he said the project was delayed due to vendor issues, but I heard from someone else that it was actually a budget problem.  I'm not really sure what's going on.",
+      "seconds": 7.16,
+      "tokens": 44,
+      "tok_per_s": 12.8
+    },
+    {
+      "id": 13,
+      "expect": "recipe as ingredient list + method",
+      "raw": "the recipe is pretty simple you take two cups of flour one cup of sugar three eggs a teaspoon of vanilla mix it all together and bake at 350 for 25 minutes",
+      "output": "The recipe is simple. You need two cups of flour, one cup of sugar, three eggs, and a teaspoon of vanilla. Mix everything together and bake at 350 degrees Fahrenheit for 25 minutes.",
+      "seconds": 6.53,
+      "tokens": 47,
+      "tok_per_s": 13.8
+    },
+    {
+      "id": 14,
+      "expect": "bulleted list of 3 follow-ups",
+      "raw": "i need to follow up on three things the contract renewal the the invoice that was disputed and the onboarding for the new hire that starts next monday",
+      "output": "I need to follow up on three things: the contract renewal, the invoice that was disputed, and the onboarding for the new hire starting next Monday.",
+      "seconds": 5.59,
+      "tokens": 33,
+      "tok_per_s": 13.5
+    },
+    {
+      "id": 15,
+      "expect": "problem statement + question, clean prose",
+      "raw": "the the wifi keeps disconnecting every few minutes its really frustrating ive tried restarting the router and reconnecting but nothing seems to work do you have any other suggestions",
+      "output": "The WiFi keeps disconnecting every few minutes. It's really frustrating. I've tried restarting the router and reconnecting, but nothing seems to work. Do you have any other suggestions?",
+      "seconds": 6.02,
+      "tokens": 41,
+      "tok_per_s": 13.9
+    },
+    {
+      "id": 16,
+      "expect": "bulleted list of conference topics",
+      "raw": "during the conference we covered a lot of topics including ai ethics data privacy the future of work and there was also a really interesting session on quantum computing",
+      "output": "During the conference, we covered many topics, including AI ethics, data privacy, the future of work, and there was an especially interesting session on quantum computing.",
+      "seconds": 5.53,
+      "tokens": 35,
+      "tok_per_s": 13.8
+    },
+    {
+      "id": 17,
+      "expect": "casual check-in, two questions",
+      "raw": "hey just wanted to quickly check in and see how youre doing with the the slides for tomorrow do you need any help and also did you get a chance to review the the budget i sent over",
+      "output": "I just wanted to quickly check in and see how you're doing with the slides for tomorrow. Do you need any help, and also did you get a chance to review the budget I sent over?",
+      "seconds": 6.52,
+      "tokens": 44,
+      "tok_per_s": 13.6
+    },
+    {
+      "id": 18,
+      "expect": "clean technical explanation prose",
+      "raw": "the the algorithm works by first sorting the array then it uses a binary search to find the target element which makes it much faster than a linear scan especially for large datasets",
+      "output": "The algorithm works by first sorting the array. Then, it uses a binary search to find the target element, making it significantly faster than a linear scan, particularly for large datasets.",
+      "seconds": 5.39,
+      "tokens": 39,
+      "tok_per_s": 13.6
+    },
+    {
+      "id": 19,
+      "expect": "budget breakdown; resolve self-correction 30k->15k",
+      "raw": "so we have a budget of fifty thousand dollars and we need to allocate it across marketing which is about twenty thousand development thirty thousand wait no fifteen thousand and the rest for operations",
+      "output": "* Our budget is $50,000. We need to allocate this budget across several areas: \n    * Marketing ($20,000)\n    * Development ($30,000)\n    * Operations ($15,000) \n    * The remaining funds will be allocated for operations.",
+      "seconds": 8.8,
+      "tokens": 75,
+      "tok_per_s": 12.3
+    },
+    {
+      "id": 20,
+      "expect": "clean opinion prose, remove repetition/fillers",
+      "raw": "i really think that um we need to to address the the elephant in the room which is that the the deadline is just not realistic given the current resources and we should push it back at least two weeks",
+      "output": "We need to address the unrealistic deadline given the current resources.  I suggest pushing it back at least two weeks.",
+      "seconds": 5.47,
+      "tokens": 26,
+      "tok_per_s": 12.0
+    }
+  ],
+  "llama3.2:3b": [
+    {
+      "id": 1,
+      "expect": "list of 3 action items",
+      "raw": "so basically what i wanted to say is that we need to finish the report by friday and also we should probably loop in the marketing team and oh yeah dont forget to book the conference room for the review meeting",
+      "output": "We need to complete the report by Friday. It would be beneficial to involve the marketing team in this process. Additionally, please reserve the conference room for the review meeting.",
+      "seconds": 8.93,
+      "tokens": 35,
+      "tok_per_s": 9.0
+    },
+    {
+      "id": 2,
+      "expect": "clean technical prose",
+      "raw": "um the the api keeps returning a 500 error when i send a post request to the users endpoint but it works fine for get requests so i think theres something wrong with how we handle the request body maybe its the json parsing",
+      "output": "The API returns a 500 error when sending a POST request to the user's endpoint, but it works correctly for GET requests. I suspect there is an issue with handling the request body, possibly related to JSON parsing.",
+      "seconds": 7.15,
+      "tokens": 45,
+      "tok_per_s": 9.5
+    },
+    {
+      "id": 3,
+      "expect": "narrative prose, maybe inline list of items bought",
+      "raw": "i went to the store today and i bought milk eggs bread and then i realized i forgot my wallet so i had to go back home and get it and then come back it was super annoying",
+      "output": "I went to the store today and purchased milk, eggs, bread. Upon returning home, I realized I had forgotten my wallet. I then returned to the store to retrieve it and came back, which was extremely frustrating.",
+      "seconds": 5.78,
+      "tokens": 45,
+      "tok_per_s": 12.1
+    },
+    {
+      "id": 4,
+      "expect": "polite email request, 3 asks",
+      "raw": "can you send me the the quarterly numbers when you get a chance also i need the the breakdown by region and if possible the year over year comparison thanks",
+      "output": "Can you send me the quarterly numbers as soon as possible? I would also appreciate a breakdown of the numbers by region, along with a year-over-year comparison.",
+      "seconds": 5.05,
+      "tokens": 33,
+      "tok_per_s": 10.8
+    },
+    {
+      "id": 5,
+      "expect": "two date/time options, clearly formatted",
+      "raw": "the meeting is scheduled for march 3rd at 2 30 pm in the main office but if that doesnt work we can also do it on the 5th at 10 am just let me know which one works better for you",
+      "output": "The meeting is scheduled for either March 3rd at 2:30 PM or March 5th at 10:00 AM. Please let me know which date and time work best for you.",
+      "seconds": 5.69,
+      "tokens": 42,
+      "tok_per_s": 12.5
+    },
+    {
+      "id": 6,
+      "expect": "numbered list of 5 steps",
+      "raw": "okay so the the plan is first we gather all the requirements then we do a design review after that development starts and finally we have testing and deployment",
+      "output": "Here's the cleaned text:\n\nThe plan involves several steps. First, we gather all the requirements. Next, we conduct a design review. Following that, development begins. Finally, we proceed with testing and deployment.",
+      "seconds": 5.56,
+      "tokens": 44,
+      "tok_per_s": 11.8
+    },
+    {
+      "id": 7,
+      "expect": "bulleted list of 3 issues",
+      "raw": "honestly i think the the new feature is great but theres a few issues like the loading is kind of slow and the the button placement is a bit weird and some users said the colors are hard to read",
+      "output": "Honestly, I think the new feature is great, but there are a few issues. The loading can be slow, and the button placement is a bit awkward. Some users have also mentioned that the colors are difficult to read.",
+      "seconds": 7.36,
+      "tokens": 46,
+      "tok_per_s": 9.7
+    },
+    {
+      "id": 8,
+      "expect": "prose; note: 'pacific' is an ASR homophone error for 'specific' (LLM ceiling case)",
+      "raw": "i was thinking maybe we could go to the pacific ocean wait no i mean we should be more specific about which beach we want to visit this summer",
+      "output": "We should consider visiting the Pacific Ocean this summer and choose a specific beach.",
+      "seconds": 3.33,
+      "tokens": 16,
+      "tok_per_s": 12.9
+    },
+    {
+      "id": 9,
+      "expect": "clean prose, preserve order number 45789",
+      "raw": "the customer called and said their order number 4 5 7 8 9 hasnt arrived yet even though the tracking says it was delivered three days ago so we need to investigate what happened",
+      "output": "The customer called and stated that their order, with order number 4-5-7-8-9, has not arrived despite the tracking indicating it was delivered three days ago. We need to investigate what went wrong.",
+      "seconds": 6.14,
+      "tokens": 46,
+      "tok_per_s": 11.6
+    },
+    {
+      "id": 10,
+      "expect": "remove heavy fillers, clean opinion prose",
+      "raw": "you know like i feel like we should um maybe reconsider the whole approach because like the current one is just not working and its causing a lot of frustration for everyone involved",
+      "output": "We should consider revising our approach. The current method is not effective and is causing significant frustration among all parties involved.",
+      "seconds": 3.97,
+      "tokens": 25,
+      "tok_per_s": 12.6
+    },
+    {
+      "id": 11,
+      "expect": "numbered setup steps",
+      "raw": "to set up the environment you need to install python then create a virtual environment then activate it then run pip install of the requirements file and finally start the server",
+      "output": "To set up the environment, you need to install Python, create a virtual environment, activate it, run `pip install` of the requirements file, and then start the server.",
+      "seconds": 6.05,
+      "tokens": 37,
+      "tok_per_s": 10.0
+    },
+    {
+      "id": 12,
+      "expect": "clean prose, preserve the hearsay/ambiguity",
+      "raw": "she said that he said that the project was delayed because of the the vendor issues but i heard from someone else that it was actually a budget problem so im not really sure whats going on",
+      "output": "The project has been delayed due to vendor issues, according to one source. However, another person claims it's a budget problem, leaving me uncertain about the actual cause.",
+      "seconds": 5.74,
+      "tokens": 35,
+      "tok_per_s": 10.4
+    },
+    {
+      "id": 13,
+      "expect": "recipe as ingredient list + method",
+      "raw": "the recipe is pretty simple you take two cups of flour one cup of sugar three eggs a teaspoon of vanilla mix it all together and bake at 350 for 25 minutes",
+      "output": "Here's the cleaned text:\n\nTo make this recipe, combine 2 cups of flour, 1 cup of sugar, 3 eggs, and 1 teaspoon of vanilla extract. Mix well, then bake in a preheated oven at 350°F (175°C) for 25 minutes.",
+      "seconds": 7.51,
+      "tokens": 61,
+      "tok_per_s": 11.0
+    },
+    {
+      "id": 14,
+      "expect": "bulleted list of 3 follow-ups",
+      "raw": "i need to follow up on three things the contract renewal the the invoice that was disputed and the onboarding for the new hire that starts next monday",
+      "output": "I need to follow up on three items: the contract renewal, the disputed invoice, and the onboarding process for the new hire starting next Monday.",
+      "seconds": 5.5,
+      "tokens": 31,
+      "tok_per_s": 9.7
+    },
+    {
+      "id": 15,
+      "expect": "problem statement + question, clean prose",
+      "raw": "the the wifi keeps disconnecting every few minutes its really frustrating ive tried restarting the router and reconnecting but nothing seems to work do you have any other suggestions",
+      "output": "The WiFi keeps disconnecting every few minutes. It's very frustrating. I've tried restarting the router and reconnecting, but nothing seems to work. Do you have any other suggestions?",
+      "seconds": 5.64,
+      "tokens": 38,
+      "tok_per_s": 11.2
+    },
+    {
+      "id": 16,
+      "expect": "bulleted list of conference topics",
+      "raw": "during the conference we covered a lot of topics including ai ethics data privacy the future of work and there was also a really interesting session on quantum computing",
+      "output": "During the conference, we covered several key topics, including AI ethics, data privacy, the future of work, and a particularly interesting session on quantum computing.",
+      "seconds": 4.5,
+      "tokens": 32,
+      "tok_per_s": 12.3
+    },
+    {
+      "id": 17,
+      "expect": "casual check-in, two questions",
+      "raw": "hey just wanted to quickly check in and see how youre doing with the the slides for tomorrow do you need any help and also did you get a chance to review the the budget i sent over",
+      "output": "Here is the cleaned text:\n\nI wanted to quickly check in and see how you're doing with the slides for tomorrow. Do you need any help? Also, did you have a chance to review the budget I sent over?",
+      "seconds": 6.5,
+      "tokens": 46,
+      "tok_per_s": 11.0
+    },
+    {
+      "id": 18,
+      "expect": "clean technical explanation prose",
+      "raw": "the the algorithm works by first sorting the array then it uses a binary search to find the target element which makes it much faster than a linear scan especially for large datasets",
+      "output": "The algorithm works by first sorting the array, and then it uses a binary search to find the target element, making it much faster than a linear scan, especially for large datasets.",
+      "seconds": 4.91,
+      "tokens": 37,
+      "tok_per_s": 12.6
+    },
+    {
+      "id": 19,
+      "expect": "budget breakdown; resolve self-correction 30k->15k",
+      "raw": "so we have a budget of fifty thousand dollars and we need to allocate it across marketing which is about twenty thousand development thirty thousand wait no fifteen thousand and the rest for operations",
+      "output": "We have a budget of $50,000. We need to allocate it as follows:\n\n* Marketing: $20,000\n* Development: $30,000\n* Operations: $0 (remaining amount)\n\nNote: The original amount allocated to development was incorrect; the corrected allocation is $15,000.",
+      "seconds": 7.5,
+      "tokens": 64,
+      "tok_per_s": 12.0
+    },
+    {
+      "id": 20,
+      "expect": "clean opinion prose, remove repetition/fillers",
+      "raw": "i really think that um we need to to address the the elephant in the room which is that the the deadline is just not realistic given the current resources and we should push it back at least two weeks",
+      "output": "We need to address the unrealistic deadline due to current resource constraints. I recommend pushing the deadline back by at least two weeks.",
+      "seconds": 4.12,
+      "tokens": 26,
+      "tok_per_s": 12.4
+    }
+  ],
+  "qwen2.5:3b": [
+    {
+      "id": 1,
+      "expect": "list of 3 action items",
+      "raw": "so basically what i wanted to say is that we need to finish the report by friday and also we should probably loop in the marketing team and oh yeah dont forget to book the conference room for the review meeting",
+      "output": "We need to complete the report by Friday, and we should also involve the marketing team. Don't forget to reserve the conference room for the review meeting.",
+      "seconds": 6.48,
+      "tokens": 32,
+      "tok_per_s": 12.1
+    },
+    {
+      "id": 2,
+      "expect": "clean technical prose",
+      "raw": "um the the api keeps returning a 500 error when i send a post request to the users endpoint but it works fine for get requests so i think theres something wrong with how we handle the request body maybe its the json parsing",
+      "output": "The API returns a 500 error when I send a POST request to the users endpoint, but it works fine for GET requests. This suggests there might be an issue with how we handle the request body or possibly with JSON parsing.",
+      "seconds": 6.1,
+      "tokens": 49,
+      "tok_per_s": 11.9
+    },
+    {
+      "id": 3,
+      "expect": "narrative prose, maybe inline list of items bought",
+      "raw": "i went to the store today and i bought milk eggs bread and then i realized i forgot my wallet so i had to go back home and get it and then come back it was super annoying",
+      "output": "I went to the store and bought milk, eggs, and bread. Then I realized I had forgotten my wallet, so I had to go back home for it before coming back. It was very annoying.",
+      "seconds": 5.11,
+      "tokens": 42,
+      "tok_per_s": 12.0
+    },
+    {
+      "id": 4,
+      "expect": "polite email request, 3 asks",
+      "raw": "can you send me the the quarterly numbers when you get a chance also i need the the breakdown by region and if possible the year over year comparison thanks",
+      "output": "Can you send me the quarterly numbers when you have a chance? Also, I need the breakdown by region. If possible, please include the year-over-year comparison. Thanks.",
+      "seconds": 5.52,
+      "tokens": 36,
+      "tok_per_s": 9.3
+    },
+    {
+      "id": 5,
+      "expect": "two date/time options, clearly formatted",
+      "raw": "the meeting is scheduled for march 3rd at 2 30 pm in the main office but if that doesnt work we can also do it on the 5th at 10 am just let me know which one works better for you",
+      "output": "The meeting is scheduled for March 3rd at 2:30 PM in the main office. If that does not work, we can also schedule it for March 5th at 10 AM. Please let me know which date and time works better for you.",
+      "seconds": 8.44,
+      "tokens": 57,
+      "tok_per_s": 9.5
+    },
+    {
+      "id": 6,
+      "expect": "numbered list of 5 steps",
+      "raw": "okay so the the plan is first we gather all the requirements then we do a design review after that development starts and finally we have testing and deployment",
+      "output": "The plan involves gathering all requirements first, followed by a design review. Development begins afterward, with testing and deployment completed last.",
+      "seconds": 3.55,
+      "tokens": 26,
+      "tok_per_s": 12.5
+    },
+    {
+      "id": 7,
+      "expect": "bulleted list of 3 issues",
+      "raw": "honestly i think the the new feature is great but theres a few issues like the loading is kind of slow and the the button placement is a bit weird and some users said the colors are hard to read",
+      "output": "I think the new feature is great, but there are a few issues. The loading process is somewhat slow, the button placement is a bit odd, and some users have reported that the colors are difficult to read.",
+      "seconds": 5.12,
+      "tokens": 44,
+      "tok_per_s": 12.6
+    },
+    {
+      "id": 8,
+      "expect": "prose; note: 'pacific' is an ASR homophone error for 'specific' (LLM ceiling case)",
+      "raw": "i was thinking maybe we could go to the pacific ocean wait no i mean we should be more specific about which beach we want to visit this summer",
+      "output": "I was thinking we could go to the Pacific Ocean. Wait, no; I meant we should specify which beach we want to visit during this summer.",
+      "seconds": 3.72,
+      "tokens": 31,
+      "tok_per_s": 13.0
+    },
+    {
+      "id": 9,
+      "expect": "clean prose, preserve order number 45789",
+      "raw": "the customer called and said their order number 4 5 7 8 9 hasnt arrived yet even though the tracking says it was delivered three days ago so we need to investigate what happened",
+      "output": "The customer called and stated that their order, with the number 4-5-7-8-9, hasn't arrived yet despite the tracking showing it was delivered three days ago. We need to investigate what happened.",
+      "seconds": 5.15,
+      "tokens": 46,
+      "tok_per_s": 12.9
+    },
+    {
+      "id": 10,
+      "expect": "remove heavy fillers, clean opinion prose",
+      "raw": "you know like i feel like we should um maybe reconsider the whole approach because like the current one is just not working and its causing a lot of frustration for everyone involved",
+      "output": "I feel like we should perhaps reconsider the entire approach since the current one is clearly not working and is causing significant frustration for everyone involved.",
+      "seconds": 3.6,
+      "tokens": 28,
+      "tok_per_s": 13.0
+    },
+    {
+      "id": 11,
+      "expect": "numbered setup steps",
+      "raw": "to set up the environment you need to install python then create a virtual environment then activate it then run pip install of the requirements file and finally start the server",
+      "output": "To set up the environment, you need to install Python, create a virtual environment, activate it, run `pip install` on the requirements file, and finally start the server.",
+      "seconds": 4.27,
+      "tokens": 37,
+      "tok_per_s": 12.6
+    },
+    {
+      "id": 12,
+      "expect": "clean prose, preserve the hearsay/ambiguity",
+      "raw": "she said that he said that the project was delayed because of the the vendor issues but i heard from someone else that it was actually a budget problem so im not really sure whats going on",
+      "output": "She said the project was delayed due to vendor issues. However, I heard from someone else that it was caused by a budget problem, so I'm not sure what is happening.",
+      "seconds": 4.42,
+      "tokens": 37,
+      "tok_per_s": 13.0
+    },
+    {
+      "id": 13,
+      "expect": "recipe as ingredient list + method",
+      "raw": "the recipe is pretty simple you take two cups of flour one cup of sugar three eggs a teaspoon of vanilla mix it all together and bake at 350 for 25 minutes",
+      "output": "The recipe is quite simple. You need two cups of flour, one cup of sugar, three eggs, and a teaspoon of vanilla. Mix them all together and bake at 350 degrees for 25 minutes.",
+      "seconds": 5.09,
+      "tokens": 46,
+      "tok_per_s": 13.0
+    },
+    {
+      "id": 14,
+      "expect": "bulleted list of 3 follow-ups",
+      "raw": "i need to follow up on three things the contract renewal the the invoice that was disputed and the onboarding for the new hire that starts next monday",
+      "output": "I need to follow up on three items: the contract renewal, the disputed invoice, and the onboarding for the new hire who starts next Monday.",
+      "seconds": 3.76,
+      "tokens": 31,
+      "tok_per_s": 12.9
+    },
+    {
+      "id": 15,
+      "expect": "problem statement + question, clean prose",
+      "raw": "the the wifi keeps disconnecting every few minutes its really frustrating ive tried restarting the router and reconnecting but nothing seems to work do you have any other suggestions",
+      "output": "The Wi-Fi keeps disconnecting every few minutes, which is really frustrating. I've tried restarting the router and reconnecting, but nothing seems to work. Do you have any other suggestions?",
+      "seconds": 4.74,
+      "tokens": 39,
+      "tok_per_s": 12.3
+    },
+    {
+      "id": 16,
+      "expect": "bulleted list of conference topics",
+      "raw": "during the conference we covered a lot of topics including ai ethics data privacy the future of work and there was also a really interesting session on quantum computing",
+      "output": "During the conference, we covered several topics, including AI ethics, data privacy, the future of work, and an interesting session on quantum computing.",
+      "seconds": 3.7,
+      "tokens": 30,
+      "tok_per_s": 12.6
+    },
+    {
+      "id": 17,
+      "expect": "casual check-in, two questions",
+      "raw": "hey just wanted to quickly check in and see how youre doing with the the slides for tomorrow do you need any help and also did you get a chance to review the the budget i sent over",
+      "output": "I just wanted to quickly check in and see how you are doing with the slides for tomorrow. Do you need any help? Also, did you have a chance to review the budget I sent over?",
+      "seconds": 4.92,
+      "tokens": 41,
+      "tok_per_s": 12.3
+    },
+    {
+      "id": 18,
+      "expect": "clean technical explanation prose",
+      "raw": "the the algorithm works by first sorting the array then it uses a binary search to find the target element which makes it much faster than a linear scan especially for large datasets",
+      "output": "The algorithm works by first sorting the array and then using a binary search to find the target element, making it significantly faster than a linear scan, especially for large datasets.",
+      "seconds": 4.17,
+      "tokens": 35,
+      "tok_per_s": 12.9
+    },
+    {
+      "id": 19,
+      "expect": "budget breakdown; resolve self-correction 30k->15k",
+      "raw": "so we have a budget of fifty thousand dollars and we need to allocate it across marketing which is about twenty thousand development thirty thousand wait no fifteen thousand and the rest for operations",
+      "output": "We have a budget of fifty thousand dollars that needs to be allocated as follows: marketing, approximately twenty thousand; development, thirty thousand; operations, fifteen thousand. The remaining amount will cover other operational expenses.",
+      "seconds": 4.73,
+      "tokens": 42,
+      "tok_per_s": 12.9
+    },
+    {
+      "id": 20,
+      "expect": "clean opinion prose, remove repetition/fillers",
+      "raw": "i really think that um we need to to address the the elephant in the room which is that the the deadline is just not realistic given the current resources and we should push it back at least two weeks",
+      "output": "I really think that we need to address the elephant in the room, which is that the deadline is simply not realistic given the current resources. We should therefore push it back at least two weeks.",
+      "seconds": 4.83,
+      "tokens": 40,
+      "tok_per_s": 12.4
+    }
+  ],
+  "phi3.5:latest": [
+    {
+      "id": 1,
+      "expect": "list of 3 action items",
+      "raw": "so basically what i wanted to say is that we need to finish the report by friday and also we should probably loop in the marketing team and oh yeah dont forget to book the conference room for the review meeting",
+      "output": "- Finish the report by Friday.\n- Include the marketing team in the process.\n- Book a conference room for the review meeting.",
+      "seconds": 8.21,
+      "tokens": 32,
+      "tok_per_s": 10.1
+    },
+    {
+      "id": 2,
+      "expect": "clean technical prose",
+      "raw": "um the the api keeps returning a 500 error when i send a post request to the users endpoint but it works fine for get requests so i think theres something wrong with how we handle the request body maybe its the json parsing",
+      "output": "The API consistently returns a 500 error when I send a POST request to the Users endpoint, although GET requests work correctly. It suggests there might be an issue with handling or JSON parsing of the request body.\n\nOr formatted as list items for clarity:\n\n- The API gives back a 500 Internal Server Error during POST requests specifically targeting the Users endpoint.\n- This problem does not occur when making GET requests, indicating that those operations are functioning properly.\n- A potential issue may lie in how we process or parse JSON data within the request body for POST methods.",
+      "seconds": 17.05,
+      "tokens": 127,
+      "tok_per_s": 8.7
+    },
+    {
+      "id": 3,
+      "expect": "narrative prose, maybe inline list of items bought",
+      "raw": "i went to the store today and i bought milk eggs bread and then i realized i forgot my wallet so i had to go back home and get it and then come back it was super annoying",
+      "output": "I went to the store today, intending to buy milk, eggs, and bread. However, I forgot my wallet at home, which forced me to return twice—once for each item without payment capability. This experience proved quite frustrating.\n\nOR (as a bulleted list):\n- Went to the store with plans to purchase milk, eggs, and bread.\n- Realized upon arrival that my wallet was left at home.\n- Had to return home for the forgotten wallet before proceed extraneous items could be bought.\n- Returned trip proved frustrating due to additional time spent away from other activities or errands.",
+      "seconds": 21.12,
+      "tokens": 138,
+      "tok_per_s": 7.4
+    },
+    {
+      "id": 4,
+      "expect": "polite email request, 3 asks",
+      "raw": "can you send me the the quarterly numbers when you get a chance also i need the the breakdown by region and if possible the year over year comparison thanks",
+      "output": "Please send me the quarterly numbers when available. I would also like to see the regional breakdown, as well as a year-over-year comparison. Thank you.",
+      "seconds": 6.34,
+      "tokens": 36,
+      "tok_per_s": 8.4
+    },
+    {
+      "id": 5,
+      "expect": "two date/time options, clearly formatted",
+      "raw": "the meeting is scheduled for march 3rd at 2 30 pm in the main office but if that doesnt work we can also do it on the 5th at 10 am just let me know which one works better for you",
+      "output": "- The meeting is scheduled for March 3rd at 2:30 PM in the main office. If this time does not work, an alternative option is available on March 5th at 10 AM. Please inform me of which date and time suits you better.",
+      "seconds": 10.04,
+      "tokens": 59,
+      "tok_per_s": 8.5
+    },
+    {
+      "id": 6,
+      "expect": "numbered list of 5 steps",
+      "raw": "okay so the the plan is first we gather all the requirements then we do a design review after that development starts and finally we have testing and deployment",
+      "output": "1. The plan involves several steps:\n   - Gathering all necessary requirements.\n   - Conducting a design review.\n   - Initiating the development phase.\n   - Performing thorough testing.\n   - Executing deployment.",
+      "seconds": 8.28,
+      "tokens": 54,
+      "tok_per_s": 8.9
+    },
+    {
+      "id": 7,
+      "expect": "bulleted list of 3 issues",
+      "raw": "honestly i think the the new feature is great but theres a few issues like the loading is kind of slow and the the button placement is a bit weird and some users said the colors are hard to read",
+      "output": "- I believe the new feature is excellent. However, there are several concerns:\n   - The loading speed appears somewhat sluggish.\n   - The arrangement of buttons seems unconventional.\n   - Some users have reported difficulty in reading the colors clearly.",
+      "seconds": 9.49,
+      "tokens": 56,
+      "tok_per_s": 8.0
+    },
+    {
+      "id": 8,
+      "expect": "prose; note: 'pacific' is an ASR homophone error for 'specific' (LLM ceiling case)",
+      "raw": "i was thinking maybe we could go to the pacific ocean wait no i mean we should be more specific about which beach we want to visit this summer",
+      "output": "- We might consider going to a specific beach at the Pacific Ocean for our summer trip.",
+      "seconds": 4.63,
+      "tokens": 19,
+      "tok_per_s": 8.5
+    },
+    {
+      "id": 9,
+      "expect": "clean prose, preserve order number 45789",
+      "raw": "the customer called and said their order number 4 5 7 8 9 hasnt arrived yet even though the tracking says it was delivered three days ago so we need to investigate what happened",
+      "output": "The customer reported that their order number 45789 hasn't arrived, despite the tracking indicating delivery three days prior. We must investigate the discrepancy.\n\n-------------------------\nIf multiple distinct points are present in a dictated paragraph or instructions indicate so (which is not evident here), they would be reformatted into:\n\nCleaned text as bullet points/numbered list:\n\n• The customer called regarding their order number 45789.\n• They reported that the package has yet to arrive.\n• Tracking information shows delivery three days ago.\n• An investigation is required for this discrepancy.",
+      "seconds": 21.31,
+      "tokens": 139,
+      "tok_per_s": 7.4
+    },
+    {
+      "id": 10,
+      "expect": "remove heavy fillers, clean opinion prose",
+      "raw": "you know like i feel like we should um maybe reconsider the whole approach because like the current one is just not working and its causing a lot of frustration for everyone involved",
+      "output": "We should possibly reevaluate our entire approach, as the current strategy appears ineffective and generates significant frustration among all parties involved.",
+      "seconds": 5.53,
+      "tokens": 29,
+      "tok_per_s": 8.9
+    },
+    {
+      "id": 11,
+      "expect": "numbered setup steps",
+      "raw": "to set up the environment you need to install python then create a virtual environment then activate it then run pip install of the requirements file and finally start the server",
+      "output": "1. Install Python.\n2. Create a virtual environment for isolation.\n3. Activate the created virtual environment.\n4. Use `pip` to install packages from your requirements file within this environment.\n5. Start the server after setting up everything above.",
+      "seconds": 8.8,
+      "tokens": 57,
+      "tok_per_s": 8.6
+    },
+    {
+      "id": 12,
+      "expect": "clean prose, preserve the hearsay/ambiguity",
+      "raw": "she said that he said that the project was delayed because of the the vendor issues but i heard from someone else that it was actually a budget problem so im not really sure whats going on",
+      "output": "She mentioned that he attributed the delay in the project to vendor-related problems. However, I also learned from another source that there were significant budget issues involved. Therefore, the exact cause of the delays remains unclear.\n\nOr as a bulleted list for clarity:\n\n- The individual suggested vendor issues caused the project'searly delay.\n- Contrary information was received indicating substantial problems with the budget allocation.\n- Uncertainty persists regarding the primary reason behind these setbacks in progressing towards completion of the project goals.",
+      "seconds": 17.59,
+      "tokens": 116,
+      "tok_per_s": 7.9
+    },
+    {
+      "id": 13,
+      "expect": "recipe as ingredient list + method",
+      "raw": "the recipe is pretty simple you take two cups of flour one cup of sugar three eggs a teaspoon of vanilla mix it all together and bake at 350 for 25 minutes",
+      "output": "- Take two cups of flour, one cup of sugar, and three eggs.\n- Add a teaspoon of vanilla to the mixture.\n- Mix everything thoroughly together.\n- Bake at 350 degrees Fahrenheit for 25 minutes.",
+      "seconds": 8.72,
+      "tokens": 60,
+      "tok_per_s": 9.5
+    },
+    {
+      "id": 14,
+      "expect": "bulleted list of 3 follow-ups",
+      "raw": "i need to follow up on three things the contract renewal the the invoice that was disputed and the onboarding for the new hire that starts next monday",
+      "output": "- Follow up on the contract renewal.\n- Address the disputed invoice.\n- Prepare for the onboarding of the new hire starting next Monday.",
+      "seconds": 5.75,
+      "tokens": 38,
+      "tok_per_s": 10.0
+    },
+    {
+      "id": 15,
+      "expect": "problem statement + question, clean prose",
+      "raw": "the the wifi keeps disconnecting every few minutes its really frustrating ive tried restarting the router and reconnecting but nothing seems to work do you have any other suggestions",
+      "output": "The Wi-Fi frequently disconnects every few minutes, which is quite frustrating. I've attempted restarting the router and reconnecting, but these solutions haven'thy been effective. Do you have any additional suggestions?",
+      "seconds": 7.23,
+      "tokens": 49,
+      "tok_per_s": 9.6
+    },
+    {
+      "id": 16,
+      "expect": "bulleted list of conference topics",
+      "raw": "during the conference we covered a lot of topics including ai ethics data privacy the future of work and there was also a really interesting session on quantum computing",
+      "output": "During the conference, several key topics were discussed, such as:\n\n- AI Ethics\n- Data Privacy\n- The Future of Work\nAdditionally, an engaging session focused on Quantum Computing took place.",
+      "seconds": 7.16,
+      "tokens": 50,
+      "tok_per_s": 9.7
+    },
+    {
+      "id": 17,
+      "expect": "casual check-in, two questions",
+      "raw": "hey just wanted to quickly check in and see how youre doing with the the slides for tomorrow do you need any help and also did you get a chance to review the the budget i sent over",
+      "output": "Hey, I wanted to quickly check in on your progress with preparing the slides for tomorrow. Do you need any assistance? Also, have you had a chance to review the budget document I sent over?",
+      "seconds": 7.11,
+      "tokens": 45,
+      "tok_per_s": 9.4
+    },
+    {
+      "id": 18,
+      "expect": "clean technical explanation prose",
+      "raw": "the the algorithm works by first sorting the array then it uses a binary search to find the target element which makes it much faster than a linear scan especially for large datasets",
+      "output": "The algorithm operates as follows:\n1. It begins with sorting the array.\n2. Then, employing binary search, it efficiently locates the target element. This approach significantly speeds up processing compared to a simple linear scan, particularly for large datasets.",
+      "seconds": 7.9,
+      "tokens": 55,
+      "tok_per_s": 9.2
+    },
+    {
+      "id": 19,
+      "expect": "budget breakdown; resolve self-correction 30k->15k",
+      "raw": "so we have a budget of fifty thousand dollars and we need to allocate it across marketing which is about twenty thousand development thirty thousand wait no fifteen thousand and the rest for operations",
+      "output": "- The total budget is $50,000. Allocation should be as follows:\n  - Marketing: $20,000\n  - Development: $30,000\n  - Wait (assuming this was a typo or misheard word): No allocation needed ($0)\n  - Operations: Remaining funds of $15,000.",
+      "seconds": 10.79,
+      "tokens": 87,
+      "tok_per_s": 9.7
+    },
+    {
+      "id": 20,
+      "expect": "clean opinion prose, remove repetition/fillers",
+      "raw": "i really think that um we need to to address the the elephant in the room which is that the the deadline is just not realistic given the current resources and we should push it back at least two weeks",
+      "output": "We need to address the fact that the current deadline is unrealistic considering our available resources. I suggest pushing it back by at least two weeks.",
+      "seconds": 5.39,
+      "tokens": 32,
+      "tok_per_s": 10.3
+    }
+  ],
+  "phi3:latest": [
+    {
+      "id": 1,
+      "expect": "list of 3 action items",
+      "raw": "so basically what i wanted to say is that we need to finish the report by friday and also we should probably loop in the marketing team and oh yeah dont forget to book the conference room for the review meeting",
+      "output": "We need to complete the report by Friday. Additionally, it would be beneficial to involve the Marketing Team and ensure that a Conference Room is reserved for our Review Meeting.",
+      "seconds": 9.09,
+      "tokens": 37,
+      "tok_per_s": 8.8
+    },
+    {
+      "id": 2,
+      "expect": "clean technical prose",
+      "raw": "um the the api keeps returning a 500 error when i send a post request to the users endpoint but it works fine for get requests so i think theres something wrong with how we handle the request body maybe its the json parsing",
+      "output": "The API consistently returns a 500 error when I make a POST request to the user's endpoint, although GET requests work without issue. It seems there might be an issue related to handling the request body or JSON parsing.",
+      "seconds": 7.99,
+      "tokens": 49,
+      "tok_per_s": 8.8
+    },
+    {
+      "id": 3,
+      "expect": "narrative prose, maybe inline list of items bought",
+      "raw": "i went to the store today and i bought milk eggs bread and then i realized i forgot my wallet so i had to go back home and get it and then come back it was super annoying",
+      "output": "I went to the store today, where I purchased milk, eggs, and bread. However, upon returning, I discovered that I had forgotten my wallet at home, necessitating another trip there before heading back to the store. This situation was quite frustrating for me.",
+      "seconds": 8.59,
+      "tokens": 58,
+      "tok_per_s": 9.2
+    },
+    {
+      "id": 4,
+      "expect": "polite email request, 3 asks",
+      "raw": "can you send me the the quarterly numbers when you get a chance also i need the the breakdown by region and if possible the year over year comparison thanks",
+      "output": "Can you please provide me with the quarterly figures as soon as possible? Additionally, I would appreciate it if you could include a regional breakdown. If feasible, kindly also furnish a year-over-year analysis for each region. Thank you.",
+      "seconds": 9.75,
+      "tokens": 53,
+      "tok_per_s": 7.4
+    },
+    {
+      "id": 5,
+      "expect": "two date/time options, clearly formatted",
+      "raw": "the meeting is scheduled for march 3rd at 2 30 pm in the main office but if that doesnt work we can also do it on the 5th at 10 am just let me know which one works better for you",
+      "output": "The meeting is scheduled for March 3rd, at 2:30 PM, in the main office. If that doesn't work, we can also do it on March 5th, at 10 AM. Please let me know which one works better for you.",
+      "seconds": 9.53,
+      "tokens": 59,
+      "tok_per_s": 9.2
+    },
+    {
+      "id": 6,
+      "expect": "numbered list of 5 steps",
+      "raw": "okay so the the plan is first we gather all the requirements then we do a design review after that development starts and finally we have testing and deployment",
+      "output": "The plan involves several key steps to ensure project success:\n\n1. Gathering all necessary requirements.\n\n2. Conducting a thorough design review.\n\n3. Initiating the development phase.\n\n4. Performing comprehensive testing.\n\n5. Deploying the final product.",
+      "seconds": 10.3,
+      "tokens": 67,
+      "tok_per_s": 8.0
+    },
+    {
+      "id": 7,
+      "expect": "bulleted list of 3 issues",
+      "raw": "honestly i think the the new feature is great but theres a few issues like the loading is kind of slow and the the button placement is a bit weird and some users said the colors are hard to read",
+      "output": "I believe that the new feature is excellent, although there are several concerns. These include:\n\n- The loading speed appears slower than desired.\n\n- Some find the button placement unconventional or confusing.\n\n- A few users have reported difficulty in reading certain colors used within the interface.",
+      "seconds": 8.23,
+      "tokens": 64,
+      "tok_per_s": 10.6
+    },
+    {
+      "id": 8,
+      "expect": "prose; note: 'pacific' is an ASR homophone error for 'specific' (LLM ceiling case)",
+      "raw": "i was thinking maybe we could go to the pacific ocean wait no i mean we should be more specific about which beach we want to visit this summer",
+      "output": "We might consider going to a Pacific Ocean beach for our summer trip, but let's choose one with greater specificity. Which particular beach do you have in mind?",
+      "seconds": 4.92,
+      "tokens": 35,
+      "tok_per_s": 10.7
+    },
+    {
+      "id": 9,
+      "expect": "clean prose, preserve order number 45789",
+      "raw": "the customer called and said their order number 4 5 7 8 9 hasnt arrived yet even though the tracking says it was delivered three days ago so we need to investigate what happened",
+      "output": "The customer reported that Order Number 4, 5, 7, 8, and 9 have not arrived despite the delivery confirmation indicating they were delivered three days ago. We need to investigate further.",
+      "seconds": 6.12,
+      "tokens": 44,
+      "tok_per_s": 10.6
+    },
+    {
+      "id": 10,
+      "expect": "remove heavy fillers, clean opinion prose",
+      "raw": "you know like i feel like we should um maybe reconsider the whole approach because like the current one is just not working and its causing a lot of frustration for everyone involved",
+      "output": "You believe that perhaps it's time to reassess our strategy, as you think the existing method isn't effective and causes significant stress among all parties.",
+      "seconds": 4.9,
+      "tokens": 34,
+      "tok_per_s": 10.9
+    },
+    {
+      "id": 11,
+      "expect": "numbered setup steps",
+      "raw": "to set up the environment you need to install python then create a virtual environment then activate it then run pip install of the requirements file and finally start the server",
+      "output": "1. Install Python.\n2. Create a virtual environment within your project directory.\n3. Activate the newly created virtual environment.\n4. Use `pip` to install packages listed in the 'requirements' file.\n5. Start the server by running its designated command (e.g., `python app.py`).",
+      "seconds": 8.27,
+      "tokens": 70,
+      "tok_per_s": 10.6
+    },
+    {
+      "id": 12,
+      "expect": "clean prose, preserve the hearsay/ambiguity",
+      "raw": "she said that he said that the project was delayed because of the the vendor issues but i heard from someone else that it was actually a budget problem so im not really sure whats going on",
+      "output": "He mentioned that the project delay was due to vendor-related problems. However, I learned from another source that there might have been an issue with the budget instead. It's unclear which of these factors is responsible for the current situation.",
+      "seconds": 7.48,
+      "tokens": 49,
+      "tok_per_s": 8.9
+    },
+    {
+      "id": 13,
+      "expect": "recipe as ingredient list + method",
+      "raw": "the recipe is pretty simple you take two cups of flour one cup of sugar three eggs a teaspoon of vanilla mix it all together and bake at 350 for 25 minutes",
+      "output": "To make the recipe, follow these steps:\n\n- Combine two cups of flour with one cup of sugar.\n\n- Add three eggs to the mixture.\n\n- Incorporate a teaspoon of vanilla extract into the batter.\n\n- Mix all ingredients together until well combined.\n\n- Bake in an oven preheated to 350°F for about 25 minutes.",
+      "seconds": 12.17,
+      "tokens": 97,
+      "tok_per_s": 9.7
+    },
+    {
+      "id": 14,
+      "expect": "bulleted list of 3 follow-ups",
+      "raw": "i need to follow up on three things the contract renewal the the invoice that was disputed and the onboarding for the new hire that starts next monday",
+      "output": "I need to follow up on these points:\n\n- The contract renewal.\n\n- The contested invoice.\n\n- Onboarding of the new hire starting next Monday.",
+      "seconds": 6.2,
+      "tokens": 42,
+      "tok_per_s": 9.4
+    },
+    {
+      "id": 15,
+      "expect": "problem statement + question, clean prose",
+      "raw": "the the wifi keeps disconnecting every few minutes its really frustrating ive tried restarting the router and reconnecting but nothing seems to work do you have any other suggestions",
+      "output": "The Wi-Fi frequently disconnects every few minutes, which is very frustrating. I've tried restarting the router and reconnecting, but nothing seems to work. Do you have any other suggestions?",
+      "seconds": 6.39,
+      "tokens": 46,
+      "tok_per_s": 10.1
+    },
+    {
+      "id": 16,
+      "expect": "bulleted list of conference topics",
+      "raw": "during the conference we covered a lot of topics including ai ethics data privacy the future of work and there was also a really interesting session on quantum computing",
+      "output": "During the conference, several key topics were discussed, such as AI Ethics, Data Privacy, The Future of Work, and an intriguing session on Quantum Computing.",
+      "seconds": 5.27,
+      "tokens": 40,
+      "tok_per_s": 10.8
+    },
+    {
+      "id": 17,
+      "expect": "casual check-in, two questions",
+      "raw": "hey just wanted to quickly check in and see how youre doing with the the slides for tomorrow do you need any help and also did you get a chance to review the the budget i sent over",
+      "output": "Hey, I just wanted to check in and see how you're doing with the presentation slides for tomorrow. Do you need any assistance? Also, had you an opportunity to review the budget document I emailed earlier today?",
+      "seconds": 6.45,
+      "tokens": 50,
+      "tok_per_s": 11.0
+    },
+    {
+      "id": 18,
+      "expect": "clean technical explanation prose",
+      "raw": "the the algorithm works by first sorting the array then it uses a binary search to find the target element which makes it much faster than a linear scan especially for large datasets",
+      "output": "The algorithm functions by initially sorting the array and subsequently employing a binary search technique, enhancing its efficiency significantly over a simple linear scan—particularly beneficial when dealing with extensive datasets.",
+      "seconds": 5.27,
+      "tokens": 41,
+      "tok_per_s": 11.3
+    },
+    {
+      "id": 19,
+      "expect": "budget breakdown; resolve self-correction 30k->15k",
+      "raw": "so we have a budget of fifty thousand dollars and we need to allocate it across marketing which is about twenty thousand development thirty thousand wait no fifteen thousand and the rest for operations",
+      "output": "We have a total budget of $50,000. The allocation should be as follows:\n\n- Marketing: $20,000 (approximately)\n\n- Development: $30,000 (approximately)\n\n- Operations: Remaining funds after allocating to marketing and development",
+      "seconds": 8.26,
+      "tokens": 74,
+      "tok_per_s": 11.0
+    },
+    {
+      "id": 20,
+      "expect": "clean opinion prose, remove repetition/fillers",
+      "raw": "i really think that um we need to to address the the elephant in the room which is that the the deadline is just not realistic given the current resources and we should push it back at least two weeks",
+      "output": "We must acknowledge that the set deadline for our project isn't achievable with our present resources. Therefore, I propose to extend this deadline by a minimum of two weeks.",
+      "seconds": 5.39,
+      "tokens": 39,
+      "tok_per_s": 11.5
+    }
+  ]
+}
