@@ -31,9 +31,10 @@ from dataclasses import dataclass, field
 VERBATIM = "verbatim"          # "Leave as spoken" — raw transcript, no AI/fillers
 PROFESSIONAL = "professional"  # AI, formal tone, voice-preserving
 CASUAL = "casual"              # AI, casual tone, voice-preserving
+EMAIL = "email"                # AI, drafts a proper email (greeting + body + sign-off)
 DEFAULT = "default"            # today's global clean-up
 
-OUTCOMES = (VERBATIM, PROFESSIONAL, CASUAL, DEFAULT)
+OUTCOMES = (VERBATIM, PROFESSIONAL, CASUAL, EMAIL, DEFAULT)
 
 # Match kinds, ranked by specificity (more specific wins when several rules
 # match). A user's explicit title/class rule should beat a broad process rule.
@@ -167,15 +168,26 @@ def app_category(exe: str) -> str | None:
     return None
 
 
-def starter_pack_rules() -> list[dict]:
-    """One-click sensible rules: email -> professional, chat -> casual.
+# Browser tab titles that mean "you're writing an email" — so webmail (Gmail /
+# Outlook in a browser) gets the email outcome too, since the browser process
+# itself can't be told apart. These are app-shipped constants, not captured user
+# data; any app can set its title, so this is intentionally low-stakes (worst
+# case: something gets drafted as an email).
+EMAIL_TITLE_HINTS = ("gmail", "outlook.com", "outlook.office", "- outlook", "proton mail")
 
-    Terminals and code editors are already verbatim by built-in default, so they
-    need no rule. Rules for apps the user doesn't have are harmless — they simply
-    never match. All use ``process`` matching, so no window titles are stored.
+
+def starter_pack_rules() -> list[dict]:
+    """One-click sensible rules: email -> *email draft*, chat -> casual.
+
+    Native email apps match by process; webmail (Gmail/Outlook in a browser)
+    matches by window title since the browser process is ambiguous. Terminals and
+    code editors are already verbatim by built-in default, so they need no rule.
+    Rules for apps you don't have simply never match.
     """
-    rules = [{"match": {"by": BY_PROCESS, "value": e}, "outcome": PROFESSIONAL}
+    rules = [{"match": {"by": BY_PROCESS, "value": e}, "outcome": EMAIL}
              for e in EMAIL_EXES]
+    rules += [{"match": {"by": BY_TITLE, "value": t}, "outcome": EMAIL}
+              for t in EMAIL_TITLE_HINTS]
     rules += [{"match": {"by": BY_PROCESS, "value": e}, "outcome": CASUAL}
               for e in CHAT_EXES]
     return rules

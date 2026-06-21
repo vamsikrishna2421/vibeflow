@@ -83,6 +83,22 @@ _TONE_PROMPTS = {
         "exactly; never change 'I/we/my' to 'you' or 'the user'; never invent content. "
         "Output ONLY the text."
     ),
+    # Unlike the others, "email" is ALLOWED to add the small bits of scaffolding a
+    # real email needs — a greeting and a sign-off — because that's exactly what
+    # the user wants when dictating into an email app. It still must not invent
+    # facts, names, or a recipient, and must keep the speaker's first-person voice.
+    "email": (
+        "You turn the dictated notes into a short, ready-to-send email written in "
+        "the speaker's own FIRST-PERSON voice. Structure it as a proper email: a "
+        "brief friendly greeting (e.g. 'Hi,' and optionally 'I hope you're doing "
+        "well.'), then the speaker's message stated clearly and professionally in "
+        "the first person, then a short polite closing and sign-off (e.g. 'Please "
+        "let me know if you have any questions.' and 'Thank you,'). Do NOT invent "
+        "facts, names, a specific recipient, or details the speaker didn't say; do "
+        "NOT fabricate a signature name. Keep it first person (I/we/my); never "
+        "address or describe the speaker as 'you' or 'the user'. Output ONLY the "
+        "email text."
+    ),
 }
 
 

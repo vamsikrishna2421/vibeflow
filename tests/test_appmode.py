@@ -4,6 +4,7 @@ from vibeflow.core.appmode import (
     AppIdentity,
     CASUAL,
     DEFAULT,
+    EMAIL,
     PROFESSIONAL,
     VERBATIM,
     app_category,
@@ -125,12 +126,18 @@ def test_app_category():
 
 def test_starter_pack_rules_apply():
     rules = starter_pack_rules()
-    assert resolve_outcome(AppIdentity(exe="outlook.exe"), rules) == PROFESSIONAL
+    # Native email app -> a proper email draft.
+    assert resolve_outcome(AppIdentity(exe="outlook.exe"), rules) == EMAIL
+    # Webmail in a browser -> email via the window title (the process is ambiguous).
+    gmail = AppIdentity(exe="chrome.exe", window_class="chrome_widgetwin_1",
+                        title="Inbox (3) - me@gmail.com - Gmail")
+    assert resolve_outcome(gmail, rules) == EMAIL
     assert resolve_outcome(AppIdentity(exe="slack.exe"), rules) == CASUAL
     # Terminals stay verbatim (built-in) even with the pack applied.
     assert resolve_outcome(AppIdentity(exe="powershell.exe"), rules) == VERBATIM
-    # An app not in the pack -> normal default.
-    assert resolve_outcome(AppIdentity(exe="notepad.exe", window_class="notepad"), rules) == DEFAULT
+    # A plain browser tab (not webmail) -> normal default.
+    assert resolve_outcome(AppIdentity(exe="chrome.exe", window_class="chrome_widgetwin_1",
+                                       title="News - BBC"), rules) == DEFAULT
 
 
 def test_shadowed_by_detects_duplicate_broader_rule():

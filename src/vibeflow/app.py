@@ -244,7 +244,8 @@ class VibeFlowApp:
                     fillers=self.cfg.get("text.fillers", []) or None,
                 )
                 tone = {appmode.PROFESSIONAL: "professional",
-                        appmode.CASUAL: "casual"}.get(outcome)
+                        appmode.CASUAL: "casual",
+                        appmode.EMAIL: "email"}.get(outcome)
                 if ai_on:
                     # Visible "Restructuring for <App>…" while the local model runs.
                     if target_name:

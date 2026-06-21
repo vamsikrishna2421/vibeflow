@@ -4,6 +4,22 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.16.0] — 2026-06-21
+
+### Added
+- **"Email" formatting outcome — dictate a note, get a real email.** When you
+  dictate into an email app, VibeFlow now drafts a **proper email** — a brief
+  greeting, your message stated clearly in your own first-person voice, and a
+  polite closing/sign-off — instead of just polishing the wording. It won't
+  invent recipients, names, or facts you didn't say. The one-click **Starter
+  Pack** now points email apps at this: native apps (Outlook, Thunderbird…) by
+  process, **and Gmail/Outlook in the browser by tab title** (so webmail works
+  too, since the browser process alone is ambiguous). "Make it professional"
+  stays available for polished-but-not-an-email contexts.
+  - Note: if you set up smart formatting before this release, re-run **tray →
+    Adapt formatting to each app → Set up smart formatting** to pick up the new
+    email rules. (Needs AI formatting on.)
+
 ## [1.15.1] — 2026-06-21
 
 ### Internal

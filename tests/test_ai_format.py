@@ -80,6 +80,20 @@ def test_tone_professional_uses_tone_prompt(monkeypatch):
     assert "professional" in captured["prompt"].lower()  # used the tone prompt
 
 
+def test_tone_email_uses_email_prompt(monkeypatch):
+    captured = {}
+
+    def fake_post(url, payload, timeout):
+        captured["prompt"] = payload["prompt"]
+        return {"response": "Hi,\n\nI shipped the release today.\n\nThank you,"}
+
+    monkeypatch.setattr(ai_format, "_post_json", fake_post)
+    cfg = _Cfg({"ai.enabled": True})
+    out = ai_format.format_text("i shipped the release today", cfg, tone="email")
+    assert "I shipped the release today" in out  # first-person body preserved
+    assert "greeting" in captured["prompt"].lower()  # used the email prompt
+
+
 def test_tone_none_uses_conservative_default_prompt(monkeypatch):
     captured = {}
 
