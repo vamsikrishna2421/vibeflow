@@ -4,6 +4,19 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.14.0] — 2026-06-21
+
+### Added
+- **Settings window (stays open).** The tray's right-click menu is a native
+  Windows menu that always closes after a single click — annoying when you want
+  to flip several options. New **tray → "Settings (stays open)…"** opens one
+  panel with the language picker, where-text-goes mode, and all the on/off
+  switches (filler removal, per-app formatting, Personalized AI, learn-from-edits,
+  save history, on-screen status, sounds, detailed logging, start-with-Windows).
+  It stays open until you close it, and changes **apply live** — the running app
+  watches `config.yaml` and re-applies within a second or two, no restart. (Speech
+  accuracy and the AI tier remain in the tray since they download/reload a model.)
+
 ## [1.13.0] — 2026-06-21
 
 ### Added

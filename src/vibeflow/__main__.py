@@ -58,6 +58,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Open the interactive Personalized-AI profile window and exit.",
     )
     p.add_argument(
+        "--settings",
+        action="store_true",
+        help="Open the Settings window and exit.",
+    )
+    p.add_argument(
         "--check-ai",
         action="store_true",
         help="Test the local-LLM (AI formatting) connection and exit.",
@@ -105,6 +110,10 @@ def main(argv: list[str] | None = None) -> int:
         from .persona_window import run as run_persona_manager
 
         return run_persona_manager(str(config_mod.config_dir() / "persona.json"))
+    if args.settings:
+        from .settings_window import run as run_settings
+
+        return run_settings(args.config)
     if args.check_ai:
         return _check_ai(cfg)
     if args.setup_ai:

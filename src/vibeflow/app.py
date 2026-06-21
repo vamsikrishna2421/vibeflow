@@ -86,6 +86,7 @@ class VibeFlowApp:
         self._clip_last = None
         self._stopping = False
         self._vocab_wordlist_mtime = None  # set when the user opens the word list
+        self._cfg_mtime = None  # config.yaml mtime, to pick up Settings-window edits
         self._update_info = None  # set when a newer release is found
         self._last_raw_transcript = ""  # unedited transcript (for recovery)
         self.icon = None  # set in run()
@@ -358,6 +359,7 @@ class VibeFlowApp:
         while not self._stopping:
             time.sleep(1.2)
             self._maybe_apply_vocab_edits()
+            self._maybe_reload_config()          # pick up Settings-window edits
             self.vocabulary.reload_if_changed()  # pick up manager-window deletes
             self.persona.reload_if_changed()     # pick up profile-window edits
             if not bool(self.cfg.get("text.teach_back", True)):
@@ -602,6 +604,7 @@ class VibeFlowApp:
             Item(lambda _: self._status, None, enabled=False),
             Item(lambda _: f"Hold {self._hotkey_label()} to talk", None, enabled=False),
             Menu.SEPARATOR,
+            Item("Settings (stays open)…", self._open_settings),
             Item(
                 "Output",
                 Menu(
@@ -1487,9 +1490,45 @@ class VibeFlowApp:
     def _trigger_hint(self) -> str:
         return f"Hold {self._hotkey_label()}"
 
+    def _maybe_reload_config(self) -> None:
+        """Pick up edits made by the Settings window (a separate process writing
+        config.yaml) and apply them live, without a restart."""
+        try:
+            mtime = config_mod.config_path().stat().st_mtime
+        except OSError:
+            return
+        if self._cfg_mtime is None:
+            self._cfg_mtime = mtime
+            return
+        if mtime == self._cfg_mtime:
+            return
+        self._cfg_mtime = mtime
+        try:
+            self.cfg.data = config_mod.load_config().data
+            # Most settings are read fresh from cfg each dictation, so they take
+            # effect immediately. Language is cached on the transcriber — re-apply.
+            lang = self.cfg.get("model.language", "en")
+            try:
+                self.transcriber.language = None if lang in ("auto", "", None) else lang
+            except Exception:
+                pass
+            logging.getLogger("vibeflow").info("settings reloaded from disk")
+            self._refresh()
+        except Exception:  # pragma: no cover - never break on a bad reload
+            pass
+
+    def _open_settings(self, *_args) -> None:
+        if not self._launch_manager("--settings"):
+            self._notify(__app_name__, "Couldn't open Settings. Edit config.yaml via "
+                         "“Report a problem…” instead.")
+
     def _save_config(self) -> None:
         try:
             self.cfg.save()
+            try:  # remember our own write so the watcher doesn't re-load it
+                self._cfg_mtime = config_mod.config_path().stat().st_mtime
+            except OSError:
+                pass
         except Exception as exc:
             self._notify("Could not save settings", str(exc))
 
