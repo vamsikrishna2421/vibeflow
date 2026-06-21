@@ -4,6 +4,16 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.14.1] — 2026-06-21
+
+### Fixed
+- **Auto-detect language no longer hard-fails.** On some setups, choosing
+  *Language → Auto-detect* could throw a "transcription error" even for plain
+  English. VibeFlow now **falls back to English** if automatic detection fails,
+  so dictation always works, and it **logs the real cause** to `vibeflow.log`
+  (previously the error was swallowed) so the underlying multilingual detection
+  issue can be pinned down and fixed properly.
+
 ## [1.14.0] — 2026-06-21
 
 ### Added

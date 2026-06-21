@@ -102,16 +102,33 @@ class Transcriber:
 
         language = None if self.language in (None, "", "auto") else self.language
         try:
-            segments, _info = self._model.transcribe(
-                audio,
-                language=language,
-                beam_size=self.beam_size,
-                vad_filter=self.vad_filter,
-                initial_prompt=prompt or None,
-            )
-            return "".join(segment.text for segment in segments)
+            return self._run(audio, language, prompt)
         except Exception as exc:
+            # Auto-detect (language=None) can fail in some runtimes while a fixed
+            # language works. Don't hard-fail: log the real cause and fall back to
+            # English so dictation keeps working.
+            if language is None:
+                import logging
+
+                logging.getLogger("vibeflow").warning(
+                    "auto language detection failed (%s: %s); retrying as English",
+                    type(exc).__name__, exc,
+                )
+                try:
+                    return self._run(audio, "en", prompt)
+                except Exception as exc2:
+                    raise TranscriptionError(f"Transcription failed: {exc2}") from exc2
             raise TranscriptionError(f"Transcription failed: {exc}") from exc
+
+    def _run(self, audio, language, prompt: str | None):
+        segments, _info = self._model.transcribe(
+            audio,
+            language=language,
+            beam_size=self.beam_size,
+            vad_filter=self.vad_filter,
+            initial_prompt=prompt or None,
+        )
+        return "".join(segment.text for segment in segments)
 
 
 def _resolve_device(device: str, compute_type: str) -> tuple[str, str]:

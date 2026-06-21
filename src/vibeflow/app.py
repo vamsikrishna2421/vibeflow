@@ -334,6 +334,11 @@ class VibeFlowApp:
             else:
                 self.overlay.show("done")
         except TranscriptionError as exc:
+            import traceback
+
+            logging.getLogger("vibeflow").error(
+                "Transcription error:\n%s", traceback.format_exc()
+            )
             notifier.play(notifier.ERROR, self._sounds)
             self.overlay.show("error", "VibeFlow · Transcription error")
             self._notify("Transcription error", str(exc))
