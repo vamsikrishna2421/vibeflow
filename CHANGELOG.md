@@ -4,6 +4,22 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.8.5] — 2026-06-20
+
+### Fixed
+- **Auto-update no longer breaks dictation — true root cause found and fixed.**
+  After a silent update the speech model failed to load until a manual restart.
+  It was never a file lock (1.8.2/1.8.3 lengthened a retry that could never have
+  helped). The real cause: Inno Setup 6.3+ enables Windows' **Redirection Guard**
+  process mitigation on the installer, and it is **inherited by every child
+  process**. The relaunched VibeFlow therefore refused to traverse the symlink
+  the Hugging Face cache uses for the model file (`model.bin` → blob), failing
+  with `ERROR_UNTRUSTED_MOUNT_POINT` (WinError 448) — even though the file was
+  perfectly readable by any normal process. The installer now relaunches VibeFlow
+  via **Explorer**, so it runs in the normal shell context, outside the
+  installer's mitigated process tree, and symlink traversal works exactly like a
+  manual launch. Verified across repeated silent-update cycles.
+
 ## [1.8.3] — 2026-06-20
 
 ### Fixed

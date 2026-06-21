@@ -11,7 +11,7 @@
 ; ============================================================================
 
 #define MyAppName "VibeFlow"
-#define MyAppVersion "1.8.3"
+#define MyAppVersion "1.8.5"
 #define MyAppPublisher "VibeFlow"
 #define MyAppExeName "VibeFlow.exe"
 
@@ -83,8 +83,16 @@ Root: HKCU; Subkey: "Software\VibeFlow"; ValueType: dword; \
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch VibeFlow now"; \
     Flags: nowait postinstall skipifsilent
 ; Silent install (used by the in-app auto-updater): relaunch automatically so the
-; tray app comes back after a hands-free update.
-Filename: "{app}\{#MyAppExeName}"; Flags: nowait; Check: WizardSilent
+; tray app comes back after a hands-free update. We MUST launch it via Explorer,
+; not as a child of the installer. Inno Setup 6.3+ enables Windows' "Redirection
+; Guard" process mitigation on Setup, and it is inherited by every child process.
+; That mitigation refuses to follow the symlinks in the Hugging Face model cache
+; (model.bin -> blob), failing with "untrusted mount point" (WinError 448) so the
+; speech model could not load after a silent update. Launching through Explorer
+; runs VibeFlow in the normal shell context, outside the installer's mitigated
+; process tree, so symlink traversal works exactly like a normal launch.
+Filename: "{win}\explorer.exe"; Parameters: """{app}\{#MyAppExeName}"""; \
+    Flags: nowait; Check: WizardSilent
 
 [UninstallRun]
 ; Make sure the tray app isn't running so its files can be removed.

@@ -442,14 +442,14 @@ class VibeFlowApp:
                 )
                 self.transcriber.load()
             else:
-                # Cached model: load offline-only, but retry over a generous
-                # window. Right after a silent auto-update relaunch, model.bin
-                # (hundreds of MB) is locked for ~10s while antivirus rescans it
-                # (and the just-closed previous instance releases its handle).
-                # Each offline open is fast (no network), so we poll every ~2s
-                # for up to ~45s — comfortably outlasting that lock — instead of
-                # the old 5×1.5s window that ran out ~1s too soon.
-                deadline = time.monotonic() + 45.0
+                # Cached model: load offline-only (fast local open, no network).
+                # This short retry is just a safety net for a transient first-open
+                # hiccup (e.g. antivirus scanning the model file). The real
+                # auto-update failure — Windows "Redirection Guard", inherited from
+                # the installer, refusing to traverse the model's cache symlink —
+                # is fixed at the source: the installer now relaunches VibeFlow via
+                # Explorer, outside its mitigated process tree.
+                deadline = time.monotonic() + 12.0
                 last_err = None
                 while True:
                     try:
@@ -470,19 +470,55 @@ class VibeFlowApp:
                     self.transcriber.load(allow_download=True)
             self._model_ready = True
             self._set_status("Ready")
+            import os as _os
             logging.getLogger("vibeflow").info(
-                "Model ready: %s %s", self.cfg.get("model.size"), self.transcriber._resolved
+                "Model ready: %s %s (cwd=%s)", self.cfg.get("model.size"),
+                self.transcriber._resolved, _os.getcwd(),
             )
             self._notify(
                 __app_name__,
                 f"Ready. {self._trigger_hint()} to dictate.",
             )
         except Exception as exc:
+            import os as _os
             import traceback
 
+            try:
+                _cwd = _os.getcwd()
+                _cwd_ok = _os.path.isdir(_cwd)
+            except Exception as _cwd_exc:  # noqa: BLE001
+                _cwd, _cwd_ok = f"<getcwd failed: {_cwd_exc}>", False
             logging.getLogger("vibeflow").error(
-                "Model load failed:\n%s", traceback.format_exc()
+                "Model load failed (cwd=%r exists=%s):\n%s",
+                _cwd, _cwd_ok, traceback.format_exc(),
             )
+            # Probe model.bin directly to capture the OS-level reason that
+            # ctranslate2's generic "Unable to open file" message hides.
+            try:
+                import glob as _glob
+                _log = logging.getLogger("vibeflow")
+                _mdir = getattr(self.transcriber, "models_dir", "") or ""
+                _bins = _glob.glob(_os.path.join(_mdir, "**", "model.bin"), recursive=True)
+                _log.error("probe: models_dir=%r found=%d", _mdir, len(_bins))
+                for _b in _bins:
+                    _info = {"islink": _os.path.islink(_b)}
+                    try:
+                        _info["target"] = _os.readlink(_b)
+                    except Exception:
+                        _info["target"] = None
+                    for _label, _p in (("link", _b), ("real", _os.path.realpath(_b))):
+                        try:
+                            with open(_p, "rb") as _fh:
+                                _fh.read(16)
+                            _info["open_" + _label] = "OK"
+                        except OSError as _oe:
+                            _info["open_" + _label] = (
+                                "errno=%s winerror=%s %s"
+                                % (_oe.errno, getattr(_oe, "winerror", None), _oe.strerror)
+                            )
+                    _log.error("probe %s: %s", _b, _info)
+            except Exception as _pe:  # noqa: BLE001
+                logging.getLogger("vibeflow").error("probe failed: %s", _pe)
             self._set_status("Model failed to load")
             self._notify("Could not load speech model", str(exc))
         finally:
