@@ -130,6 +130,19 @@ text:
   # mis-hearing can be diagnosed. Off by default; it stores dictation snippets in
   # the log, so only turn it on while investigating something.
   debug_log: false
+  # Per-app formatting: VibeFlow can adapt how it formats your dictation to the
+  # app you're dictating into. Out of the box only true terminals and code
+  # editors are kept exactly "as spoken" (so commands/code aren't reworded);
+  # every other app is unchanged until you add a rule (or accept the one-click
+  # Starter Pack offered in the tray). Each rule's outcome is one of:
+  #   leave-as-spoken | professional | casual   (default = normal clean-up)
+  modes:
+    enabled: true
+    rules: []          # e.g. - {match: {by: process, value: outlook.exe}, outcome: professional}
+    starter_pack_offered: false
+    deliver_hotkey: ctrl+shift+v   # "Deliver here" — only active while a dictation is pending
+    deliver_on_ctrl_v: false       # opt-in: also deliver a pending dictation on Ctrl+V
+    pending_timeout: 60            # seconds a no-focus dictation waits before it's discarded
 
 # ----------------------------------------------------------------------------
 #  AI formatting (OPTIONAL) — "voice to text WITH AI".

@@ -25,6 +25,7 @@ from . import (
     __version__,
     ai_format,
     ai_setup,
+    appmode,
     autostart,
     config as config_mod,
     icons,
@@ -199,30 +200,64 @@ class VibeFlowApp:
             # and the tray "Copy last transcript (unedited)").
             self._last_raw_transcript = text.strip()
 
-            # Filler removal is TIERED: when AI formatting is on, the local LLM
-            # removes fillers context-aware; when it's off, the conservative
-            # offline regex handles only the unambiguous cases.
             strip_fillers = bool(self.cfg.get("text.strip_fillers", False))
             ai_on = ai_format.is_enabled(self.cfg)
-
-            # Stage 4: deterministic offline curation, then optional AI cleanup.
-            text = curate(
-                text,
-                spoken_commands=bool(self.cfg.get("text.spoken_commands", True)),
-                capitalize_sentences=bool(
-                    self.cfg.get("text.capitalize_sentences", True)
-                ),
-                strip_fillers=(strip_fillers and not ai_on),  # regex only when AI off
-                fillers=self.cfg.get("text.fillers", []) or None,
-            )
             persona_on = bool(self.cfg.get("text.persona", True))
-            if ai_on:
-                profile = self.persona.profile_text() if persona_on else None
-                ai_text = ai_format.format_text(
-                    text, self.cfg, persona=profile, strip_fillers=strip_fillers
+
+            # Per-app formatting: choose how to format for the destination app,
+            # resolved from the foreground window now (re-verified before typing).
+            # Fail-safe: any error falls back to DEFAULT (today's behaviour).
+            outcome = appmode.DEFAULT
+            target_hwnd = None
+            target_name = None
+            try:
+                if bool(self.cfg.get("text.modes.enabled", True)):
+                    target_hwnd = appmode.foreground_hwnd()
+                    app_id = appmode.target_app(target_hwnd)
+                    outcome = appmode.resolve_outcome(
+                        app_id, self.cfg.get("text.modes.rules", []) or []
+                    )
+                    target_name = app_id.friendly
+            except Exception:  # pragma: no cover - never break dictation
+                outcome = appmode.DEFAULT
+
+            if outcome == appmode.VERBATIM:
+                # "Leave as spoken": deliver the unedited transcript — no
+                # deterministic curation, no AI (protects commands / code).
+                text = self._last_raw_transcript
+                if target_name:
+                    self.overlay.show("info", f"VibeFlow · As spoken — {target_name}")
+            else:
+                # DEFAULT / PROFESSIONAL / CASUAL all start from deterministic
+                # offline curation; AI then applies the tone when it is enabled.
+                text = curate(
+                    text,
+                    spoken_commands=bool(self.cfg.get("text.spoken_commands", True)),
+                    capitalize_sentences=bool(
+                        self.cfg.get("text.capitalize_sentences", True)
+                    ),
+                    strip_fillers=(strip_fillers and not ai_on),  # regex only when AI off
+                    fillers=self.cfg.get("text.fillers", []) or None,
                 )
-                if ai_text:
-                    text = ai_text
+                tone = {appmode.PROFESSIONAL: "professional",
+                        appmode.CASUAL: "casual"}.get(outcome)
+                if ai_on:
+                    # Visible "Restructuring for <App>…" while the local model runs.
+                    if target_name:
+                        label = (
+                            f"Restructuring for {target_name}…" if tone
+                            else f"Cleaning up — {target_name}"
+                        )
+                        self.overlay.show("info", f"VibeFlow · {label}")
+                    profile = self.persona.profile_text() if persona_on else None
+                    ai_text = ai_format.format_text(
+                        text, self.cfg, persona=profile,
+                        strip_fillers=strip_fillers, tone=tone,
+                    )
+                    if ai_text:
+                        text = ai_text
+                # If AI is OFF but a tone was requested, the deterministic
+                # curation above is the graceful fallback (toggle precedence).
 
             # Safety: never type nothing for non-empty speech (e.g. an
             # all-filler utterance) — fall back to the user's raw words.
@@ -238,6 +273,7 @@ class VibeFlowApp:
                 insertion=self.cfg.get("output.insertion", "paste"),
                 trailing_space=bool(self.cfg.get("output.trailing_space", True)),
                 auto_fallback=self.cfg.get("output.auto_fallback", "clipboard"),
+                expected_hwnd=target_hwnd,
             )
             # Remember our output so we can learn from your later edits
             # (teach-back). We deliberately do NOT learn from this raw output —
@@ -616,6 +652,11 @@ class VibeFlowApp:
                 checked=lambda i: bool(self.cfg.get("text.strip_fillers", True)),
             ),
             Item(
+                "Adapt formatting to each app",
+                self._toggle_modes,
+                checked=lambda i: bool(self.cfg.get("text.modes.enabled", True)),
+            ),
+            Item(
                 "Learn from my edits",
                 self._toggle_teachback,
                 checked=lambda i: bool(self.cfg.get("text.teach_back", True)),
@@ -731,6 +772,20 @@ class VibeFlowApp:
             "available via the tray's “Copy last transcript (unedited).”"
             if enabled
             else "Keeping filler words as spoken.",
+        )
+        self._refresh()
+
+    def _toggle_modes(self, *_args) -> None:
+        enabled = not bool(self.cfg.get("text.modes.enabled", True))
+        self.cfg.set("text.modes.enabled", enabled)
+        self._save_config()
+        self._notify(
+            __app_name__,
+            "Per-app formatting on: terminals and code editors keep your exact "
+            "words; other apps format as usual. The on-screen status shows which "
+            "app each dictation was formatted for."
+            if enabled
+            else "Per-app formatting off: every app uses your normal formatting.",
         )
         self._refresh()
 

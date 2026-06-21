@@ -57,6 +57,7 @@ def deliver(
     insertion: str = "paste",
     trailing_space: bool = True,
     auto_fallback: str = "clipboard",
+    expected_hwnd: int | None = None,
     **_legacy,
 ) -> str:
     """Deliver ``text``: always copy to the clipboard, and also paste into the
@@ -66,6 +67,12 @@ def deliver(
     it stays there so you can paste it manually anywhere. If a text field is
     focused, it is also inserted there. Returns :data:`TYPED` (inserted + copied)
     or :data:`COPIED` (clipboard only).
+
+    ``expected_hwnd`` is the window the output was *decided* for. If focus moved
+    to a different window while we were transcribing/formatting, we do **not**
+    type into the wrong app — the text is already on the clipboard to paste
+    manually. The check fails open (types) when the foreground can't be read, so
+    it never blocks normal use.
     """
     if not text:
         return COPIED
@@ -75,12 +82,32 @@ def deliver(
 
     target = decide_target(output_mode, focus_state, auto_fallback)
     if target == "type":
+        if not _foreground_matches(expected_hwnd):
+            return COPIED  # focus moved — leave it on the clipboard, don't mis-type
         if insertion == "keystroke":
             _type_keystrokes(payload)
         else:
             _send_paste()
         return TYPED
     return COPIED
+
+
+def _foreground_matches(expected_hwnd: int | None) -> bool:
+    """True if the foreground window is still ``expected_hwnd``.
+
+    Fails **open**: if there is no expectation, or we can't read the current
+    foreground window, return True so normal dictation is never blocked. Only a
+    confident mismatch (we read a *different* window) returns False.
+    """
+    if not expected_hwnd:
+        return True
+    try:
+        from .appmode import foreground_hwnd
+
+        current = foreground_hwnd()
+        return (current == expected_hwnd) if current else True
+    except Exception:
+        return True
 
 
 # ---------------------------------------------------------------------------

@@ -67,6 +67,17 @@ DEFAULTS: dict[str, Any] = {
         "teach_back_model": "qwen2.5:3b",  # model used for background term extraction
         "persona": True,                # core feature: learn your domain/tone (on; toggle off in tray)
         "debug_log": False,             # OPT-IN: log raw transcript + correction text for troubleshooting
+        # Per-app formatting: adapt the output to the destination app. Only true
+        # terminals and code editors are "leave as spoken" out of the box; every
+        # other app is unchanged until you add a rule (or accept the Starter Pack).
+        "modes": {
+            "enabled": True,                 # master switch for per-app formatting
+            "rules": [],                     # [{match:{by,value}, outcome}] — your rules override built-ins
+            "starter_pack_offered": False,   # has the one-click setup been offered yet
+            "deliver_hotkey": "ctrl+shift+v",  # "Deliver here" key (armed only while a dictation is pending)
+            "deliver_on_ctrl_v": False,      # OPT-IN: also deliver a pending dictation on Ctrl+V
+            "pending_timeout": 60,           # seconds a no-focus dictation waits before it's discarded
+        },
     },
     "ai": {
         "enabled": False,            # voice-to-text + AI formatting (needs a local LLM)

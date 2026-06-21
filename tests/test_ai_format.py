@@ -64,3 +64,32 @@ def test_preserves_voice_guard():
     assert pv("The build works fine", "The build works fine.") is True
     # "we/our" first person preserved
     assert pv("we should deploy our app", "We should deploy our app.") is True
+
+
+def test_tone_professional_uses_tone_prompt(monkeypatch):
+    captured = {}
+
+    def fake_post(url, payload, timeout):
+        captured["prompt"] = payload["prompt"]
+        return {"response": "I shipped the release today."}
+
+    monkeypatch.setattr(ai_format, "_post_json", fake_post)
+    cfg = _Cfg({"ai.enabled": True, "ai.provider": "ollama"})
+    out = ai_format.format_text("i shipped the release today", cfg, tone="professional")
+    assert out == "I shipped the release today."
+    assert "professional" in captured["prompt"].lower()  # used the tone prompt
+
+
+def test_tone_none_uses_conservative_default_prompt(monkeypatch):
+    captured = {}
+
+    def fake_post(url, payload, timeout):
+        captured["prompt"] = payload["prompt"]
+        return {"response": "I shipped the release today."}
+
+    monkeypatch.setattr(ai_format, "_post_json", fake_post)
+    cfg = _Cfg({"ai.enabled": True})
+    ai_format.format_text("i shipped the release today", cfg)
+    # The default prompt is the conservative light-cleanup one, NOT a tone prompt.
+    assert "do not paraphrase" in captured["prompt"].lower()
+    assert "professional" not in captured["prompt"].lower()

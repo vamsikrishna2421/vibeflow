@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>VibeFlow vs the market</title>
+<meta name="description" content="How VibeFlow compares to Wispr Flow, superwhisper, Dragon, Windows Voice Access, Handy and VoiceInk — fully offline, Windows, local-LLM voice-to-text." />
+<style>
+  :root{
+    --bg:#faf7f2; --bg2:#f3ece1; --card:#fffdfa; --ink:#241f2b; --muted:#7a7385;
+    --line:#ece4d8; --accent:#5b54e6; --accent2:#13a7a0;
+    --vf:#efeefe; --vfline:#cdc9fb;
+    --yes:#1f9d57; --part:#c98a12; --no:#c2473f;
+    --shadow:0 1px 2px rgba(40,30,60,.04),0 8px 30px rgba(40,30,60,.06);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:linear-gradient(180deg,var(--bg),var(--bg2) 140%);
+    color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:40px 24px 80px}
+
+  /* Header */
+  .eyebrow{letter-spacing:.16em;font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase}
+  h1{font-size:clamp(30px,5vw,46px);line-height:1.05;margin:.25em 0 .15em;letter-spacing:-.02em}
+  h1 .dot{color:var(--accent)}
+  .lede{font-size:17px;color:#4a4453;max-width:760px;margin:.2em 0 1.2em}
+  .pills{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:8px}
+  .pill{display:inline-flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);
+    border-radius:999px;padding:8px 14px;font-size:13px;font-weight:600;color:#3c3647;box-shadow:var(--shadow)}
+  .pill b{color:var(--accent)}
+
+  /* Highlights */
+  .hl{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:26px 0 8px}
+  @media(max-width:720px){.hl{grid-template-columns:1fr}}
+  .hcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow)}
+  .hcard h3{margin:0 0 10px;font-size:14px;letter-spacing:.02em;text-transform:uppercase;color:var(--muted)}
+  .hcard ul{margin:0;padding:0;list-style:none}
+  .hcard li{padding:6px 0 6px 26px;position:relative;font-size:14.5px}
+  .hcard.win li::before{content:"★";position:absolute;left:0;color:var(--accent);font-size:13px;top:7px}
+  .hcard.gap li::before{content:"→";position:absolute;left:0;color:var(--part);font-weight:700;top:6px}
+
+  /* Legend */
+  .legend{display:flex;flex-wrap:wrap;gap:18px;align-items:center;margin:30px 0 14px;font-size:13.5px;color:#524c5d}
+  .legend span{display:inline-flex;align-items:center;gap:7px}
+  .ic{font-size:15px;line-height:1}
+  .yes{color:var(--yes)} .part{color:var(--part)} .no{color:var(--no)} .star{color:var(--accent)}
+
+  /* Tables */
+  .section{margin-top:30px}
+  .section h2{font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:#5a5366;margin:0 0 10px;
+    padding-left:2px;border-left:0}
+  .tbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);background:var(--card)}
+  table{border-collapse:collapse;width:100%;min-width:760px}
+  thead th{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:700;
+    padding:14px 10px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap;background:#fffdfa}
+  thead th.cap{text-align:left;width:34%}
+  th.vfcol{color:var(--accent);background:var(--vf)}
+  tbody td{padding:12px 10px;text-align:center;border-bottom:1px solid #f4eee4;font-size:18px}
+  tbody td.cap{text-align:left;font-size:14.5px;font-weight:600;color:#352f40}
+  tbody tr:last-child td{border-bottom:0}
+  tbody tr:hover td{background:#fbf8f3}
+  td.vfcol{background:var(--vf)}
+  tbody tr:hover td.vfcol{background:#e8e6fd}
+  td.vfcol{border-left:1px solid var(--vfline);border-right:1px solid var(--vfline)}
+  thead th.vfcol{border-left:1px solid var(--vfline);border-right:1px solid var(--vfline);border-top-left-radius:0}
+  .soon{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.05em;color:#fff;background:var(--accent);
+    border-radius:6px;padding:2px 5px;vertical-align:middle;margin-left:4px;text-transform:uppercase}
+  .na{color:#cabfae;font-size:15px}
+  .note{font-size:10px;color:var(--muted);display:block;font-weight:500;margin-top:1px}
+
+  /* Footer */
+  footer{margin-top:46px;padding-top:22px;border-top:1px solid var(--line);color:var(--muted);font-size:13px;
+    display:flex;flex-wrap:wrap;gap:10px 24px;justify-content:space-between;align-items:center}
+  footer a{color:var(--accent);text-decoration:none;font-weight:600}
+  footer a:hover{text-decoration:underline}
+  .tag{display:inline-flex;gap:8px;align-items:center}
+  .tag b{color:#3c3647}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Market</div>
+    <h1>VibeFlow vs the market<span class="dot">.</span></h1>
+    <p class="lede">Most rivals make you pick one: <b>offline</b> or <b>smart</b>, <b>Windows</b> or <b>polished</b>,
+      <b>private</b> or <b>personalized</b>. VibeFlow is the one doing all of it — a free, fully-offline Windows
+      voice-to-text app that types anywhere, learns your words, and matches your own voice with a local AI. Here's
+      where we lead, and where we're closing the gaps.</p>
+    <div class="pills">
+      <span class="pill">🔒 <b>100% offline</b> · nothing leaves your PC</span>
+      <span class="pill">🪟 <b>Windows-native</b></span>
+      <span class="pill">🧠 <b>Local-LLM</b> personalization</span>
+      <span class="pill">🎯 <b>Types anywhere</b> · clipboard fallback</span>
+      <span class="pill">💸 <b>Free</b></span>
+    </div>
+  </header>
+
+  <div class="hl">
+    <div class="hcard win">
+      <h3>Where VibeFlow leads</h3>
+      <ul>
+        <li>Offline + Windows + local-LLM personalization in one — an essentially uncontested square</li>
+        <li>Voice-preserving AI formatting: keeps your first-person voice and exact words (rivals over-polish)</li>
+        <li>Teach-back vocabulary: learns the right spelling from your own corrections</li>
+        <li>On-device persona profiling: learns your domain &amp; tone with no cloud</li>
+        <li>Zero-touch managed AI setup &amp; non-technical polish (installer, tray, auto-update)</li>
+      </ul>
+    </div>
+    <div class="hcard gap">
+      <h3>Where we're catching up</h3>
+      <ul>
+        <li>Per-app "Modes" — format by destination app <span class="soon">in design</span></li>
+        <li>More recording modes: hands-free voice-activated start/stop, cancel hotkey</li>
+        <li>Text snippets / phrases &amp; searchable dictation history</li>
+        <li>Voice editing commands ("scratch that", "select X")</li>
+        <li>Multi-language auto-switch; optional fast Parakeet engine</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><span class="ic yes">✅</span> Has it</span>
+    <span><span class="ic part">🟡</span> Partial / basic</span>
+    <span><span class="ic no">❌</span> Missing</span>
+    <span><span class="ic star">★</span> VibeFlow-only edge</span>
+    <span><span class="na">—</span> Not applicable</span>
+  </div>
+
+  <!-- SECTION: CORE -->
+  <div class="section">
+    <h2>Core dictation</h2>
+    <div class="tbl-scroll"><table>
+      <thead><tr>
+        <th class="cap">Capability</th>
+        <th class="vfcol">VibeFlow</th><th>Wispr Flow</th><th>superwhisper</th>
+        <th>Dragon Pro</th><th>Win Voice Access</th><th>Handy <span class="note">OSS</span></th><th>VoiceInk <span class="note">OSS</span></th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="cap">Fully offline</td><td class="vfcol">✅</td><td>❌</td><td>🟡</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+        <tr><td class="cap">Free</td><td class="vfcol">✅</td><td>🟡</td><td>🟡</td><td>❌</td><td>✅</td><td>✅</td><td>🟡</td></tr>
+        <tr><td class="cap">Type anywhere</td><td class="vfcol">✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+        <tr><td class="cap">Clipboard fallback</td><td class="vfcol">✅</td><td>🟡</td><td>🟡</td><td>🟡</td><td>🟡</td><td>✅</td><td>🟡</td></tr>
+        <tr><td class="cap">Windows support</td><td class="vfcol">✅</td><td>✅</td><td>🟡</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- SECTION: AI -->
+  <div class="section">
+    <h2>AI &amp; personalization</h2>
+    <div class="tbl-scroll"><table>
+      <thead><tr>
+        <th class="cap">Capability</th>
+        <th class="vfcol">VibeFlow</th><th>Wispr Flow</th><th>superwhisper</th>
+        <th>Dragon Pro</th><th>Win Voice Access</th><th>Handy</th><th>VoiceInk</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="cap">AI formatting (local LLM)</td><td class="vfcol">✅</td><td>🟡<span class="note">cloud</span></td><td>✅</td><td>❌</td><td>❌</td><td>🟡</td><td>✅</td></tr>
+        <tr><td class="cap">Preserves your voice / POV <span class="star">★</span></td><td class="vfcol">✅</td><td>🟡</td><td>🟡</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td>🟡</td></tr>
+        <tr><td class="cap">Personalized style learning</td><td class="vfcol">✅</td><td>✅<span class="note">cloud</span></td><td>🟡</td><td>🟡</td><td>❌</td><td>❌</td><td>❌</td></tr>
+        <tr><td class="cap">Self-learning vocab (teach-back) <span class="star">★</span></td><td class="vfcol">✅</td><td>🟡</td><td>❌</td><td>🟡</td><td>❌</td><td>❌</td><td>🟡</td></tr>
+        <tr><td class="cap">Custom vocabulary UI</td><td class="vfcol">✅</td><td>✅</td><td>✅</td><td>✅</td><td>🟡</td><td>❌</td><td>✅</td></tr>
+        <tr><td class="cap">Zero-touch managed AI setup <span class="star">★</span></td><td class="vfcol">✅</td><td class="na">—</td><td>🟡</td><td class="na">—</td><td class="na">—</td><td>🟡</td><td>🟡</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- SECTION: MODES -->
+  <div class="section">
+    <h2>Modes, recording &amp; cleanup</h2>
+    <div class="tbl-scroll"><table>
+      <thead><tr>
+        <th class="cap">Capability</th>
+        <th class="vfcol">VibeFlow</th><th>Wispr Flow</th><th>superwhisper</th>
+        <th>Dragon Pro</th><th>Win Voice Access</th><th>Handy</th><th>VoiceInk</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="cap">Filler-word removal (um, uh)</td><td class="vfcol">✅</td><td>✅</td><td>🟡</td><td>🟡</td><td>❌</td><td>❌</td><td>🟡</td></tr>
+        <tr><td class="cap">Per-app "Modes"<span class="soon">in design</span></td><td class="vfcol">❌</td><td>🟡</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td><td>✅</td></tr>
+        <tr><td class="cap">Recording modes (PTT / toggle / VAD)</td><td class="vfcol">🟡<span class="note">PTT</span></td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+        <tr><td class="cap">Cancel-in-progress hotkey<span class="soon">soon</span></td><td class="vfcol">❌</td><td>🟡</td><td>🟡</td><td>🟡</td><td>🟡</td><td>✅</td><td>🟡</td></tr>
+        <tr><td class="cap">Voice editing ("scratch that")</td><td class="vfcol">🟡</td><td>✅</td><td>🟡</td><td>✅</td><td>✅</td><td>❌</td><td>🟡</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- SECTION: PRODUCTIVITY -->
+  <div class="section">
+    <h2>Productivity &amp; history</h2>
+    <div class="tbl-scroll"><table>
+      <thead><tr>
+        <th class="cap">Capability</th>
+        <th class="vfcol">VibeFlow</th><th>Wispr Flow</th><th>superwhisper</th>
+        <th>Dragon Pro</th><th>Win Voice Access</th><th>Handy</th><th>VoiceInk</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="cap">Text snippets / macros<span class="soon">soon</span></td><td class="vfcol">❌</td><td>✅</td><td>🟡</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td></tr>
+        <tr><td class="cap">Searchable dictation history<span class="soon">soon</span></td><td class="vfcol">❌</td><td>✅</td><td>✅</td><td>🟡</td><td>❌</td><td>❌</td><td>✅</td></tr>
+        <tr><td class="cap">Multi-language / auto-detect</td><td class="vfcol">🟡</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+        <tr><td class="cap">Fast alt engine (Parakeet)</td><td class="vfcol">❌</td><td class="na">—</td><td>❌</td><td>🟡</td><td class="na">—</td><td>✅</td><td>❌</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- SECTION: PLATFORM -->
+  <div class="section">
+    <h2>Platform &amp; polish</h2>
+    <div class="tbl-scroll"><table>
+      <thead><tr>
+        <th class="cap">Capability</th>
+        <th class="vfcol">VibeFlow</th><th>Wispr Flow</th><th>superwhisper</th>
+        <th>Dragon Pro</th><th>Win Voice Access</th><th>Handy</th><th>VoiceInk</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="cap">On-screen status overlay</td><td class="vfcol">✅</td><td>✅</td><td>✅</td><td>🟡</td><td>✅</td><td>✅</td><td>✅</td></tr>
+        <tr><td class="cap">Auto-update</td><td class="vfcol">✅</td><td>✅</td><td>✅</td><td>🟡</td><td>✅</td><td>✅</td><td>✅</td></tr>
+        <tr><td class="cap">Non-technical polish <span class="star">★</span></td><td class="vfcol">✅</td><td>✅</td><td>🟡</td><td>🟡</td><td>✅</td><td>🟡</td><td>🟡</td></tr>
+        <tr><td class="cap">Hands-free full OS control</td><td class="vfcol">❌</td><td>❌</td><td>❌</td><td>✅</td><td>✅</td><td>❌</td><td>❌</td></tr>
+        <tr><td class="cap">Cross-platform (Mac / Linux)</td><td class="vfcol">❌</td><td>✅</td><td>🟡</td><td>❌</td><td>❌</td><td>✅</td><td>❌</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <footer>
+    <span class="tag">🎙️ <b>VibeFlow</b> — private, offline voice-to-text for Windows.</span>
+    <span>Snapshot June 2026 · competitors move fast — re-verify before quoting · <a href="https://github.com/vamsikrishna2421/vibeflow">github.com/vamsikrishna2421/vibeflow</a></span>
+  </footer>
+
+</div>
+</body>
+</html>

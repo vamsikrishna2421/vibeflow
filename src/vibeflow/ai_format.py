@@ -62,27 +62,58 @@ _FILLER_CLAUSE = (
     "are part of a real word, term, product name, or a yes/no answer like 'uh-huh'."
 )
 
+# Per-app "tone" outcomes (Per-app formatting). These intentionally allow more
+# rewriting than the conservative default prompt, but every one still hard-keeps
+# the speaker's first-person point of view — and the _preserves_voice guard
+# below rejects any output that drops it, so "I did X" never becomes "you did X".
+_TONE_PROMPTS = {
+    "professional": (
+        "You rewrite dictated text into clear, professional wording suitable for "
+        "a work email or message. Fix grammar, punctuation and structure and choose "
+        "polished, professional phrasing. CRITICAL: keep the speaker's own meaning "
+        "and FIRST-PERSON point of view exactly — if it is first person (I, we, my), "
+        "keep it first person; never address or describe the speaker as 'you' or "
+        "'the user'; never invent facts or add content. Output ONLY the rewritten text."
+    ),
+    "casual": (
+        "You lightly polish dictated text into relaxed, conversational, casual "
+        "wording suitable for a chat message. Fix obvious speech-to-text errors and "
+        "punctuation but keep it informal and natural — do not make it formal. "
+        "CRITICAL: keep the speaker's own meaning and FIRST-PERSON point of view "
+        "exactly; never change 'I/we/my' to 'you' or 'the user'; never invent content. "
+        "Output ONLY the text."
+    ),
+}
+
 
 def is_enabled(cfg) -> bool:
     return bool(cfg.get("ai.enabled", False))
 
 
 def format_text(
-    text: str, cfg, persona: str | None = None, strip_fillers: bool = False
+    text: str,
+    cfg,
+    persona: str | None = None,
+    strip_fillers: bool = False,
+    tone: str | None = None,
 ) -> str | None:
     """Return an AI-formatted version of ``text``, or ``None`` to fall back.
 
     When ``persona`` (a short profile of the user's domain/tone) is given, the
     formatter is nudged to keep the output in the user's voice. When
     ``strip_fillers`` is set, the model also removes vocalized fillers
-    context-aware (it keeps "er" in "metoprolol er", "uh-huh", etc.).
+    context-aware (it keeps "er" in "metoprolol er", "uh-huh", etc.). ``tone``
+    (``"professional"`` / ``"casual"``) selects a per-app rewriting style; when
+    omitted the conservative default (light clean-up only) is used.
     """
     if not text or not is_enabled(cfg):
         return None
     provider = str(cfg.get("ai.provider", "ollama")).lower()
     try:
         if provider == "ollama":
-            return _ollama_generate(text, cfg, persona=persona, strip_fillers=strip_fillers)
+            return _ollama_generate(
+                text, cfg, persona=persona, strip_fillers=strip_fillers, tone=tone
+            )
         return None
     except Exception as exc:  # never break dictation because of AI
         _warn(f"AI formatting unavailable ({exc}); using plain transcript")
@@ -90,12 +121,21 @@ def format_text(
 
 
 def _ollama_generate(
-    text: str, cfg, persona: str | None = None, strip_fillers: bool = False
+    text: str,
+    cfg,
+    persona: str | None = None,
+    strip_fillers: bool = False,
+    tone: str | None = None,
 ) -> str | None:
     endpoint = str(cfg.get("ai.endpoint", DEFAULT_ENDPOINT)).rstrip("/")
     model = str(cfg.get("ai.model", DEFAULT_MODEL))
     timeout = float(cfg.get("ai.timeout", 20))
-    prompt = (cfg.get("ai.prompt") or "").strip() or _DEFAULT_PROMPT
+    # A per-app tone outcome picks a dedicated prompt; otherwise use the user's
+    # custom prompt or the conservative default (light clean-up, preserve voice).
+    if tone in _TONE_PROMPTS:
+        prompt = _TONE_PROMPTS[tone]
+    else:
+        prompt = (cfg.get("ai.prompt") or "").strip() or _DEFAULT_PROMPT
     if strip_fillers:
         prompt = prompt + _FILLER_CLAUSE
     if persona and persona.strip():

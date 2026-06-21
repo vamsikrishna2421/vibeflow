@@ -1,7 +1,7 @@
 """Tests for the output routing decision (type vs clipboard)."""
 
 from vibeflow.focus_detect import EDITABLE, NON_EDITABLE, UNKNOWN, _class_is_terminal
-from vibeflow.output import decide_target
+from vibeflow.output import _foreground_matches, decide_target
 
 
 def test_terminal_window_classes_are_typeable():
@@ -44,3 +44,19 @@ def test_auto_unknown_can_fall_back_to_type():
 def test_mode_is_case_insensitive():
     assert decide_target("AUTO", EDITABLE) == "type"
     assert decide_target("Clipboard", EDITABLE) == "clipboard"
+
+
+def test_foreground_matches_fails_open(monkeypatch):
+    import vibeflow.appmode as appmode
+
+    # No expectation -> never block normal dictation.
+    assert _foreground_matches(None) is True
+    # Can't read the foreground -> fail open (allow typing).
+    monkeypatch.setattr(appmode, "foreground_hwnd", lambda: 0)
+    assert _foreground_matches(999) is True
+    # Same window -> allow.
+    monkeypatch.setattr(appmode, "foreground_hwnd", lambda: 999)
+    assert _foreground_matches(999) is True
+    # Confident mismatch (focus moved to a different window) -> block typing.
+    monkeypatch.setattr(appmode, "foreground_hwnd", lambda: 123)
+    assert _foreground_matches(999) is False

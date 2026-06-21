@@ -4,6 +4,27 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.9.0] — 2026-06-21
+
+### Added
+- **Per-app formatting (foundation).** VibeFlow now adapts how it formats your
+  dictation to the app you're speaking into. Out of the box, **terminals and
+  code editors keep your words exactly as spoken** (so commands and code aren't
+  reworded), while every other app formats as before. The on-screen status names
+  the destination for every dictation — e.g. *"As spoken — Windows Terminal"* or
+  *"Restructuring for Outlook…"* — so the behaviour is never a mystery. Toggle it
+  any time via the tray's **"Adapt formatting to each app."**
+  - Outcomes per app: *leave as spoken* / *make it professional* / *make it
+    casual* (default = normal clean-up). Custom per-app rules are read from
+    `config.yaml` now; a point-and-click manager and one-click Starter Pack land
+    next.
+  - **Safety:** an elevated/unidentifiable window (e.g. an administrator
+    terminal) is always left exactly as spoken — never AI-rewritten. And VibeFlow
+    re-checks the target window right before typing, so if your focus moves while
+    it's transcribing, the text waits on your clipboard instead of landing in the
+    wrong app. This design was reviewed and approved by four independent
+    adversarial architecture reviews (safety, privacy, dev-tools, UX).
+
 ## [1.8.5] — 2026-06-20
 
 ### Fixed

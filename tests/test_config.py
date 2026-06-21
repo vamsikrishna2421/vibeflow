@@ -5,6 +5,27 @@ import json
 from vibeflow.config import DEFAULTS, Config, deep_merge, load_config
 
 
+def test_per_app_modes_defaults():
+    modes = DEFAULTS["text"]["modes"]
+    assert modes["enabled"] is True
+    assert modes["rules"] == []
+    assert modes["starter_pack_offered"] is False
+    assert modes["deliver_hotkey"] == "ctrl+shift+v"
+    assert modes["deliver_on_ctrl_v"] is False
+    assert modes["pending_timeout"] == 60
+
+
+def test_modes_merge_keeps_user_rules_and_default_keys():
+    # A user who only sets a rule still gets all the other mode defaults.
+    user = {"text": {"modes": {"rules": [{"match": {"by": "process",
+            "value": "outlook.exe"}, "outcome": "professional"}]}}}
+    merged = deep_merge(DEFAULTS, user)
+    m = merged["text"]["modes"]
+    assert m["enabled"] is True  # default preserved
+    assert m["deliver_hotkey"] == "ctrl+shift+v"
+    assert m["rules"][0]["outcome"] == "professional"
+
+
 def test_deep_merge_is_recursive_and_nondestructive():
     base = {"a": {"x": 1, "y": 2}, "b": 3}
     override = {"a": {"y": 20, "z": 30}, "c": 4}
