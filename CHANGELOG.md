@@ -4,6 +4,20 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.10.0] — 2026-06-21
+
+### Added
+- **Per-app formatting — one-click Starter Pack.** A new tray submenu, **"Adapt
+  formatting to each app,"** lets you turn the feature on/off and, with a single
+  click (**"Set up smart formatting"**), have VibeFlow automatically make your
+  **emails professional** (Outlook, Thunderbird…), keep your **chats casual**
+  (Slack, Teams, WhatsApp, Discord…), and leave **terminals & code exactly as
+  spoken** — no settings to learn. **"Clear my app rules"** undoes it instantly.
+  Rules for apps you don't have simply never fire, and only the executable name
+  is stored — never window titles.
+- The first time you dictate into a recognised email or chat app, VibeFlow shows
+  a one-time tip offering the Starter Pack (nothing changes until you accept it).
+
 ## [1.9.0] — 2026-06-21
 
 ### Added

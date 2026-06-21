@@ -157,6 +157,30 @@ def resolve_outcome(app: AppIdentity, rules: list[dict] | None) -> str:
     return _builtin_outcome(app) or DEFAULT
 
 
+def app_category(exe: str) -> str | None:
+    """'email', 'chat', or ``None`` — used to offer the Starter Pack in context."""
+    exe = (exe or "").lower()
+    if exe in EMAIL_EXES:
+        return "email"
+    if exe in CHAT_EXES:
+        return "chat"
+    return None
+
+
+def starter_pack_rules() -> list[dict]:
+    """One-click sensible rules: email -> professional, chat -> casual.
+
+    Terminals and code editors are already verbatim by built-in default, so they
+    need no rule. Rules for apps the user doesn't have are harmless — they simply
+    never match. All use ``process`` matching, so no window titles are stored.
+    """
+    rules = [{"match": {"by": BY_PROCESS, "value": e}, "outcome": PROFESSIONAL}
+             for e in EMAIL_EXES]
+    rules += [{"match": {"by": BY_PROCESS, "value": e}, "outcome": CASUAL}
+              for e in CHAT_EXES]
+    return rules
+
+
 def shadowed_by(new_match: dict, rules: list[dict] | None) -> dict | None:
     """Return an existing rule that would match *before* ``new_match`` (i.e. is
     equal or more specific), so the Manage UI can warn about a dead rule."""

@@ -6,9 +6,11 @@ from vibeflow.appmode import (
     DEFAULT,
     PROFESSIONAL,
     VERBATIM,
+    app_category,
     friendly_name,
     resolve_outcome,
     shadowed_by,
+    starter_pack_rules,
 )
 
 
@@ -114,6 +116,23 @@ def test_friendly_name_known_and_fallback():
 
 
 # --- shadow detection for the Manage UI -------------------------------------
+def test_app_category():
+    assert app_category("outlook.exe") == "email"
+    assert app_category("SLACK.EXE") == "chat"
+    assert app_category("notepad.exe") is None
+    assert app_category("") is None
+
+
+def test_starter_pack_rules_apply():
+    rules = starter_pack_rules()
+    assert resolve_outcome(AppIdentity(exe="outlook.exe"), rules) == PROFESSIONAL
+    assert resolve_outcome(AppIdentity(exe="slack.exe"), rules) == CASUAL
+    # Terminals stay verbatim (built-in) even with the pack applied.
+    assert resolve_outcome(AppIdentity(exe="powershell.exe"), rules) == VERBATIM
+    # An app not in the pack -> normal default.
+    assert resolve_outcome(AppIdentity(exe="notepad.exe", window_class="notepad"), rules) == DEFAULT
+
+
 def test_shadowed_by_detects_duplicate_broader_rule():
     rules = [_rule("process", "chrome.exe", CASUAL)]
     # Adding the same process rule again is shadowed by the existing one.

@@ -210,6 +210,7 @@ class VibeFlowApp:
             outcome = appmode.DEFAULT
             target_hwnd = None
             target_name = None
+            target_exe = ""
             try:
                 if bool(self.cfg.get("text.modes.enabled", True)):
                     target_hwnd = appmode.foreground_hwnd()
@@ -218,6 +219,7 @@ class VibeFlowApp:
                         app_id, self.cfg.get("text.modes.rules", []) or []
                     )
                     target_name = app_id.friendly
+                    target_exe = app_id.exe
             except Exception:  # pragma: no cover - never break dictation
                 outcome = appmode.DEFAULT
 
@@ -286,6 +288,25 @@ class VibeFlowApp:
             logging.getLogger("vibeflow").info(
                 "delivered: focus=%s result=%s chars=%d", focus, result, len(text)
             )
+            # One-time, in-context offer: the first time you dictate into a known
+            # email/chat app, suggest the one-click Starter Pack. Consent-based —
+            # nothing changes until you accept it from the tray.
+            try:
+                if (
+                    target_exe
+                    and appmode.app_category(target_exe)
+                    and not bool(self.cfg.get("text.modes.starter_pack_offered", False))
+                ):
+                    self.cfg.set("text.modes.starter_pack_offered", True)
+                    self._save_config()
+                    self._notify(
+                        __app_name__,
+                        "Tip: VibeFlow can format for each app automatically — "
+                        "professional in email, casual in chat. Turn it on from the "
+                        "tray: Adapt formatting to each app → Set up smart formatting.",
+                    )
+            except Exception:  # pragma: no cover - never break dictation
+                pass
             # Persona profiling (opt-in): keep a capped local sample of what you
             # dictate, and periodically distil a short style profile (background).
             if persona_on and self.persona.add_sample(text):
@@ -653,8 +674,16 @@ class VibeFlowApp:
             ),
             Item(
                 "Adapt formatting to each app",
-                self._toggle_modes,
-                checked=lambda i: bool(self.cfg.get("text.modes.enabled", True)),
+                Menu(
+                    Item(
+                        "Enabled",
+                        self._toggle_modes,
+                        checked=lambda i: bool(self.cfg.get("text.modes.enabled", True)),
+                    ),
+                    Menu.SEPARATOR,
+                    Item("Set up smart formatting (1-click)", self._setup_starter_pack),
+                    Item("Clear my app rules", self._clear_modes_rules),
+                ),
             ),
             Item(
                 "Learn from my edits",
@@ -786,6 +815,31 @@ class VibeFlowApp:
             "app each dictation was formatted for."
             if enabled
             else "Per-app formatting off: every app uses your normal formatting.",
+        )
+        self._refresh()
+
+    def _setup_starter_pack(self, *_args) -> None:
+        """One click: email -> professional, chat -> casual (terminals/code stay
+        as spoken by default). Rules for apps you don't have simply never fire."""
+        self.cfg.set("text.modes.enabled", True)
+        self.cfg.set("text.modes.rules", appmode.starter_pack_rules())
+        self.cfg.set("text.modes.starter_pack_offered", True)
+        self._save_config()
+        self._notify(
+            __app_name__,
+            "Smart formatting is on: emails (Outlook…) come out professional, "
+            "chats (Slack/Teams/WhatsApp…) stay casual, and terminals/code stay "
+            "exactly as spoken. Clear it anytime from the tray.",
+        )
+        self._refresh()
+
+    def _clear_modes_rules(self, *_args) -> None:
+        self.cfg.set("text.modes.rules", [])
+        self._save_config()
+        self._notify(
+            __app_name__,
+            "Cleared your per-app rules. Terminals and code editors still stay as "
+            "spoken; every other app uses your normal formatting.",
         )
         self._refresh()
 
