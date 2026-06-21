@@ -4,6 +4,14 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.13.0] — 2026-06-21
+
+### Added
+- **Language picker.** A new tray **"Language"** menu lets you dictate in
+  English, Spanish, French, German, Hindi, or **Auto-detect** (VibeFlow figures
+  out the language each time). It takes effect immediately — the bundled
+  base/small speech models are multilingual, so there's no download or restart.
+
 ## [1.12.0] — 2026-06-21
 
 ### Added
