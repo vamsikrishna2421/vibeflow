@@ -4,6 +4,20 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.10.1] — 2026-06-21
+
+### Added
+- **Re-insert last dictation (recovery + deliver-anywhere).** New tray submenu
+  under *Copy last transcript*: re-deliver your last dictation **exactly as
+  spoken**, **cleaned up**, or **formatted for the app you're now in**. Two uses:
+  (1) a one-tap fix when an app's automatic choice wasn't what you wanted — e.g.
+  you dictated prose into a code editor (kept verbatim) and want it cleaned up,
+  or AI reworded something and you want it back exactly as spoken; (2) **dictate
+  with nothing focused, then click into any app and "Formatted for this app"** to
+  place it there, restructured for that destination — the on-screen status shows
+  *"Restructuring for Slack…"* while it works. (A dedicated delivery hotkey is on
+  the roadmap; this tray action ships the capability safely today.)
+
 ## [1.10.0] — 2026-06-21
 
 ### Added

@@ -726,6 +726,14 @@ class VibeFlowApp:
             ),
             Menu.SEPARATOR,
             Item("Copy last transcript (unedited)", self._copy_raw_transcript),
+            Item(
+                "Re-insert last dictation",
+                Menu(
+                    Item("Exactly as spoken", self._reinsert_spoken),
+                    Item("Cleaned up", self._reinsert_cleaned),
+                    Item("Formatted for this app", self._reinsert_for_app),
+                ),
+            ),
             Item("Report a problem…", self._report_problem),
             Item(
                 lambda i: (
@@ -969,6 +977,115 @@ class VibeFlowApp:
             self._notify(__app_name__, "Copied your last unedited transcript to the clipboard.")
         except Exception:
             pass
+
+    def _reinsert_spoken(self, *_args) -> None:
+        self._reinsert_last(cleaned=False)
+
+    def _reinsert_cleaned(self, *_args) -> None:
+        self._reinsert_last(cleaned=True)
+
+    def _reinsert_last(self, cleaned: bool) -> None:
+        """Re-deliver the last dictation with the other outcome — your recovery
+        path when an app's automatic choice wasn't what you wanted (e.g. you
+        dictated prose into an editor and want it cleaned up, or AI reworded a
+        command and you want it exactly as spoken)."""
+        raw = self._last_raw_transcript
+        if not raw:
+            self._notify(__app_name__, "No recent dictation to re-insert yet.")
+            return
+        threading.Thread(
+            target=self._reinsert_worker, args=(raw, cleaned), daemon=True
+        ).start()
+
+    def _apply_outcome(self, raw: str, outcome: str) -> str:
+        """Format ``raw`` per a per-app outcome (verbatim/professional/casual/
+        default). Mirrors the formatting in :meth:`_process`."""
+        if outcome == appmode.VERBATIM:
+            return raw
+        ai_on = ai_format.is_enabled(self.cfg)
+        strip_fillers = bool(self.cfg.get("text.strip_fillers", False))
+        text = curate(
+            raw,
+            spoken_commands=bool(self.cfg.get("text.spoken_commands", True)),
+            capitalize_sentences=bool(self.cfg.get("text.capitalize_sentences", True)),
+            strip_fillers=(strip_fillers and not ai_on),
+            fillers=self.cfg.get("text.fillers", []) or None,
+        )
+        if ai_on:
+            tone = {appmode.PROFESSIONAL: "professional",
+                    appmode.CASUAL: "casual"}.get(outcome)
+            persona_on = bool(self.cfg.get("text.persona", True))
+            profile = self.persona.profile_text() if persona_on else None
+            ai_text = ai_format.format_text(
+                text, self.cfg, persona=profile, strip_fillers=strip_fillers, tone=tone
+            )
+            if ai_text:
+                text = ai_text
+        return text
+
+    def _deliver_text(self, text: str) -> None:
+        """Deliver already-formatted ``text`` to the focused field / clipboard."""
+        focus = detect_focus()
+        result = deliver(
+            text,
+            output_mode=self.cfg.get("output.mode", "auto"),
+            focus_state=focus,
+            insertion=self.cfg.get("output.insertion", "paste"),
+            trailing_space=bool(self.cfg.get("output.trailing_space", True)),
+            auto_fallback=self.cfg.get("output.auto_fallback", "clipboard"),
+        )
+        if result == COPIED:
+            self.overlay.show("clipboard")
+            self._notify("Copied to clipboard", preview(text))
+        else:
+            self.overlay.show("done")
+
+    def _reinsert_worker(self, raw: str, cleaned: bool) -> None:
+        try:
+            # The tray menu had focus; let Windows restore focus to your window.
+            time.sleep(0.35)
+            if cleaned:
+                self.overlay.show("info", "VibeFlow · Cleaning up…")
+                text = self._apply_outcome(raw, appmode.DEFAULT)
+            else:
+                self.overlay.show("info", "VibeFlow · Re-inserting as spoken…")
+                text = raw
+            self._deliver_text(text)
+        except Exception as exc:  # pragma: no cover - defensive
+            self._notify(__app_name__, f"Couldn't re-insert: {exc}")
+
+    def _reinsert_for_app(self, *_args) -> None:
+        """Deliver the last dictation formatted for whatever app you're now in —
+        dictate anywhere, then place it where it belongs (the deferred-delivery
+        path, via the tray to avoid hijacking a global paste key)."""
+        raw = self._last_raw_transcript
+        if not raw:
+            self._notify(__app_name__, "No recent dictation to deliver yet.")
+            return
+        threading.Thread(
+            target=self._reinsert_for_app_worker, args=(raw,), daemon=True
+        ).start()
+
+    def _reinsert_for_app_worker(self, raw: str) -> None:
+        try:
+            time.sleep(0.35)  # let focus return to your target window
+            outcome = appmode.DEFAULT
+            name = None
+            try:
+                app_id = appmode.target_app(appmode.foreground_hwnd())
+                outcome = appmode.resolve_outcome(
+                    app_id, self.cfg.get("text.modes.rules", []) or []
+                )
+                name = app_id.friendly
+            except Exception:
+                outcome = appmode.DEFAULT
+            if outcome != appmode.VERBATIM and ai_format.is_enabled(self.cfg) and name:
+                self.overlay.show("info", f"VibeFlow · Restructuring for {name}…")
+            elif name:
+                self.overlay.show("info", f"VibeFlow · Delivering — {name}")
+            self._deliver_text(self._apply_outcome(raw, outcome))
+        except Exception as exc:  # pragma: no cover - defensive
+            self._notify(__app_name__, f"Couldn't deliver: {exc}")
 
     def _report_problem(self, *_args) -> None:
         # Open the folder containing vibeflow.log, plus the issues page.
