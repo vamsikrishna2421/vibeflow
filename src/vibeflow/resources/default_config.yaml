@@ -150,6 +150,12 @@ text:
   #     my email: you@example.com
   #     my address: 1 Main Street, Springfield
   snippets: {}
+  # Dictation history (OPT-IN): keep a local, capped, searchable log of your
+  # dictations. Off by default — nothing is stored until you enable it from the
+  # tray. Stored only on this PC; clear it anytime.
+  history:
+    enabled: false
+    max: 500
 
 # ----------------------------------------------------------------------------
 #  AI formatting (OPTIONAL) — "voice to text WITH AI".

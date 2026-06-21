@@ -81,6 +81,12 @@ DEFAULTS: dict[str, Any] = {
         # Text snippets: spoken shortcuts that expand to canonical text. Empty by
         # default (a no-op). Example: {"my email": "you@example.com"}.
         "snippets": {},
+        # Dictation history (OPT-IN): keep a local, capped, searchable log of your
+        # dictations. Off by default; nothing is stored until you turn it on.
+        "history": {
+            "enabled": False,   # OPT-IN: record delivered dictations locally
+            "max": 500,         # keep only the most recent N entries
+        },
     },
     "ai": {
         "enabled": False,            # voice-to-text + AI formatting (needs a local LLM)

@@ -28,6 +28,7 @@ from . import (
     appmode,
     autostart,
     config as config_mod,
+    history,
     icons,
     notifier,
     overlay as overlay_mod,
@@ -292,6 +293,15 @@ class VibeFlowApp:
             logging.getLogger("vibeflow").info(
                 "delivered: focus=%s result=%s chars=%d", focus, result, len(text)
             )
+            # Optional local dictation history (opt-in; never breaks delivery).
+            try:
+                if bool(self.cfg.get("text.history.enabled", False)):
+                    history.append(
+                        text, target_name or "",
+                        max_entries=int(self.cfg.get("text.history.max", 500) or 500),
+                    )
+            except Exception:  # pragma: no cover - never break dictation
+                pass
             # One-time, in-context offer: the first time you dictate into a known
             # email/chat app, suggest the one-click Starter Pack. Consent-based —
             # nothing changes until you accept it from the tray.
@@ -738,6 +748,18 @@ class VibeFlowApp:
                     Item("Formatted for this app", self._reinsert_for_app),
                 ),
             ),
+            Item(
+                "Dictation history",
+                Menu(
+                    Item(
+                        "Save my dictations (local)",
+                        self._toggle_history,
+                        checked=lambda i: bool(self.cfg.get("text.history.enabled", False)),
+                    ),
+                    Item("Open history…", self._open_history),
+                    Item("Clear history", self._clear_history),
+                ),
+            ),
             Item("Report a problem…", self._report_problem),
             Item(
                 lambda i: (
@@ -853,6 +875,36 @@ class VibeFlowApp:
             "Cleared your per-app rules. Terminals and code editors still stay as "
             "spoken; every other app uses your normal formatting.",
         )
+        self._refresh()
+
+    def _toggle_history(self, *_args) -> None:
+        enabled = not bool(self.cfg.get("text.history.enabled", False))
+        self.cfg.set("text.history.enabled", enabled)
+        self._save_config()
+        self._notify(
+            __app_name__,
+            "Saving your dictations locally on this PC — open or clear them from "
+            "the tray. Nothing leaves your computer."
+            if enabled
+            else "Stopped saving dictation history.",
+        )
+        self._refresh()
+
+    def _open_history(self, *_args) -> None:
+        try:
+            out = config_mod.config_dir() / "dictation_history.html"
+            out.write_text(history.render_html(history.load()), encoding="utf-8")
+            self._open_path(str(out))
+        except Exception as exc:  # pragma: no cover - defensive
+            self._notify(__app_name__, f"Couldn't open history: {exc}")
+
+    def _clear_history(self, *_args) -> None:
+        history.clear()
+        try:
+            (config_mod.config_dir() / "dictation_history.html").unlink()
+        except Exception:
+            pass
+        self._notify(__app_name__, "Cleared your dictation history.")
         self._refresh()
 
     def _toggle_teachback(self, *_args) -> None:

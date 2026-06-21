@@ -4,6 +4,17 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.12.0] — 2026-06-21
+
+### Added
+- **Searchable dictation history (opt-in).** Turn on **tray → Dictation history →
+  "Save my dictations"** and VibeFlow keeps a local, capped log (most recent 500)
+  of what you dictate. **"Open history…"** shows a clean, **searchable** page in
+  your browser; **"Clear history"** wipes it. Off by default — nothing is stored
+  until you enable it, everything stays on your PC, and you can clear it anytime
+  (same privacy posture as VibeFlow's other learning features). Closes a gap vs.
+  Wispr Flow, superwhisper and VoiceInk.
+
 ## [1.11.0] — 2026-06-21
 
 ### Added
