@@ -143,6 +143,13 @@ text:
     deliver_hotkey: ctrl+shift+v   # "Deliver here" — only active while a dictation is pending
     deliver_on_ctrl_v: false       # opt-in: also deliver a pending dictation on Ctrl+V
     pending_timeout: 60            # seconds a no-focus dictation waits before it's discarded
+  # Text snippets: say the phrase on the left, VibeFlow inserts the text on the
+  # right. Empty by default. Matching is whole-phrase and case-insensitive.
+  # Example:
+  #   snippets:
+  #     my email: you@example.com
+  #     my address: 1 Main Street, Springfield
+  snippets: {}
 
 # ----------------------------------------------------------------------------
 #  AI formatting (OPTIONAL) — "voice to text WITH AI".

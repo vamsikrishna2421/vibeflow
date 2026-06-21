@@ -37,7 +37,7 @@ from .focus_detect import detect_focus
 from .hotkey import HotkeyManager
 from .output import COPIED, deliver
 from .curate import curate
-from .text import clean_transcript, preview
+from .text import clean_transcript, expand_snippets, preview
 from .transcriber import Transcriber, TranscriptionError
 from .persona import Persona
 from .vocabulary import Vocabulary
@@ -267,6 +267,10 @@ class VibeFlowApp:
                 text = self._last_raw_transcript
                 self._notify(__app_name__, "Only filler heard — inserted as-is.")
 
+            try:
+                text = expand_snippets(text, self.cfg.get("text.snippets", {}) or {})
+            except Exception:  # pragma: no cover - never break dictation
+                pass
             focus = detect_focus()
             result = deliver(
                 text,
@@ -1025,6 +1029,10 @@ class VibeFlowApp:
 
     def _deliver_text(self, text: str) -> None:
         """Deliver already-formatted ``text`` to the focused field / clipboard."""
+        try:
+            text = expand_snippets(text, self.cfg.get("text.snippets", {}) or {})
+        except Exception:  # pragma: no cover - never break delivery
+            pass
         focus = detect_focus()
         result = deliver(
             text,

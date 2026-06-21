@@ -78,6 +78,9 @@ DEFAULTS: dict[str, Any] = {
             "deliver_on_ctrl_v": False,      # OPT-IN: also deliver a pending dictation on Ctrl+V
             "pending_timeout": 60,           # seconds a no-focus dictation waits before it's discarded
         },
+        # Text snippets: spoken shortcuts that expand to canonical text. Empty by
+        # default (a no-op). Example: {"my email": "you@example.com"}.
+        "snippets": {},
     },
     "ai": {
         "enabled": False,            # voice-to-text + AI formatting (needs a local LLM)

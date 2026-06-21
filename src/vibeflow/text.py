@@ -78,6 +78,34 @@ def with_trailing_space(text: str, enabled: bool) -> str:
     return text if text.endswith((" ", "\n")) else text + " "
 
 
+def expand_snippets(text: str, snippets: dict | None) -> str:
+    """Replace spoken shortcut phrases with their expansions.
+
+    ``snippets`` maps a trigger phrase to its replacement, e.g.
+    ``{"my email": "vamsy@example.com", "my address": "1 Main St"}``. Matching is
+    case-insensitive and whole-phrase (a trigger only fires on word boundaries, so
+    "email" never fires inside "emails"). Longer triggers are tried first so
+    "my work email" wins over "my email". With no snippets the text is unchanged,
+    which is why the feature is safe to leave always-on: an empty map is a no-op.
+    """
+    if not text or not snippets:
+        return text
+    out = text
+    for trigger in sorted(
+        (k for k in snippets if isinstance(k, str) and k.strip()),
+        key=len,
+        reverse=True,
+    ):
+        repl = snippets.get(trigger)
+        if repl is None:
+            continue
+        pattern = re.compile(
+            r"(?<!\w)" + re.escape(trigger.strip()) + r"(?!\w)", re.IGNORECASE
+        )
+        out = pattern.sub(lambda _m, r=str(repl): r, out)
+    return out
+
+
 def preview(text: str, limit: int = 60) -> str:
     """Return a short single-line preview for notifications/logging."""
     flat = " ".join((text or "").split())

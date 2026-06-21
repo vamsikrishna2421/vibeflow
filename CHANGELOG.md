@@ -4,6 +4,17 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.11.0] — 2026-06-21
+
+### Added
+- **Text snippets.** Say a short phrase and VibeFlow inserts canonical text for
+  it — e.g. *"my email"* → your address, *"my address"* → your mailing address,
+  *"sig"* → your signature block. Define them under `snippets:` in `config.yaml`
+  (a point-and-click editor is on the roadmap). Matching is whole-phrase and
+  case-insensitive, longer phrases win over shorter ones, and the replacement is
+  inserted exactly as written. Empty by default, so it changes nothing until you
+  add a snippet. (A common feature in Dragon and Wispr Flow that VibeFlow lacked.)
+
 ## [1.10.1] — 2026-06-21
 
 ### Added
