@@ -4,6 +4,19 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.15.0] — 2026-06-21
+
+### Added
+- **Dedicated "Deliver here" hotkey — Ctrl+Shift+V.** Dictate with nothing
+  focused (the text goes to your clipboard), then click into any app and press
+  **Ctrl+Shift+V** to place it there, **restructured for that app** (the status
+  shows *"Restructuring for Slack…"*). The hotkey is **contextual**: it only
+  intercepts Ctrl+Shift+V for ~60 seconds after such a dictation — the rest of
+  the time it stays out of the way and Ctrl+Shift+V works as your normal "paste
+  without formatting." It also waits for you to release the keys before placing
+  the text, so the held Ctrl+Shift can't corrupt it. (The tray's *Re-insert last
+  dictation → Formatted for this app* still does the same thing.)
+
 ## [1.14.2] — 2026-06-21
 
 ### Changed

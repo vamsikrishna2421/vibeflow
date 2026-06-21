@@ -253,3 +253,95 @@ class HotkeyManager:
             import traceback
 
             traceback.print_exc()
+
+
+# Virtual-key codes (Windows) used by the delivery hotkey.
+_VK_V = 0x56
+_VK_CTRL = 0x11
+_VK_SHIFT = 0x10
+_WM_KEYDOWN = (0x0100, 0x0104)  # WM_KEYDOWN, WM_SYSKEYDOWN
+
+
+class DeliveryHotkey:
+    """Contextual **Ctrl+Shift+V** "deliver here" hotkey (Windows only).
+
+    It does nothing — and is completely invisible — unless ``is_armed()`` is
+    true, which the app sets for a short window only when a dictation is waiting
+    on the clipboard (you spoke with no text field focused). While armed,
+    pressing Ctrl+Shift+V is **swallowed** (so the app's normal "paste without
+    formatting" does not *also* fire and double-insert) and ``on_fire`` runs to
+    deliver the dictation formatted for the focused app. When not armed, the key
+    passes straight through and behaves exactly as it always has.
+
+    Everything is wrapped so a hook error can never break the user's typing.
+    """
+
+    def __init__(self, *, is_armed: Callable[[], bool], on_fire: Callable[[], None]):
+        self.is_armed = is_armed
+        self.on_fire = on_fire
+        self._listener = None
+
+    def start(self) -> None:
+        if os.name != "nt":
+            return
+        try:
+            import ctypes
+
+            from pynput import keyboard
+        except Exception:
+            return
+        get_state = ctypes.windll.user32.GetAsyncKeyState
+
+        def combo_active() -> bool:
+            try:
+                return (
+                    bool(get_state(_VK_CTRL) & 0x8000)
+                    and bool(get_state(_VK_SHIFT) & 0x8000)
+                    and bool(self.is_armed())
+                )
+            except Exception:
+                return False
+
+        def win32_filter(msg, data):
+            # Suppress ONLY the Ctrl+Shift+V keydown, and only while armed.
+            try:
+                if (
+                    msg in _WM_KEYDOWN
+                    and getattr(data, "vkCode", None) == _VK_V
+                    and combo_active()
+                ):
+                    self._listener.suppress_event()
+            except Exception:
+                pass
+
+        def on_press(key):
+            try:
+                if getattr(key, "vk", None) == _VK_V and combo_active():
+                    self._safe(self.on_fire)
+            except Exception:
+                pass
+
+        try:
+            self._listener = keyboard.Listener(
+                on_press=on_press, win32_event_filter=win32_filter
+            )
+            self._listener.start()
+        except Exception:
+            self._listener = None
+
+    def stop(self) -> None:
+        if self._listener:
+            try:
+                self._listener.stop()
+            except Exception:
+                pass
+            self._listener = None
+
+    @staticmethod
+    def _safe(callback: Callable[[], None]) -> None:
+        try:
+            callback()
+        except Exception:
+            import traceback
+
+            traceback.print_exc()

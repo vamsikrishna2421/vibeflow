@@ -35,7 +35,7 @@ from . import (
 )
 from .audio import AudioError, Recorder
 from .focus_detect import detect_focus
-from .hotkey import HotkeyManager
+from .hotkey import DeliveryHotkey, HotkeyManager
 from .output import COPIED, deliver
 from .curate import curate
 from .text import clean_transcript, expand_snippets, preview
@@ -89,6 +89,8 @@ class VibeFlowApp:
         self._cfg_mtime = None  # config.yaml mtime, to pick up Settings-window edits
         self._update_info = None  # set when a newer release is found
         self._last_raw_transcript = ""  # unedited transcript (for recovery)
+        self._deliver_pending_until = 0.0  # arms the Ctrl+Shift+V delivery hotkey
+        self._delivery_hotkey = None
         self.icon = None  # set in run()
 
     # ------------------------------------------------------------------
@@ -330,7 +332,20 @@ class VibeFlowApp:
                     threading.Thread(target=self._profile_worker, daemon=True).start()
             if result == COPIED:
                 self.overlay.show("clipboard")
-                self._notify("Copied to clipboard", preview(text))
+                # No field was focused, so the text is on the clipboard. Arm the
+                # "deliver here" hotkey: click into any app within 60s and press
+                # Ctrl+Shift+V to place it, formatted for that app.
+                if self.cfg.get("text.modes.deliver_hotkey"):
+                    self._deliver_pending_until = time.time() + float(
+                        self.cfg.get("text.modes.pending_timeout", 60) or 60
+                    )
+                    self._notify(
+                        "Dictation ready",
+                        "On your clipboard. Click into any app and press "
+                        "Ctrl+Shift+V to place it, formatted for that app.",
+                    )
+                else:
+                    self._notify("Copied to clipboard", preview(text))
             else:
                 self.overlay.show("done")
         except TranscriptionError as exc:
@@ -469,6 +484,11 @@ class VibeFlowApp:
         self._refresh()
         self.overlay.start()
         self.hotkeys.start()
+        self._delivery_hotkey = DeliveryHotkey(
+            is_armed=lambda: time.time() < self._deliver_pending_until,
+            on_fire=self._deliver_hotkey_fire,
+        )
+        self._delivery_hotkey.start()
         threading.Thread(target=self._clip_watch_loop, daemon=True).start()
         threading.Thread(target=self._preload_model, daemon=True).start()
         self._apply_install_opt_ins()
@@ -1122,10 +1142,38 @@ class VibeFlowApp:
         except Exception as exc:  # pragma: no cover - defensive
             self._notify(__app_name__, f"Couldn't re-insert: {exc}")
 
+    def _deliver_hotkey_fire(self) -> None:
+        """Ctrl+Shift+V pressed while a dictation is pending on the clipboard →
+        place it here, formatted for the focused app. Disarm immediately so a
+        key-repeat or second press can't deliver twice."""
+        if time.time() >= self._deliver_pending_until:
+            return
+        self._deliver_pending_until = 0.0
+        self._reinsert_for_app()
+
+    def _wait_keys_released(self, timeout: float = 1.5) -> None:
+        """Block until Ctrl/Shift/Win are physically up (so a held delivery hotkey
+        doesn't corrupt the paste). Returns immediately when nothing is held."""
+        if sys.platform != "win32":
+            return
+        try:
+            import ctypes
+
+            get_state = ctypes.windll.user32.GetAsyncKeyState
+            deadline = time.time() + timeout
+            while time.time() < deadline:
+                if not any(
+                    get_state(vk) & 0x8000 for vk in (0x11, 0x10, 0x5B, 0x5C)
+                ):
+                    return
+                time.sleep(0.03)
+        except Exception:
+            pass
+
     def _reinsert_for_app(self, *_args) -> None:
         """Deliver the last dictation formatted for whatever app you're now in —
-        dictate anywhere, then place it where it belongs (the deferred-delivery
-        path, via the tray to avoid hijacking a global paste key)."""
+        dictate anywhere, then place it where it belongs. Reached from the tray
+        and from the Ctrl+Shift+V delivery hotkey."""
         raw = self._last_raw_transcript
         if not raw:
             self._notify(__app_name__, "No recent dictation to deliver yet.")
@@ -1136,7 +1184,10 @@ class VibeFlowApp:
 
     def _reinsert_for_app_worker(self, raw: str) -> None:
         try:
-            time.sleep(0.35)  # let focus return to your target window
+            # Wait for any held modifier (e.g. the Ctrl+Shift of the delivery
+            # hotkey) to lift so it can't corrupt the paste, then let focus settle.
+            self._wait_keys_released()
+            time.sleep(0.2)
             outcome = appmode.DEFAULT
             name = None
             try:
@@ -1436,6 +1487,11 @@ class VibeFlowApp:
         # that prevents a stale instance from clobbering good data with old data.
         try:
             self.hotkeys.stop()
+        except Exception:
+            pass
+        try:
+            if self._delivery_hotkey:
+                self._delivery_hotkey.stop()
         except Exception:
             pass
         try:
