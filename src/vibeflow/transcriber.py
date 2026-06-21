@@ -100,19 +100,22 @@ class Transcriber:
         if self._model is None:
             self.load()
 
-        language = None if self.language in (None, "", "auto") else self.language
+        # English by default. A valid language code set in config still works,
+        # but anything empty / "auto" / an unknown value falls back to English so
+        # a bad setting can never crash transcription (faster-whisper raises on
+        # unknown codes). Whisper auto-detection is intentionally not used.
+        lang = str(self.language or "").strip().lower()
+        if lang in ("", "auto", "auto-detect", "autodetect"):
+            lang = "en"
         try:
-            return self._run(audio, language, prompt)
+            return self._run(audio, lang, prompt)
         except Exception as exc:
-            # Auto-detect (language=None) can fail in some runtimes while a fixed
-            # language works. Don't hard-fail: log the real cause and fall back to
-            # English so dictation keeps working.
-            if language is None:
+            if lang != "en":
                 import logging
 
                 logging.getLogger("vibeflow").warning(
-                    "auto language detection failed (%s: %s); retrying as English",
-                    type(exc).__name__, exc,
+                    "language %r failed (%s: %s); using English",
+                    lang, type(exc).__name__, exc,
                 )
                 try:
                     return self._run(audio, "en", prompt)

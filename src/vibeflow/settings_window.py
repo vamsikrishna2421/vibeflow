@@ -31,8 +31,6 @@ _CHECKS = [
     ("feedback.sounds", "Play start / stop sounds"),
     ("text.debug_log", "Detailed logging (troubleshooting)"),
 ]
-_LANGS = [("Auto-detect", "auto"), ("English", "en"), ("Spanish", "es"),
-          ("French", "fr"), ("German", "de"), ("Hindi", "hi")]
 _OUTPUTS = [("Auto — type, else clipboard", "auto"), ("Always type", "type"),
             ("Always copy to clipboard", "clipboard")]
 
@@ -98,10 +96,6 @@ def run(config_path: str | None = None) -> int:
              font=("Segoe UI", 9), wraplength=430, justify="left").pack(
                  fill="x", padx=18, pady=(0, 2))
 
-    # Language
-    lang_var = tk.StringVar(value=str(cfg.get("model.language", "en") or "en"))
-    radio(card("DICTATION LANGUAGE"), lang_var, _LANGS)
-
     # Output
     out_var = tk.StringVar(value=str(cfg.get("output.mode", "auto") or "auto"))
     radio(card("WHERE DICTATED TEXT GOES"), out_var, _OUTPUTS)
@@ -137,7 +131,6 @@ def run(config_path: str | None = None) -> int:
 
     def save():
         try:
-            cfg.set("model.language", lang_var.get())
             cfg.set("output.mode", out_var.get())
             for key, var in check_vars.items():
                 cfg.set(key, bool(var.get()))

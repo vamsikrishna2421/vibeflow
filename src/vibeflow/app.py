@@ -103,7 +103,7 @@ class VibeFlowApp:
     def _build_transcriber(self) -> Transcriber:
         return Transcriber(
             size=self.cfg.get("model.size", "base"),
-            language=self.cfg.get("model.language", "auto"),
+            language=self.cfg.get("model.language", "en"),
             device=self.cfg.get("model.device", "auto"),
             compute_type=self.cfg.get("model.compute_type", "auto"),
             models_dir=str(config_mod.models_dir()),
@@ -651,25 +651,6 @@ class VibeFlowApp:
                 ),
             ),
             Item(
-                "Language",
-                Menu(*[
-                    Item(
-                        label,
-                        (lambda i, c=code: self._set_language(c)),
-                        checked=(lambda i, c=code: (self.cfg.get("model.language") or "auto") == c),
-                        radio=True,
-                    )
-                    for label, code in (
-                        ("Auto-detect", "auto"),
-                        ("English", "en"),
-                        ("Spanish", "es"),
-                        ("French", "fr"),
-                        ("German", "de"),
-                        ("Hindi", "hi"),
-                    )
-                ]),
-            ),
-            Item(
                 "AI formatting",
                 Menu(
                     Item(
@@ -901,23 +882,6 @@ class VibeFlowApp:
             __app_name__,
             "Cleared your per-app rules. Terminals and code editors still stay as "
             "spoken; every other app uses your normal formatting.",
-        )
-        self._refresh()
-
-    def _set_language(self, code: str) -> None:
-        """Set the dictation language (or 'auto' to detect each time). The bundled
-        base/small models are multilingual, so this needs no re-download or model
-        reload — it takes effect on your next dictation."""
-        self.cfg.set("model.language", code)
-        try:
-            self.transcriber.language = None if code in ("auto", "", None) else code
-        except Exception:  # pragma: no cover - defensive
-            pass
-        self._save_config()
-        nice = "auto-detect" if code == "auto" else code
-        self._notify(
-            __app_name__,
-            f"Dictation language: {nice}. Uses the multilingual base/small model.",
         )
         self._refresh()
 
@@ -1511,10 +1475,10 @@ class VibeFlowApp:
         try:
             self.cfg.data = config_mod.load_config().data
             # Most settings are read fresh from cfg each dictation, so they take
-            # effect immediately. Language is cached on the transcriber — re-apply.
-            lang = self.cfg.get("model.language", "en")
+            # effect immediately. Language is cached on the transcriber — re-apply
+            # (the transcriber sanitises unknown values to English).
             try:
-                self.transcriber.language = None if lang in ("auto", "", None) else lang
+                self.transcriber.language = self.cfg.get("model.language", "en")
             except Exception:
                 pass
             logging.getLogger("vibeflow").info("settings reloaded from disk")

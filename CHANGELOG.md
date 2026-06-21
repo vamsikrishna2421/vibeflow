@@ -4,6 +4,17 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.14.2] — 2026-06-21
+
+### Changed
+- **English-only for now; the language picker is removed.** The multilingual
+  auto-detect was unreliable in the packaged build, so VibeFlow now defaults to
+  **English** and the Language menus (tray + Settings) are gone. The root cause of
+  the "transcription error" is fixed: a UI **label** ("Auto-detect") was reaching
+  the engine as a language code; the transcriber now sanitises any
+  empty/`auto`/unknown value to English so a bad setting can never crash
+  transcription. (A valid language code set by hand in `config.yaml` still works.)
+
 ## [1.14.1] — 2026-06-21
 
 ### Fixed

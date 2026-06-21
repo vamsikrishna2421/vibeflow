@@ -1,4 +1,4 @@
-"""Tests for the transcriber's language handling and auto-detect fallback."""
+"""Tests for the transcriber's language handling (English-default, robust)."""
 
 from vibeflow.transcriber import Transcriber
 
@@ -9,16 +9,16 @@ class _Seg:
 
 
 class _FakeModel:
-    """Stub faster-whisper model: optionally fails when language is None (auto)."""
+    """Stub faster-whisper model; raises if asked for ``fail_on`` language."""
 
-    def __init__(self, fail_on_none=True):
-        self.fail_on_none = fail_on_none
+    def __init__(self, fail_on=None):
+        self.fail_on = fail_on
         self.calls = []
 
     def transcribe(self, audio, language=None, **kw):
         self.calls.append(language)
-        if language is None and self.fail_on_none:
-            raise RuntimeError("language detection failed")
+        if language == self.fail_on:
+            raise RuntimeError("invalid language code")
         return ([_Seg(" hello world")], None)
 
 
@@ -28,22 +28,32 @@ def _t(language, model):
     return t
 
 
-def test_auto_falls_back_to_english_when_detection_fails():
-    fm = _FakeModel(fail_on_none=True)
-    out = _t("auto", fm).transcribe([0.0])
-    assert out == " hello world"
-    assert fm.calls == [None, "en"]  # tried auto, then fell back to English
+def test_auto_maps_to_english():
+    fm = _FakeModel()
+    assert _t("auto", fm).transcribe([0.0]) == " hello world"
+    assert fm.calls == ["en"]  # never passes None / "auto" to the engine
 
 
-def test_auto_success_does_not_fall_back():
-    fm = _FakeModel(fail_on_none=False)
-    out = _t("auto", fm).transcribe([0.0])
-    assert out == " hello world"
-    assert fm.calls == [None]  # auto worked; no retry
+def test_empty_maps_to_english():
+    fm = _FakeModel()
+    _t("", fm).transcribe([0.0])
+    assert fm.calls == ["en"]
 
 
-def test_fixed_language_never_falls_back():
-    fm = _FakeModel(fail_on_none=True)  # would fail on None, but we ask for es
-    out = _t("es", fm).transcribe([0.0])
-    assert out == " hello world"
+def test_stray_label_maps_to_english():
+    # The exact bug: the UI label "Auto-detect" must never reach the engine.
+    fm = _FakeModel()
+    _t("Auto-detect", fm).transcribe([0.0])
+    assert fm.calls == ["en"]
+
+
+def test_invalid_code_falls_back_to_english():
+    fm = _FakeModel(fail_on="xx")
+    assert _t("xx", fm).transcribe([0.0]) == " hello world"
+    assert fm.calls == ["xx", "en"]  # tried it, fell back to English
+
+
+def test_valid_configured_language_is_used():
+    fm = _FakeModel()
+    _t("es", fm).transcribe([0.0])
     assert fm.calls == ["es"]

@@ -199,7 +199,7 @@ def _download_model(cfg: config_mod.Config) -> int:
     print(f"Preparing model '{size}' (first time may download a few hundred MB)...")
     t = Transcriber(
         size=size,
-        language=cfg.get("model.language", "auto"),
+        language=cfg.get("model.language", "en"),
         device=cfg.get("model.device", "auto"),
         compute_type=cfg.get("model.compute_type", "auto"),
         models_dir=str(config_mod.models_dir()),
