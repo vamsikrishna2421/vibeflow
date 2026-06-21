@@ -151,7 +151,7 @@ def _run(cfg: config_mod.Config) -> int:
 
 
 def _check_ai(cfg: config_mod.Config) -> int:
-    from . import ai_format
+    from .core import ai_format
 
     ok, message = ai_format.check(cfg)
     print(("OK: " if ok else "NOT READY: ") + message)

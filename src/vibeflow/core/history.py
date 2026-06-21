@@ -25,7 +25,7 @@ DEFAULT_MAX = 500
 def history_path(path: Path | None = None) -> Path:
     if path is not None:
         return Path(path)
-    from .config import config_dir
+    from ..config import config_dir
 
     return config_dir() / HISTORY_FILENAME
 

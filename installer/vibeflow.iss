@@ -11,7 +11,7 @@
 ; ============================================================================
 
 #define MyAppName "VibeFlow"
-#define MyAppVersion "1.15.0"
+#define MyAppVersion "1.15.1"
 #define MyAppPublisher "VibeFlow"
 #define MyAppExeName "VibeFlow.exe"
 

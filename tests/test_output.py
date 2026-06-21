@@ -47,7 +47,7 @@ def test_mode_is_case_insensitive():
 
 
 def test_foreground_matches_fails_open(monkeypatch):
-    import vibeflow.appmode as appmode
+    import vibeflow.core.appmode as appmode
 
     # No expectation -> never block normal dictation.
     assert _foreground_matches(None) is True

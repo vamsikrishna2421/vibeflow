@@ -14,7 +14,7 @@ from __future__ import annotations
 import time
 
 from .focus_detect import EDITABLE, NON_EDITABLE, UNKNOWN
-from .text import with_trailing_space
+from .core.text import with_trailing_space
 
 # Delivery results (also used as notification hints).
 TYPED = "typed"
@@ -102,7 +102,7 @@ def _foreground_matches(expected_hwnd: int | None) -> bool:
     if not expected_hwnd:
         return True
     try:
-        from .appmode import foreground_hwnd
+        from .core.appmode import foreground_hwnd
 
         current = foreground_hwnd()
         return (current == expected_hwnd) if current else True

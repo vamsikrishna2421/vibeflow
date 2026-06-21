@@ -50,8 +50,9 @@ def run(persona_path: str) -> int:
     except Exception:
         return 1
 
-    from . import ai_format, config as config_mod
-    from .persona import Persona
+    from . import config as config_mod
+    from .core import ai_format
+    from .core.persona import Persona
 
     persona = Persona(path=persona_path)
     cfg = config_mod.load_config()

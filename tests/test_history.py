@@ -1,6 +1,6 @@
 """Tests for the optional local dictation history (storage + HTML render)."""
 
-from vibeflow import history
+from vibeflow.core import history
 
 
 def test_append_and_load_roundtrip(tmp_path):

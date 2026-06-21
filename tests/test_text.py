@@ -1,6 +1,6 @@
 """Tests for transcript text cleanup (pure functions)."""
 
-from vibeflow.text import clean_transcript, expand_snippets, preview, with_trailing_space
+from vibeflow.core.text import clean_transcript, expand_snippets, preview, with_trailing_space
 
 
 def test_collapse_and_strip():

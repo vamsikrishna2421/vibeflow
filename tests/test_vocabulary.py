@@ -1,6 +1,6 @@
 """Tests for the adaptive vocabulary (pure learning logic)."""
 
-from vibeflow.vocabulary import Vocabulary, is_termlike
+from vibeflow.core.vocabulary import Vocabulary, is_termlike
 
 
 def test_is_termlike():

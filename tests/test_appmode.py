@@ -1,6 +1,6 @@
 """Tests for per-app formatting: the pure outcome resolver and helpers."""
 
-from vibeflow.appmode import (
+from vibeflow.core.appmode import (
     AppIdentity,
     CASUAL,
     DEFAULT,

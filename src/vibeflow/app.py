@@ -23,25 +23,23 @@ import time
 from . import (
     __app_name__,
     __version__,
-    ai_format,
     ai_setup,
-    appmode,
     autostart,
     config as config_mod,
-    history,
     icons,
     notifier,
     overlay as overlay_mod,
 )
+from .core import ai_format, appmode, history
 from .audio import AudioError, Recorder
 from .focus_detect import detect_focus
 from .hotkey import DeliveryHotkey, HotkeyManager
 from .output import COPIED, deliver
-from .curate import curate
-from .text import clean_transcript, expand_snippets, preview
+from .core.curate import curate
+from .core.text import clean_transcript, expand_snippets, preview
 from .transcriber import Transcriber, TranscriptionError
-from .persona import Persona
-from .vocabulary import Vocabulary
+from .core.persona import Persona
+from .core.vocabulary import Vocabulary
 
 _APP_USER_MODEL_ID = "VibeFlow.Dictation"
 
@@ -434,7 +432,7 @@ class VibeFlowApp:
             # Show a live pill — the local model can take a few seconds to warm up.
             self.overlay.show("working", "VibeFlow · Learning your terms…")
             try:
-                from . import ai_format
+                from .core import ai_format
 
                 terms = ai_format.extract_terms(clip, self.cfg)
             except Exception:

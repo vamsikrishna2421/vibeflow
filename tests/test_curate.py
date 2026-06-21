@@ -1,6 +1,6 @@
 """Tests for the offline Stage-4 curation (pure functions)."""
 
-from vibeflow.curate import curate, remove_fillers
+from vibeflow.core.curate import curate, remove_fillers
 
 
 def test_empty_and_none():

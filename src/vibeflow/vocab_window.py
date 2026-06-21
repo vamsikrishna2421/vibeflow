@@ -48,7 +48,7 @@ def run(vocab_path: str) -> int:
     except Exception:
         return 1
 
-    from .vocabulary import Vocabulary
+    from .core.vocabulary import Vocabulary
 
     vocab = Vocabulary(path=vocab_path)
 

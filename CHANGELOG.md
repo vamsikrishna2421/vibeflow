@@ -4,6 +4,16 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.15.1] — 2026-06-21
+
+### Internal
+- **Extracted `vibeflow.core`** — the platform-agnostic "brain" (per-app
+  formatting resolver, transcript cleanup/fillers, snippets, local-LLM
+  formatting/tone/persona/teach-back, vocabulary, dictation history) now lives in
+  its own dependency-free package, separated from the Windows-specific layers
+  (hotkey, typing, focus detection, tray, audio). No user-facing change — this is
+  the reusable foundation for the planned macOS / Android / iOS apps.
+
 ## [1.15.0] — 2026-06-21
 
 ### Added

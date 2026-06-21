@@ -1,6 +1,6 @@
 """Tests for the optional AI layer (no network calls)."""
 
-from vibeflow import ai_format
+from vibeflow.core import ai_format
 
 
 class _Cfg:

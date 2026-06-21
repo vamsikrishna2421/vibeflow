@@ -1,6 +1,6 @@
 """Tests for persona sample storage and profiling logic (no network/LLM)."""
 
-from vibeflow.persona import MIN_SAMPLES, REPROFILE_EVERY, Persona
+from vibeflow.core.persona import MIN_SAMPLES, REPROFILE_EVERY, Persona
 
 
 def test_add_sample_length_gate():
@@ -16,7 +16,7 @@ def test_rolling_window_cap():
     for i in range(120):
         p.add_sample(f"this is dictation sample number {i}")
     # capped to the most recent MAX_SAMPLES
-    from vibeflow.persona import MAX_SAMPLES
+    from vibeflow.core.persona import MAX_SAMPLES
 
     assert len(p.samples) == MAX_SAMPLES
     assert p.sample_texts()[-1].endswith("119")
