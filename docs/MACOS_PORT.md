@@ -39,10 +39,20 @@ claude            # start it once to sign in; `claude doctor` to verify the setu
 ```bash
 git clone https://github.com/vamsikrishna2421/vibeflow
 cd vibeflow
-python3 -m venv .venv && source .venv/bin/activate
+python3.12 -m venv .venv && source .venv/bin/activate
+python -m pip install --upgrade pip        # IMPORTANT: old pip tries to *compile*
+                                            # pyobjc (a pynput dep) and fails on new
+                                            # clang — new pip just grabs the wheel
 pip install -r requirements.txt
 git checkout -b macos
 ```
+
+> **`pip install` fails building `pyobjc-core` / `clang failed with exit code 1`?**
+> Your pip is too old and is compiling pyobjc from source. Fix: `python -m pip
+> install --upgrade pip` then retry. If it persists, recreate the venv on Python
+> 3.11/3.12 (`brew install python@3.12` → `python3.12 -m venv .venv`). pyobjc is
+> only needed on macOS (it's how `pynput` and the AX/menu-bar layers talk to
+> Cocoa).
 
 **ruflo / claude-flow** (the MCP coordination layer this project uses). The
 config — `CLAUDE.md` — **already ships in the repo**, so you only need the
