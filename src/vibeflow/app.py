@@ -712,6 +712,7 @@ class VibeFlowApp:
                     ),
                 ),
             ),
+            Item("Manage AI models…", self._open_models_manager),
             Menu.SEPARATOR,
             Item("Open settings file", self._open_config),
             Item("Open settings folder", self._open_config_dir),
@@ -1413,6 +1414,7 @@ class VibeFlowApp:
             self.cfg.set("text.ai_learning", True)
             self.cfg.set("text.teach_back", True)  # learning rides on teach-back
             self.cfg.set("text.teach_back_model", model)
+            self._record_pulled_model(model)
             self._save_config()
         self._notify(
             "Adaptive learning ready" if ok else "Adaptive learning setup failed",
@@ -1518,6 +1520,7 @@ class VibeFlowApp:
         if ok:
             self.cfg.set("ai.enabled", True)
             self.cfg.set("ai.model", model)
+            self._record_pulled_model(model)
             self._save_config()
         self._notify("AI formatting ready" if ok else "AI setup failed", message)
         self._set_status("Ready")
@@ -1595,6 +1598,21 @@ class VibeFlowApp:
         if not self._launch_manager("--settings"):
             self._notify(__app_name__, "Couldn't open Settings. Edit config.yaml via "
                          "“Report a problem…” instead.")
+
+    def _open_models_manager(self, *_args) -> None:
+        if not self._launch_manager("--models-manager"):
+            self._notify(__app_name__, "Couldn't open the AI model manager.")
+
+    def _record_pulled_model(self, model: str) -> None:
+        """Remember a model VibeFlow downloaded, so the model manager can show
+        which models are ours vs. ones you installed in Ollama yourself."""
+        try:
+            pulled = list(self.cfg.get("ai.pulled_models", []) or [])
+            if model and model not in pulled:
+                pulled.append(model)
+                self.cfg.set("ai.pulled_models", pulled)
+        except Exception:
+            pass
 
     def _save_config(self) -> None:
         try:

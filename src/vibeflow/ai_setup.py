@@ -21,6 +21,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.error
 import urllib.request
 
 ENDPOINT = "http://127.0.0.1:11434"
@@ -79,6 +80,51 @@ def installed_models() -> list:
 def has_model(model: str) -> bool:
     names = installed_models()
     return model in names or (model + ":latest") in names
+
+
+def model_list() -> list:
+    """Installed models as ``[{"name", "size"}]`` (size in bytes) from /api/tags.
+
+    This is the authoritative live store of whatever Ollama VibeFlow is talking to
+    — never a guessed-at directory. Empty if the server is unreachable.
+    """
+    try:
+        with urllib.request.urlopen(ENDPOINT + "/api/tags", timeout=5) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+    except Exception:
+        return []
+    out = []
+    for m in body.get("models", []) or []:
+        name = m.get("name") or m.get("model") or ""
+        if name:
+            out.append({"name": name, "size": int(m.get("size") or 0)})
+    return out
+
+
+def delete_model(name: str) -> bool:
+    """Delete a model by its **exact** /api/tags name. Robust across Ollama
+    versions: tries ``{"model": ...}`` then ``{"name": ...}``, treats 404 as
+    already-gone. Returns True once the model is no longer present.
+    """
+    if not name:
+        return False
+    for field in ("model", "name"):
+        data = json.dumps({field: name}).encode("utf-8")
+        req = urllib.request.Request(
+            ENDPOINT + "/api/delete", data=data,
+            headers={"Content-Type": "application/json"}, method="DELETE",
+        )
+        try:
+            urllib.request.urlopen(req, timeout=30)
+            break  # deleted
+        except urllib.error.HTTPError as exc:
+            if exc.code == 404:
+                break  # already gone == success
+            continue  # older server may want the other field name
+        except Exception:
+            continue
+    # Confirm against the live store rather than trusting the status code.
+    return name not in installed_models()
 
 
 # ---------------------------------------------------------------------------

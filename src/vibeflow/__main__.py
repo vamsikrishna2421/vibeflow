@@ -58,6 +58,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Open the interactive Personalized-AI profile window and exit.",
     )
     p.add_argument(
+        "--models-manager",
+        action="store_true",
+        help="Open the AI model manager (remove models / free disk) and exit.",
+    )
+    p.add_argument(
         "--settings",
         action="store_true",
         help="Open the Settings window and exit.",
@@ -110,6 +115,10 @@ def main(argv: list[str] | None = None) -> int:
         from .persona_window import run as run_persona_manager
 
         return run_persona_manager(str(config_mod.config_dir() / "persona.json"))
+    if args.models_manager:
+        from .models_window import run as run_models_manager
+
+        return run_models_manager(args.config)
     if args.settings:
         from .settings_window import run as run_settings
 

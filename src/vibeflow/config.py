@@ -95,6 +95,7 @@ DEFAULTS: dict[str, Any] = {
         "model": "qwen2.5:3b",       # best at keeping your exact words (1.5b paraphrases)
         "timeout": 20,
         "prompt": "",                # empty = use the built-in formatting prompt
+        "pulled_models": [],         # models VibeFlow downloaded (for the model manager)
     },
 }
 

@@ -4,6 +4,18 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.22.0] — 2026-06-22
+
+### Added
+- **Manage AI models (tray → AI formatting → "Manage AI models…").** A new window
+  lists the local LLM models Ollama has installed with their sizes, and lets you
+  **remove the ones you don't need to free disk space — no terminal, no
+  reinstalling.** It reads the *live* Ollama store (so it's always accurate),
+  labels which models VibeFlow added vs. ones you installed in Ollama yourself
+  (removing one of yours asks an extra confirmation), and deletes safely through
+  the Ollama API (robust across Ollama versions). Matches your Windows light/dark
+  theme.
+
 ## [1.21.0] — 2026-06-22
 
 ### Changed
