@@ -4,7 +4,22 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
-## [1.16.0] — 2026-06-21
+## [1.17.0] — 2026-06-22
+
+### Added
+- **VibeFlow for Mac.** The macOS app is now real, and Windows and Mac ship their
+  own releases from the same project. Each platform updates only to its own
+  builds, so a Mac release will never be offered to your Windows PC (or the other
+  way round).
+
+### Changed
+- **The Windows updater now follows the Windows release track.** It looks at every
+  published release, keeps only the Windows ones (the new `win-…` builds and all
+  the existing ones), and offers you the newest installer it can actually run. A
+  Mac-only release can no longer leave the tray stuck on a "new version available"
+  you'd have no way to install. Updates stay hands-free, exactly as before.
+
+
 
 ### Added
 - **"Email" formatting outcome — dictate a note, get a real email.** When you
