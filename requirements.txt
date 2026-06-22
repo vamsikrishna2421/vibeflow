@@ -13,3 +13,12 @@ PyYAML>=6.0             # human-friendly settings file
 
 # Windows-only: reliable detection of the focused text field.
 comtypes>=1.2.0 ; sys_platform == "win32"
+
+# macOS-only: the menu-bar UI + the Cocoa / Accessibility / AVFoundation bridges
+# the Mac "hands" use (focused-element role, frontmost app, mic-permission check).
+# pynput already pulls in Cocoa/Quartz on macOS; these make the rest explicit.
+rumps>=0.4.0 ; sys_platform == "darwin"
+pyobjc-framework-Cocoa>=10.0 ; sys_platform == "darwin"
+pyobjc-framework-Quartz>=10.0 ; sys_platform == "darwin"
+pyobjc-framework-ApplicationServices>=10.0 ; sys_platform == "darwin"
+pyobjc-framework-AVFoundation>=10.0 ; sys_platform == "darwin"
