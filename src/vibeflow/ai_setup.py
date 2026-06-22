@@ -152,16 +152,24 @@ def _install_ollama_download(progress=_noop) -> bool:
     progress("Installing the local AI runtime…")
     try:
         subprocess.run(
-            [dst, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"],
+            [dst, "/SP-", "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"],
             check=False, timeout=900, creationflags=_CREATE_NO_WINDOW,
         )
     except Exception:
         pass
-    if is_installed():
-        return True
+    # OllamaSetup.exe is an Inno Setup installer that honours these silent flags,
+    # but it finalizes *asynchronously*: ollama.exe / the registry can take a
+    # second or two to appear after the process exits. Poll before concluding it
+    # failed — otherwise we'd prematurely relaunch the installer in a visible
+    # window (the "second window" users saw).
+    deadline = time.time() + 15
+    while time.time() < deadline:
+        if is_installed():
+            return True
+        time.sleep(1)
 
-    # Silent flags weren't honoured by this build: open the installer for the
-    # user to click through, then wait (bounded) for it to appear.
+    # Silent install genuinely didn't take: open the installer for the user to
+    # finish, then wait (bounded) for it to appear.
     try:
         subprocess.Popen([dst])
     except Exception:

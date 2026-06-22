@@ -4,6 +4,22 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.18.2] — 2026-06-22
+
+### Fixed
+- **AI runtime install no longer opens a second installer window.** The managed
+  Ollama install ran silently, but VibeFlow checked "is it installed yet?" the
+  instant the installer process exited — and Ollama's Inno Setup installer
+  finalizes a moment later, so the check briefly failed and VibeFlow re-opened the
+  installer *interactively*. It now waits for the install to finalize before any
+  fallback (and passes `/SP-` with the silent flags). *(Note: Ollama's own app
+  still launches itself once after install — that's Ollama's behaviour, not
+  VibeFlow; a fully window-free runtime is planned.)*
+- **Honest model-switch message.** Switching the AI-formatting model no longer
+  claims *"I'll install and download everything (N GB)"* when that model is
+  already installed — it now says *"Switching to <model> (already installed)…"*
+  and only promises a download when something is actually missing.
+
 ## [1.18.1] — 2026-06-22
 
 ### Fixed

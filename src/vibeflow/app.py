@@ -1468,19 +1468,29 @@ class VibeFlowApp:
             self._refresh()
             return
         model, size = ai_setup.MODEL_TIERS[tier]
-        self._notify(
-            __app_name__,
-            f"Setting up AI ({model}, {size}). I'll install and download everything "
-            "automatically — watch the tray tooltip for progress.",
-        )
         threading.Thread(
-            target=self._setup_ai_worker, args=(model,), daemon=True
+            target=self._setup_ai_worker, args=(model, size), daemon=True
         ).start()
 
-    def _setup_ai_worker(self, model: str) -> None:
+    def _setup_ai_worker(self, model: str, size: str = "") -> None:
         def progress(message: str) -> None:
             self._set_status(message)
             self._refresh()
+
+        # Be honest up front: only promise a download when something is actually
+        # missing. Switching to an already-installed model is near-instant, so
+        # don't claim "I'll download everything (N GB)". The check hits Ollama's
+        # local API, so it runs here on the worker thread, not the UI thread.
+        if ai_setup.is_installed() and ai_setup.has_model(model):
+            self._notify(
+                __app_name__, f"Switching AI formatting to {model} (already installed)…"
+            )
+        else:
+            self._notify(
+                __app_name__,
+                f"Setting up AI ({model}, {size}). I'll install the runtime and "
+                "download the model automatically — watch the tray tooltip for progress.",
+            )
 
         ok, message = ai_setup.setup(model, progress=progress)
         logging.getLogger("vibeflow").info(

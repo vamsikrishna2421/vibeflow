@@ -76,7 +76,7 @@ def test_download_install_success(monkeypatch, tmp_path):
     monkeypatch.setattr(ais, "is_installed", lambda: True)  # silent install "took"
     assert ais._install_ollama_download() is True
     assert (tmp_path / "VibeFlow-OllamaSetup.exe").exists()
-    assert ran["argv"][1] == "/VERYSILENT"  # invoked the silent installer
+    assert ran["argv"][1] == "/SP-" and "/VERYSILENT" in ran["argv"]  # Inno silent flags
 
 
 def test_download_network_failure_returns_false(monkeypatch, tmp_path):
