@@ -78,8 +78,12 @@ output:
 # ----------------------------------------------------------------------------
 audio:
   sample_rate: 16000          # Whisper models expect 16000; leave as-is.
-  input_device: default       # "default", or a device name fragment / number.
-                              # See your devices: python -m vibeflow --list-devices
+  # Which microphone to use:
+  #   auto    = your laptop's built-in mic (recommended) — so connecting Bluetooth
+  #             headphones / AirPods (whose mic is often silent) never hijacks dictation.
+  #   system  = follow the Windows default input device.
+  #   <name>  = a device name fragment (see: python -m vibeflow --list-devices).
+  input_device: auto
   min_seconds: 0.4            # Ignore accidental ultra-short recordings.
   max_seconds: 120            # Safety cap for a single recording.
 

@@ -97,7 +97,7 @@ class VibeFlowApp:
     def _build_recorder(self) -> Recorder:
         return Recorder(
             sample_rate=int(self.cfg.get("audio.sample_rate", 16000)),
-            input_device=self.cfg.get("audio.input_device", "default"),
+            input_device=self.cfg.get("audio.input_device", "auto"),
         )
 
     def _build_transcriber(self) -> Transcriber:
@@ -1561,13 +1561,10 @@ class VibeFlowApp:
             except Exception:
                 pass
             # Apply a microphone change (Settings → Microphone) live. The recorder
-            # opens a fresh stream each recording, so updating the device is enough.
+            # opens a fresh stream each recording and resolves the device then, so
+            # storing the raw config value (e.g. "auto") is enough.
             try:
-                from .audio import _normalize_device
-
-                self.recorder.input_device = _normalize_device(
-                    self.cfg.get("audio.input_device", "default")
-                )
+                self.recorder.input_device = self.cfg.get("audio.input_device", "auto")
             except Exception:
                 pass
             logging.getLogger("vibeflow").info("settings reloaded from disk")

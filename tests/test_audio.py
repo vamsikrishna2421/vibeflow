@@ -23,31 +23,67 @@ def test_normalize_device():
     assert _normalize_device("Microphone Array (Realtek)") == "Microphone Array (Realtek)"
 
 
-def test_resolve_input_device_disambiguates_duplicate_names(monkeypatch):
+def _mock_devices(monkeypatch, devices):
     import sys
-
-    import vibeflow.audio as a
-
-    # None/default/int pass straight through (no device query needed).
-    assert a._resolve_input_device("default") is None
-    assert a._resolve_input_device(7) == 7
 
     class _SD:
         @staticmethod
         def query_devices():
-            return [
-                {"name": "Speakers", "max_input_channels": 0},
-                {"name": "Microphone Array (Intel)", "max_input_channels": 2},
-                {"name": "Microphone Array (Intel)", "max_input_channels": 2},
-                {"name": "Headset Hands-Free (realme)", "max_input_channels": 1},
-            ]
+            return devices
 
     monkeypatch.setitem(sys.modules, "sounddevice", _SD)
-    # A duplicated name resolves to the FIRST matching index (not an error).
-    assert a._resolve_input_device("Microphone Array (Intel)") == 1
+
+
+def test_builtin_mic_prefers_internal_over_bluetooth(monkeypatch):
+    import vibeflow.audio as a
+
+    _mock_devices(monkeypatch, [
+        {"name": "Speakers", "max_input_channels": 0},
+        {"name": "Headset Hands-Free (realme)", "max_input_channels": 1},
+        {"name": "Microphone Array (Intel Smart Sound)", "max_input_channels": 2},
+        {"name": "Microphone Array (Intel Smart Sound)", "max_input_channels": 2},
+    ])
+    assert a._builtin_mic_index() == 2  # the internal mic, never the headset
+
+
+def test_builtin_mic_fallback_then_none(monkeypatch):
+    import vibeflow.audio as a
+
+    # No obviously-built-in device, but a plain USB mic -> use it (first non-avoided).
+    _mock_devices(monkeypatch, [
+        {"name": "Headset Hands-Free", "max_input_channels": 1},
+        {"name": "USB Audio Device", "max_input_channels": 1},
+    ])
+    assert a._builtin_mic_index() == 1
+    # Only avoided devices (BT / loopback) -> None, so the OS default decides.
+    _mock_devices(monkeypatch, [
+        {"name": "Bluetooth Hands-Free (AirPods)", "max_input_channels": 1},
+        {"name": "Stereo Mix", "max_input_channels": 2},
+    ])
+    assert a._builtin_mic_index() is None
+
+
+def test_resolve_input_device_modes(monkeypatch):
+    import vibeflow.audio as a
+
+    _mock_devices(monkeypatch, [
+        {"name": "Speakers", "max_input_channels": 0},
+        {"name": "Microphone Array (Intel)", "max_input_channels": 2},     # idx 1
+        {"name": "Microphone Array (Intel)", "max_input_channels": 2},     # idx 2 (dup)
+        {"name": "Headset Hands-Free (realme)", "max_input_channels": 1},  # idx 3
+    ])
+    # auto / default / blank / None -> the built-in mic, NEVER the headset.
+    for v in ("auto", "default", "", None):
+        assert a._resolve_input_device(v) == 1
+    # system / windows -> None (follow the OS default).
+    assert a._resolve_input_device("system") is None
+    assert a._resolve_input_device("windows") is None
+    # explicit index / name.
+    assert a._resolve_input_device(7) == 7
+    assert a._resolve_input_device("7") == 7
+    assert a._resolve_input_device("Microphone Array (Intel)") == 1  # first match
     assert a._resolve_input_device("Headset") == 3
-    # A name that isn't present right now falls back to the system default.
-    assert a._resolve_input_device("Nonexistent Mic") is None
+    assert a._resolve_input_device("No Such Mic") is None
 
 
 def test_input_devices_is_a_list():

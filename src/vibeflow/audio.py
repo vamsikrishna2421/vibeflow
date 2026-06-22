@@ -33,7 +33,7 @@ class Recorder:
     ) -> None:
         self.sample_rate = int(sample_rate)
         self.channels = int(channels)
-        self.input_device = _normalize_device(input_device)
+        self.input_device = input_device  # raw; resolved at start() (built-in by default)
         self._frames: list = []
         self._stream = None
         self._lock = threading.Lock()
@@ -142,31 +142,78 @@ def _normalize_device(device: str | int | None):
     return text  # sounddevice accepts a (sub)string name match
 
 
-def _resolve_input_device(device):
-    """Resolve a configured device to something sounddevice opens unambiguously.
+# Substrings that identify a laptop's built-in mic, and ones to avoid (Bluetooth
+# headsets, virtual/loopback devices, generic OS routers) when auto-picking.
+_BUILTIN_HINTS = (
+    "microphone array", "internal mic", "built-in", "digital microphone",
+    "realtek", "intel smart sound",
+)
+_AVOID_HINTS = (
+    "hands-free", "headset", "bluetooth", "airpods", "wireless", "stereo mix",
+    "what u hear", "line in", "virtual", "sound mapper", "primary sound capture",
+    "primary sound driver",
+)
 
-    ``None``/``"default"`` → None (system default); an int/digit → that index; a
-    NAME → the index of the **first** input device whose name matches it. Matching
-    by name (not a fixed index) survives devices being plugged/unplugged, and
-    resolving to a single index avoids sounddevice's "multiple devices found"
-    error when names are duplicated (e.g. Intel Smart Sound exposes the mic array
-    at several indices). Falls back to None (default) if the named device isn't
-    currently present.
-    """
-    dev = _normalize_device(device)
-    if dev is None or isinstance(dev, int):
-        return dev
+
+def _input_device_list() -> list[tuple[int, str]]:
     try:
         import sounddevice as sd
 
-        target = str(dev).strip().lower()
-        for index, info in enumerate(sd.query_devices()):
-            if info.get("max_input_channels", 0) > 0:
-                name = " ".join(str(info.get("name", "")).split()).lower()
-                if target and (target in name or name in target):
-                    return index
+        return [
+            (i, " ".join(str(d.get("name", "")).split()))
+            for i, d in enumerate(sd.query_devices())
+            if d.get("max_input_channels", 0) > 0
+        ]
     except Exception:
-        pass
+        return []
+
+
+def _builtin_mic_index():
+    """Index of the laptop's built-in microphone, or ``None`` if not identifiable.
+
+    Prefers internal mic-array names and skips Bluetooth headsets, virtual /
+    loopback devices and generic OS routers — so connecting AirPods or a headset
+    never hijacks dictation when you're sitting at the screen anyway.
+    """
+    inputs = _input_device_list()
+    for i, name in inputs:  # 1) something that clearly looks built-in
+        low = name.lower()
+        if any(a in low for a in _AVOID_HINTS):
+            continue
+        if any(p in low for p in _BUILTIN_HINTS):
+            return i
+    for i, name in inputs:  # 2) otherwise the first non-avoided real input
+        if not any(a in name.lower() for a in _AVOID_HINTS):
+            return i
+    return None
+
+
+def _resolve_input_device(device):
+    """Resolve a configured device to a concrete value sounddevice can open.
+
+    - ``""``/``"default"``/``"auto"`` → the laptop's **built-in** mic, so a
+      Bluetooth headset (whose mic is often silent) can't hijack dictation; falls
+      back to the system default when no built-in mic is identifiable.
+    - ``"system"``/``"windows"`` → the OS default input device (follow Windows).
+    - an int/digit → that device index.
+    - a NAME → the index of the first input device whose name matches it (matching
+      by name survives index shifts when devices connect; resolving to one index
+      avoids sounddevice's "multiple devices found" error for duplicated names).
+    """
+    raw = "" if device is None else str(device).strip()
+    low = raw.lower()
+    if low in ("", "default", "auto"):
+        return _builtin_mic_index()  # None → system default
+    if low in ("system", "windows", "windows default", "follow windows"):
+        return None
+    if low.isdigit():
+        return int(low)
+    if isinstance(device, int):
+        return device
+    for index, name in _input_device_list():
+        n = name.lower()
+        if low and (low in n or n in low):
+            return index
     return None  # named device not present right now → use the system default
 
 

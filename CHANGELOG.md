@@ -4,6 +4,18 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.19.4] — 2026-06-22
+
+### Changed
+- **VibeFlow now defaults to your laptop's built-in microphone.** Out of the box it
+  auto-picks your internal mic (Microphone Array / Digital Microphone / Realtek /
+  Intel Smart Sound) and deliberately **ignores Bluetooth/headset/virtual devices**
+  — so connecting AirPods or headphones (whose mic is often silent) never hijacks
+  dictation and you don't have to pin anything. Since you're at the screen when you
+  dictate, the built-in mic is the right choice in every scenario. Settings →
+  Microphone now offers **"Built-in microphone (recommended)"**, **"Follow Windows
+  default"**, or a specific device. (Existing installs pick this up automatically.)
+
 ## [1.19.3] — 2026-06-22
 
 ### Fixed

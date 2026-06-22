@@ -112,33 +112,37 @@ def run(config_path: str | None = None) -> int:
         _devs = input_devices()
     except Exception:
         _devs = []
-    _DEFAULT_MIC = "Default (follow Windows)"
+    _BUILTIN = "Built-in microphone (recommended)"
+    _WINDOWS = "Follow Windows default"
     _GENERIC = ("sound mapper", "primary sound capture", "primary sound driver")
-    mic_values = [_DEFAULT_MIC]
+    mic_values = [_BUILTIN, _WINDOWS]
     for _i, _name in _devs:
         if any(g in _name.lower() for g in _GENERIC):
             continue  # skip generic OS routers — pick a real device instead
         if _name not in mic_values:  # dedupe duplicate names (e.g. Intel x2)
             mic_values.append(_name)
     mic_var = tk.StringVar()
-    _cur_dev = str(cfg.get("audio.input_device", "default") or "default").strip()
-    if _cur_dev in ("", "default"):
-        mic_var.set(_DEFAULT_MIC)
+    _cur_dev = str(cfg.get("audio.input_device", "auto") or "auto").strip().lower()
+    if _cur_dev in ("", "default", "auto"):
+        mic_var.set(_BUILTIN)
+    elif _cur_dev in ("system", "windows", "windows default", "follow windows"):
+        mic_var.set(_WINDOWS)
     else:
         _match = next(
-            (n for n in mic_values[1:]
-             if _cur_dev.lower() in n.lower() or n.lower() in _cur_dev.lower()),
+            (n for n in mic_values[2:]
+             if _cur_dev in n.lower() or n.lower() in _cur_dev),
             None,
         )
-        mic_var.set(_match or _cur_dev)
+        mic_var.set(_match or str(cfg.get("audio.input_device") or _BUILTIN))
     ttk.Combobox(
         mic_card, textvariable=mic_var, values=mic_values, state="readonly",
         font=("Segoe UI", 10),
     ).pack(fill="x", padx=10, pady=(8, 2))
     tk.Label(
         mic_card,
-        text="Pick your built-in mic here so connecting Bluetooth headphones "
-        "doesn't switch VibeFlow to a mic that picks up no sound.",
+        text="“Built-in” keeps using your laptop's own mic even when Bluetooth "
+        "headphones connect (their mic is often silent). Pick a specific device to "
+        "force it.",
         bg=_CARD, fg=_MUTED, font=("Segoe UI", 8), anchor="w",
         wraplength=430, justify="left",
     ).pack(fill="x", padx=10, pady=(0, 8))
@@ -176,7 +180,12 @@ def run(config_path: str | None = None) -> int:
         try:
             cfg.set("output.mode", out_var.get())
             _sel = mic_var.get().strip()
-            cfg.set("audio.input_device", "default" if _sel.startswith("Default") else _sel)
+            if _sel == _BUILTIN:
+                cfg.set("audio.input_device", "auto")
+            elif _sel == _WINDOWS:
+                cfg.set("audio.input_device", "system")
+            else:
+                cfg.set("audio.input_device", _sel)
             for key, var in check_vars.items():
                 cfg.set(key, bool(var.get()))
             cfg.save()
