@@ -331,9 +331,9 @@ class VibeFlowApp:
                     self._save_config()
                     self._notify(
                         __app_name__,
-                        "Tip: VibeFlow can format for each app automatically — "
-                        "professional in email, casual in chat. Turn it on from the "
-                        "tray: Adapt formatting to each app → Set up smart formatting.",
+                        "Tip: VibeFlow can keep terminals & code editors exactly as you "
+                        "speak them and adapt other apps to your style. Turn it on in "
+                        "Settings → “Adapt formatting to each app”.",
                     )
             except Exception:  # pragma: no cover - never break dictation
                 pass
@@ -736,7 +736,6 @@ class VibeFlowApp:
                         checked=lambda i: bool(self.cfg.get("text.modes.enabled", True)),
                     ),
                     Menu.SEPARATOR,
-                    Item("Set up smart formatting (1-click)", self._setup_starter_pack),
                     Item("Clear my app rules", self._clear_modes_rules),
                 ),
             ),
@@ -1373,21 +1372,41 @@ class VibeFlowApp:
             )
             self._refresh()
             return
-        model = str(self.cfg.get("text.teach_back_model", "qwen2.5:3b"))
-        self._notify(
-            __app_name__,
-            f"Setting up adaptive learning ({model}). One-time ~1.8 GB download, "
-            "then ~2 GB RAM only while learning (freed when idle, runs only when "
-            "you edit and copy a transcript). Watch the tray tooltip for progress.",
-        )
         threading.Thread(
-            target=self._setup_learning_worker, args=(model,), daemon=True
+            target=self._setup_learning_worker, args=(self._learning_model(),), daemon=True
         ).start()
+
+    def _learning_model(self) -> str:
+        """Model for adaptive (AI) term learning: reuse the user's chosen AI
+        formatting model so enabling learning never forces a bigger download than
+        they picked; fall back to the smallest tier — never a hardcoded 3b."""
+        chosen = str(self.cfg.get("ai.model", "") or "").strip()
+        return chosen or "qwen2.5:1.5b"
 
     def _setup_learning_worker(self, model: str) -> None:
         def progress(message: str) -> None:
             self._set_status(message)
             self._refresh()
+
+        # Honest disclosure (off the UI thread): only promise a download when the
+        # chosen model isn't already installed — reusing it costs nothing.
+        if ai_setup.is_installed() and ai_setup.has_model(model):
+            self._notify(
+                __app_name__,
+                f"Turning on adaptive learning — reusing your installed model "
+                f"({model}), no download. Uses ~2 GB RAM only while learning.",
+            )
+        else:
+            size = next(
+                (s for _t, (m, s) in ai_setup.MODEL_TIERS.items() if m == model), ""
+            )
+            self._notify(
+                __app_name__,
+                f"Setting up adaptive learning ({model}"
+                + (f", one-time ~{size} download" if size else "")
+                + "). Uses ~2 GB RAM only while learning (freed when idle). "
+                "Watch the tray tooltip for progress.",
+            )
 
         ok, message = ai_setup.setup(model, progress=progress)
         if ok:
@@ -1427,9 +1446,9 @@ class VibeFlowApp:
             if value:
                 winreg.DeleteValue(key, "EnableAiLearning")  # one-shot signal
                 if not bool(self.cfg.get("text.ai_learning", False)):
-                    model = str(self.cfg.get("text.teach_back_model", "qwen2.5:3b"))
                     threading.Thread(
-                        target=self._setup_learning_worker, args=(model,), daemon=True
+                        target=self._setup_learning_worker,
+                        args=(self._learning_model(),), daemon=True,
                     ).start()
         except OSError:
             pass

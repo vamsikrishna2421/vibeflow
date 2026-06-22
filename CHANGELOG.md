@@ -4,6 +4,19 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.20.0] — 2026-06-22
+
+### Changed
+- **Adaptive learning reuses the model you chose.** Turning on AI learning now uses
+  whatever AI-formatting model you already picked (e.g. the lighter qwen2.5:1.5b)
+  instead of always forcing qwen2.5:3b — so it never downloads a bigger model than
+  you selected, and respects low-disk/low-CPU machines. It's also honest now: if
+  that model is already installed it says *"reusing your installed model, no
+  download"* instead of claiming a ~1.8 GB download.
+- **Removed the tray "Set up smart formatting (1-click)."** Per-app formatting is
+  now just **Enabled** / **Clear my app rules** in the tray (and in Settings), as
+  requested. The first-run tip now points to Settings instead of the removed item.
+
 ## [1.19.4] — 2026-06-22
 
 ### Changed
