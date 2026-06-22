@@ -4,6 +4,31 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.18.0] — 2026-06-22
+
+### Fixed
+- **Transcription no longer fails on PCs with an NVIDIA GPU but no CUDA runtime.**
+  VibeFlow used to pick the GPU whenever one was *present*, then crash with
+  *"Transcription failed: Library cublas64_12.dll is not found"* on the many
+  laptops that have an NVIDIA GPU but no CUDA toolkit installed. It now uses the
+  GPU only when the CUDA runtime is actually loadable, runs on the CPU otherwise,
+  and — as a safety net — automatically falls back from GPU to CPU if a model
+  ever fails to load or transcribe on the GPU. Dictation just works everywhere.
+- **Uninstaller no longer errors when removing Ollama + data.** Choosing *"also
+  remove the local AI runtime and data"* during uninstall crashed with *"Internal
+  error: Unknown constant 'userprofile'"* (an invalid Inno Setup constant), so
+  only "keep Ollama" uninstalled cleanly. The `.ollama` folder is now removed
+  correctly.
+
+### Changed
+- **Clearer microphone diagnostics.** When a dictation comes back empty, VibeFlow
+  now checks whether the mic actually delivered any sound. If it was silent (mic
+  access blocked, muted, or the wrong input device) it says **"No sound from mic"**
+  with the exact fix, instead of the misleading "No speech detected" (which now
+  only appears when the mic *was* working but caught no words). `--doctor` also
+  runs a real 1.5-second mic-signal test and reports the level + how to fix a
+  silent mic.
+
 ## [1.17.0] — 2026-06-22
 
 ### Added

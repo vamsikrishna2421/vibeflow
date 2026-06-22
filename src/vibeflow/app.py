@@ -31,7 +31,7 @@ from . import (
     overlay as overlay_mod,
 )
 from .core import ai_format, appmode, history
-from .audio import AudioError, Recorder
+from .audio import AudioError, Recorder, is_silent
 from .focus_detect import detect_focus
 from .hotkey import DeliveryHotkey, HotkeyManager
 from .output import COPIED, deliver
@@ -194,8 +194,22 @@ class VibeFlowApp:
                 ),
             )
             if not text:
-                self.overlay.show("info", "VibeFlow · No speech detected")
-                self._notify(__app_name__, "No speech detected.")
+                # Distinguish "the mic gave us silence" (a fixable setup problem)
+                # from "we heard you but found no words". The first is the common
+                # fresh-install trap: Windows hands a blocked/muted mic a silent
+                # stream (no error), so dictation looks broken for no clear reason.
+                if is_silent(audio):
+                    self.overlay.show("info", "VibeFlow · No sound from mic")
+                    self._notify(
+                        __app_name__,
+                        "No sound from the microphone. Check Windows mic access "
+                        "(Settings ▸ Privacy & security ▸ Microphone ▸ turn on "
+                        "“Let desktop apps access your microphone”) and that the "
+                        "right mic is selected and not muted.",
+                    )
+                else:
+                    self.overlay.show("info", "VibeFlow · No speech detected")
+                    self._notify(__app_name__, "No speech detected.")
                 return
 
             # Keep the user's own words recoverable (for the empty-output guard

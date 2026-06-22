@@ -11,6 +11,13 @@ from __future__ import annotations
 import threading
 
 
+# Below this peak amplitude (float32 samples are in [-1, 1]) a recording is
+# treated as "no sound at all" rather than "no speech". A working mic — even in a
+# quiet room — has a noise floor well above this; an exact-zero/near-zero stream
+# means the OS handed us silence (mic access blocked, muted, or wrong device).
+SILENCE_PEAK = 1e-4
+
+
 class AudioError(RuntimeError):
     """Raised when the microphone cannot be opened or read."""
 
@@ -100,6 +107,27 @@ class Recorder:
             return float(len(audio)) / float(self.sample_rate)
         except Exception:
             return 0.0
+
+
+def peak_level(audio) -> float:
+    """Loudest sample in a recording as an absolute amplitude (0.0–1.0).
+
+    0.0 for empty/invalid audio. Used to tell a silent (blocked/muted/wrong)
+    microphone apart from one that simply caught no recognisable speech.
+    """
+    try:
+        import numpy as np
+
+        if audio is None or len(audio) == 0:
+            return 0.0
+        return float(np.max(np.abs(audio)))
+    except Exception:
+        return 0.0
+
+
+def is_silent(audio, threshold: float = SILENCE_PEAK) -> bool:
+    """True when a recording carries essentially no signal (mic delivered silence)."""
+    return peak_level(audio) < threshold
 
 
 def _normalize_device(device: str | int | None):

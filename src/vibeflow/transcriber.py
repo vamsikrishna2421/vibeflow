@@ -7,6 +7,7 @@ test-suite — works without the (large) inference dependencies installed.
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 
@@ -58,38 +59,61 @@ class Transcriber:
                 "Run the installer or 'pip install -r requirements.txt'."
             ) from exc
 
-        device, compute_type = _resolve_device(self.device, self.compute_type)
-        self._resolved = (device, compute_type)
         if self.models_dir:
             try:
                 Path(self.models_dir).mkdir(parents=True, exist_ok=True)
             except Exception:
                 pass
 
-        common = dict(
-            device=device,
-            compute_type=compute_type,
-            download_root=self.models_dir,
-        )
+        device, compute_type = _resolve_device(self.device, self.compute_type)
         try:
-            # Offline-first: if the model is already downloaded, load it with no
-            # network access at all (true offline + faster startup, and avoids a
-            # huggingface.co call that crashed the windowed build). Only reach the
-            # internet if the model isn't cached yet (first-ever run).
-            try:
-                self._model = WhisperModel(self.size, local_files_only=True, **common)
-            except Exception:
-                # The caller is retrying a *cached* model that is momentarily
-                # locked (antivirus scan after an update); a slow network
-                # fallback on every attempt would burn the retry budget, so
-                # re-raise and let the caller retry the fast offline path.
-                if not allow_download:
-                    raise
-                self._model = WhisperModel(self.size, local_files_only=False, **common)
+            self._model = self._open_model(WhisperModel, device, compute_type, allow_download)
+            self._resolved = (device, compute_type)
         except Exception as exc:
+            # A machine can have an NVIDIA GPU but no CUDA runtime (the cuBLAS/cuDNN
+            # DLLs), so an explicit ``device: cuda`` fails to load with e.g.
+            # "Library cublas64_12.dll is not found". Fall back to CPU rather than
+            # leaving the user unable to dictate. (The default already resolves to
+            # CPU; this guards the opt-in GPU path.)
+            if device != "cpu":
+                import logging
+
+                logging.getLogger("vibeflow").warning(
+                    "GPU model load failed on %s/%s (%s); falling back to CPU.",
+                    device, compute_type, exc,
+                )
+                try:
+                    self._model = self._open_model(WhisperModel, "cpu", "int8", allow_download)
+                    self._resolved = ("cpu", "int8")
+                    self.device, self.compute_type = "cpu", "int8"
+                    return
+                except Exception as exc2:
+                    raise TranscriptionError(
+                        f"Could not load the '{self.size}' model on cpu/int8: {exc2}"
+                    ) from exc2
             raise TranscriptionError(
                 f"Could not load the '{self.size}' model on {device}/{compute_type}: {exc}"
             ) from exc
+
+    def _open_model(self, WhisperModel, device: str, compute_type: str, allow_download: bool):
+        """Construct a ``WhisperModel`` offline-first (cached model → no network).
+
+        Trying ``local_files_only=True`` first keeps a cached model fully offline
+        (faster startup, and avoids a huggingface.co call that crashed the
+        windowed build); only an uncached model reaches the internet. When
+        ``allow_download`` is False (a retry of a momentarily-locked cached model,
+        e.g. antivirus scanning ``model.bin`` after an update) the network path is
+        skipped so the retry budget isn't burned on a slow fallback.
+        """
+        common = dict(
+            device=device, compute_type=compute_type, download_root=self.models_dir
+        )
+        try:
+            return WhisperModel(self.size, local_files_only=True, **common)
+        except Exception:
+            if not allow_download:
+                raise
+            return WhisperModel(self.size, local_files_only=False, **common)
 
     def transcribe(self, audio, prompt: str | None = None) -> str:
         """Transcribe a float32 numpy audio array (16 kHz) into text.
@@ -108,6 +132,21 @@ class Transcriber:
         if lang in ("", "auto", "auto-detect", "autodetect"):
             lang = "en"
         try:
+            return self._run_with_lang(audio, lang, prompt)
+        except Exception as exc:
+            # The model loaded on the GPU but inference can't reach the CUDA
+            # runtime (cuBLAS/cuDNN missing): rebuild on CPU once and retry, so a
+            # GPU without its libraries never breaks dictation.
+            if self._resolved and self._resolved[0] != "cpu" and self._reload_on_cpu():
+                try:
+                    return self._run_with_lang(audio, lang, prompt)
+                except Exception as exc2:
+                    raise TranscriptionError(f"Transcription failed: {exc2}") from exc2
+            raise TranscriptionError(f"Transcription failed: {exc}") from exc
+
+    def _run_with_lang(self, audio, lang: str, prompt: str | None) -> str:
+        """Transcribe, falling back from a bad language code to English."""
+        try:
             return self._run(audio, lang, prompt)
         except Exception as exc:
             if lang != "en":
@@ -117,11 +156,29 @@ class Transcriber:
                     "language %r failed (%s: %s); using English",
                     lang, type(exc).__name__, exc,
                 )
-                try:
-                    return self._run(audio, "en", prompt)
-                except Exception as exc2:
-                    raise TranscriptionError(f"Transcription failed: {exc2}") from exc2
-            raise TranscriptionError(f"Transcription failed: {exc}") from exc
+                return self._run(audio, "en", prompt)
+            raise
+
+    def _reload_on_cpu(self) -> bool:
+        """Rebuild the model on CPU after a GPU failure. ``True`` on success."""
+        try:
+            from faster_whisper import WhisperModel
+        except Exception:
+            return False
+        import logging
+
+        logging.getLogger("vibeflow").warning(
+            "GPU transcription failed; falling back to CPU (model=%s).", self.size
+        )
+        self._model = None
+        try:
+            self._model = self._open_model(WhisperModel, "cpu", "int8", allow_download=True)
+            self._resolved = ("cpu", "int8")
+            self.device, self.compute_type = "cpu", "int8"
+            return True
+        except Exception:
+            self._model = None
+            return False
 
     def _run(self, audio, language, prompt: str | None):
         segments, _info = self._model.transcribe(
@@ -135,10 +192,19 @@ class Transcriber:
 
 
 def _resolve_device(device: str, compute_type: str) -> tuple[str, str]:
-    """Pick a concrete (device, compute_type) pair, auto-detecting CUDA."""
+    """Pick a concrete (device, compute_type) pair.
+
+    ``auto`` uses the GPU only when CUDA is genuinely usable here (a CUDA device
+    *and* its runtime libraries loadable), otherwise CPU — so a machine with an
+    NVIDIA GPU but no CUDA runtime quietly runs on CPU instead of failing with
+    "cublas64_12.dll is not found". Explicit ``cuda``/``cpu`` are honoured (and an
+    unusable explicit ``cuda`` still falls back to CPU at load/inference time).
+    """
     dev = (device or "auto").lower()
     if dev == "auto":
         dev = "cuda" if _cuda_available() else "cpu"
+    if dev not in ("cpu", "cuda"):
+        dev = "cpu"
 
     compute = (compute_type or "auto").lower()
     if compute == "auto":
@@ -147,9 +213,30 @@ def _resolve_device(device: str, compute_type: str) -> tuple[str, str]:
 
 
 def _cuda_available() -> bool:
+    """True only when a CUDA GPU is present *and* its runtime can actually load.
+
+    ctranslate2 reporting a GPU is not enough: many machines have an NVIDIA GPU
+    but no CUDA runtime (the cuBLAS/cuDNN DLLs), where selecting CUDA fails at
+    load/inference. Requiring cuBLAS to load means ``auto`` only picks the GPU
+    when it will really work.
+    """
     try:
         import ctranslate2
 
-        return ctranslate2.get_cuda_device_count() > 0
+        if ctranslate2.get_cuda_device_count() <= 0:
+            return False
     except Exception:
+        return False
+    return _cuda_runtime_loadable()
+
+
+def _cuda_runtime_loadable() -> bool:
+    """Whether the CUDA math runtime (cuBLAS) can be loaded on this machine."""
+    import ctypes
+
+    name = "cublas64_12.dll" if sys.platform == "win32" else "libcublas.so.12"
+    try:
+        ctypes.CDLL(name)
+        return True
+    except OSError:
         return False

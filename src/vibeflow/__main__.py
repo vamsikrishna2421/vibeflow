@@ -255,6 +255,8 @@ def _doctor(cfg: config_mod.Config) -> int:
     for line in list_input_devices():
         print(f"  {line}")
 
+    _mic_signal_test(cfg)
+
     print(
         "\nResult: "
         + (
@@ -265,6 +267,47 @@ def _doctor(cfg: config_mod.Config) -> int:
         )
     )
     return 0 if ok else 1
+
+
+def _mic_signal_test(cfg: config_mod.Config) -> None:
+    """Record ~1.5s and report whether the mic actually delivers sound.
+
+    This catches the most confusing failure on a fresh machine: the mic stream
+    opens fine but Windows feeds it silence (mic access blocked, muted, or the
+    wrong default device), so dictation just says "no speech" with no clue why.
+    """
+    print("\nMicrophone signal test:")
+    try:
+        import time
+
+        from .audio import Recorder, SILENCE_PEAK, peak_level
+
+        rec = Recorder(
+            sample_rate=int(cfg.get("audio.sample_rate", 16000)),
+            input_device=cfg.get("audio.input_device", "default"),
+        )
+        print("  Recording 1.5s — please say a few words…")
+        rec.start()
+        time.sleep(1.5)
+        audio = rec.stop()
+    except Exception as exc:  # noqa: BLE001 - diagnostic, never fatal
+        print(f"  (could not run the mic test: {exc})")
+        return
+
+    peak = peak_level(audio)
+    secs = rec.duration(audio)
+    if secs <= 0.0:
+        print("  [--] No audio captured at all — the mic stream returned nothing.")
+    elif peak < SILENCE_PEAK:
+        print(f"  [--] SILENT — captured {secs:.1f}s but the level is ~0 (peak {peak:.5f}).")
+        print("       The mic opened but delivered no sound. Most likely Windows is")
+        print("       blocking mic access for desktop apps, the mic is muted, or the")
+        print("       wrong input device is selected.")
+        print("       Fix: Settings ▸ Privacy & security ▸ Microphone ▸ turn ON")
+        print("       'Microphone access' AND 'Let desktop apps access your microphone';")
+        print("       then Settings ▸ System ▸ Sound ▸ Input (right mic, not muted).")
+    else:
+        print(f"  [OK] Mic is producing audio (peak {peak:.3f} over {secs:.1f}s).")
 
 
 def _can_import(module: str) -> bool:

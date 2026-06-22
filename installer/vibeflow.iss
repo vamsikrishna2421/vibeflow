@@ -11,7 +11,7 @@
 ; ============================================================================
 
 #define MyAppName "VibeFlow"
-#define MyAppVersion "1.17.0"
+#define MyAppVersion "1.18.0"
 #define MyAppPublisher "VibeFlow"
 #define MyAppExeName "VibeFlow.exe"
 
@@ -136,7 +136,7 @@ begin
         'uninstall --id Ollama.Ollama -e --silent --accept-source-agreements',
         '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
       // Remove Ollama program, cache, and the downloaded models.
-      DelTree(ExpandConstant('{userprofile}\.ollama'), True, True, True);
+      DelTree(ExpandConstant('{%USERPROFILE}\.ollama'), True, True, True);
       DelTree(ExpandConstant('{localappdata}\Programs\Ollama'), True, True, True);
       DelTree(ExpandConstant('{localappdata}\Ollama'), True, True, True);
       // Remove VibeFlow per-user data (settings, vocab, persona, speech models, log).
