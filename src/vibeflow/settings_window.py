@@ -115,7 +115,13 @@ def run(config_path: str | None = None) -> int:
     except Exception:
         _devs = []
     _DEFAULT_MIC = "Default (follow Windows)"
-    mic_values = [_DEFAULT_MIC] + [name for _i, name in _devs]
+    _GENERIC = ("sound mapper", "primary sound capture", "primary sound driver")
+    mic_values = [_DEFAULT_MIC]
+    for _i, _name in _devs:
+        if any(g in _name.lower() for g in _GENERIC):
+            continue  # skip generic OS routers — pick a real device instead
+        if _name not in mic_values:  # dedupe duplicate names (e.g. Intel x2)
+            mic_values.append(_name)
     mic_var = tk.StringVar()
     _cur_dev = str(cfg.get("audio.input_device", "default") or "default").strip()
     if _cur_dev in ("", "default"):

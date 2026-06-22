@@ -23,6 +23,33 @@ def test_normalize_device():
     assert _normalize_device("Microphone Array (Realtek)") == "Microphone Array (Realtek)"
 
 
+def test_resolve_input_device_disambiguates_duplicate_names(monkeypatch):
+    import sys
+
+    import vibeflow.audio as a
+
+    # None/default/int pass straight through (no device query needed).
+    assert a._resolve_input_device("default") is None
+    assert a._resolve_input_device(7) == 7
+
+    class _SD:
+        @staticmethod
+        def query_devices():
+            return [
+                {"name": "Speakers", "max_input_channels": 0},
+                {"name": "Microphone Array (Intel)", "max_input_channels": 2},
+                {"name": "Microphone Array (Intel)", "max_input_channels": 2},
+                {"name": "Headset Hands-Free (realme)", "max_input_channels": 1},
+            ]
+
+    monkeypatch.setitem(sys.modules, "sounddevice", _SD)
+    # A duplicated name resolves to the FIRST matching index (not an error).
+    assert a._resolve_input_device("Microphone Array (Intel)") == 1
+    assert a._resolve_input_device("Headset") == 3
+    # A name that isn't present right now falls back to the system default.
+    assert a._resolve_input_device("Nonexistent Mic") is None
+
+
 def test_input_devices_is_a_list():
     devs = input_devices()
     assert isinstance(devs, list)

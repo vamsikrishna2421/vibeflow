@@ -4,6 +4,19 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.19.2] — 2026-06-22
+
+### Fixed
+- **Pinning a microphone now actually works.** v1.19.1 stored the chosen mic by
+  name, but Windows often exposes one microphone under several **identical** names
+  (e.g. Intel Smart Sound lists the mic array more than once). Handing that
+  ambiguous name to the audio backend made it fail to open the stream — so picking
+  your laptop mic produced **no "listening" prompt at all**. VibeFlow now resolves
+  the stored name to a single concrete device (the first match), so a pinned mic
+  opens reliably — and it captures from your built-in mic even while Bluetooth
+  headphones are connected. The picker also hides generic OS router entries
+  ("Sound Mapper", "Primary Sound Capture Driver").
+
 ## [1.19.1] — 2026-06-22
 
 ### Added

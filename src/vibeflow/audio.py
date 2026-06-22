@@ -62,7 +62,7 @@ class Recorder:
                 samplerate=self.sample_rate,
                 channels=self.channels,
                 dtype="float32",
-                device=self.input_device,
+                device=_resolve_input_device(self.input_device),
                 callback=self._callback,
             )
             self._stream.start()
@@ -140,6 +140,34 @@ def _normalize_device(device: str | int | None):
     if text.isdigit():
         return int(text)
     return text  # sounddevice accepts a (sub)string name match
+
+
+def _resolve_input_device(device):
+    """Resolve a configured device to something sounddevice opens unambiguously.
+
+    ``None``/``"default"`` → None (system default); an int/digit → that index; a
+    NAME → the index of the **first** input device whose name matches it. Matching
+    by name (not a fixed index) survives devices being plugged/unplugged, and
+    resolving to a single index avoids sounddevice's "multiple devices found"
+    error when names are duplicated (e.g. Intel Smart Sound exposes the mic array
+    at several indices). Falls back to None (default) if the named device isn't
+    currently present.
+    """
+    dev = _normalize_device(device)
+    if dev is None or isinstance(dev, int):
+        return dev
+    try:
+        import sounddevice as sd
+
+        target = str(dev).strip().lower()
+        for index, info in enumerate(sd.query_devices()):
+            if info.get("max_input_channels", 0) > 0:
+                name = " ".join(str(info.get("name", "")).split()).lower()
+                if target and (target in name or name in target):
+                    return index
+    except Exception:
+        pass
+    return None  # named device not present right now → use the system default
 
 
 def input_devices() -> list[tuple[int, str]]:
