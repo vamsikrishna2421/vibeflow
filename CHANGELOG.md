@@ -4,6 +4,24 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.19.0] — 2026-06-22
+
+### Fixed
+- **Window buttons no longer get clipped.** The **My Vocabulary** and
+  **Personalized AI** windows packed their scrolling list *before* the button
+  row, so the list took all the space and pushed **Delete selected** (and the
+  others) off-screen until you manually resized the window. The button bar is now
+  pinned to the bottom and the windows have sensible minimum sizes, so every
+  button is always visible.
+
+### Added
+- **Settings now covers the everyday toggles in one place** — added an **"Use AI
+  to clean up & rephrase"** on/off switch, a **"Clear app rules"** button (wipes
+  your per-app formatting rules in one click), and an **"Open log file"** button so
+  you can read the detailed log yourself. (Remove-fillers, per-app enable/disable,
+  and detailed-logging were already there.) The Settings window is also capped to
+  your screen height so its buttons stay on-screen on short laptops.
+
 ## [1.18.2] — 2026-06-22
 
 ### Fixed

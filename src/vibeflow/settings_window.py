@@ -22,6 +22,7 @@ _ACCENT = "#5B8DEF"
 
 # (config key, label) — plain on/off settings.
 _CHECKS = [
+    ("ai.enabled", "Use AI to clean up & rephrase (needs a model — set it up in the tray)"),
     ("text.strip_fillers", "Remove filler words (um, uh)"),
     ("text.modes.enabled", "Adapt formatting to each app (terminals stay as spoken)"),
     ("text.persona", "Match my writing style (Personalized AI)"),
@@ -65,7 +66,11 @@ def run(config_path: str | None = None) -> int:
 
     root = tk.Tk()
     root.title("VibeFlow — Settings")
-    root.geometry("470x720")
+    # Cap the height to the screen so the bottom buttons are never off-screen on
+    # short laptop displays.
+    _sh = root.winfo_screenheight()
+    root.geometry(f"490x{min(800, max(560, _sh - 90))}")
+    root.minsize(480, min(560, max(420, _sh - 140)))
     root.configure(bg=_BG)
     ico = _icon_path()
     if ico:
@@ -142,6 +147,29 @@ def run(config_path: str | None = None) -> int:
             status.config(text="Saved ✓  — applied to VibeFlow.")
         except Exception as exc:  # pragma: no cover - defensive
             status.config(text=f"Could not save: {exc}", fg="#FF8A8A")
+
+    def clear_app_rules():
+        try:
+            cfg.set("text.modes.rules", [])
+            cfg.save()
+            status.config(text="Cleared your per-app formatting rules ✓", fg=_ACCENT)
+        except Exception as exc:  # pragma: no cover - defensive
+            status.config(text=f"Couldn't clear rules: {exc}", fg="#FF8A8A")
+
+    def open_log():
+        try:
+            from .logsetup import log_path
+
+            target = log_path()
+            os.startfile(str(target if target.exists() else target.parent))
+        except Exception as exc:  # pragma: no cover - defensive
+            status.config(text=f"Couldn't open the log: {exc}", fg="#FF8A8A")
+
+    # Utility row (per-app rules + log) sits just above the Save / Close bar.
+    util = tk.Frame(root, bg=_BG)
+    util.pack(fill="x", padx=14, pady=(4, 0), side="bottom")
+    tk.Button(util, text="Clear app rules", command=clear_app_rules).pack(side="left")
+    tk.Button(util, text="Open log file", command=open_log).pack(side="left", padx=6)
 
     bar = tk.Frame(root, bg=_BG)
     bar.pack(fill="x", padx=14, pady=14, side="bottom")

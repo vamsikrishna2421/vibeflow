@@ -54,7 +54,8 @@ def run(vocab_path: str) -> int:
 
     root = tk.Tk()
     root.title("VibeFlow — My Vocabulary")
-    root.geometry("440x560")
+    root.geometry("500x560")
+    root.minsize(480, 440)  # never shrink below where the buttons stay visible
     root.configure(bg=_BG)
     ico = _icon_path()
     if ico:
@@ -69,8 +70,9 @@ def run(vocab_path: str) -> int:
     header.pack(fill="x", padx=14, pady=(14, 8))
 
     # --- scrollable checklist -------------------------------------------
+    # NB: the body is packed *after* the button bar (further down) so the bar is
+    # reserved at the bottom and can never be pushed off-screen.
     body = tk.Frame(root, bg=_BG)
-    body.pack(fill="both", expand=True, padx=10)
     canvas = tk.Canvas(body, bg=_BG, highlightthickness=0)
     scrollbar = ttk.Scrollbar(body, orient="vertical", command=canvas.yview)
     listframe = tk.Frame(canvas, bg=_BG)
@@ -158,12 +160,18 @@ def run(vocab_path: str) -> int:
             v.set(val)
 
     # --- buttons --------------------------------------------------------
+    # Reserve the button bar at the BOTTOM before packing the expanding list,
+    # so "Delete selected" is always visible (the bug: the list grabbed all the
+    # space and hid the buttons until you resized the window).
     bar = tk.Frame(root, bg=_BG)
-    bar.pack(fill="x", padx=12, pady=12)
+    bar.pack(side="bottom", fill="x", padx=12, pady=12)
     tk.Button(bar, text="Delete selected", command=delete_selected).pack(side="left")
     tk.Button(bar, text="Select all", command=select_all).pack(side="left", padx=6)
     tk.Button(bar, text="Add word…", command=add_word).pack(side="left")
     tk.Button(bar, text="Close", command=root.destroy).pack(side="right")
+
+    # Now the scrollable list fills the space between the header and the bar.
+    body.pack(side="top", fill="both", expand=True, padx=10)
 
     rebuild()
     try:

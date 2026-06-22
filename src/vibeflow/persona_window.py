@@ -59,7 +59,8 @@ def run(persona_path: str) -> int:
 
     root = tk.Tk()
     root.title("VibeFlow — Personalized AI")
-    root.geometry("540x640")
+    root.geometry("560x640")
+    root.minsize(520, 480)  # keep the bottom buttons on-screen
     root.configure(bg=_BG)
     ico = _icon_path()
     if ico:
@@ -169,8 +170,9 @@ def run(persona_path: str) -> int:
         anchor="w",
     ).pack(fill="x", padx=14, pady=(8, 0))
 
+    # Packed AFTER the button bar (below) so the bar stays pinned to the bottom
+    # and the sample list fills the space above it.
     body = tk.Frame(root, bg=_BG)
-    body.pack(fill="both", expand=True, padx=10, pady=(4, 0))
     canvas = tk.Canvas(body, bg=_BG, highlightthickness=0)
     sb = ttk.Scrollbar(body, orient="vertical", command=canvas.yview)
     listframe = tk.Frame(canvas, bg=_BG)
@@ -236,12 +238,15 @@ def run(persona_path: str) -> int:
             status.config(text="Cleared.")
             rebuild_samples()
 
+    # Reserve the button bar (and its header) at the BOTTOM before the list
+    # expands, so the buttons are never pushed off-screen.
     bar = tk.Frame(root, bg=_BG)
-    bar.pack(fill="x", padx=12, pady=10)
+    bar.pack(side="bottom", fill="x", padx=12, pady=10)
     tk.Button(bar, text="Delete selected", command=delete_selected).pack(side="left")
     tk.Button(bar, text="Forget everything", command=forget_all).pack(side="left", padx=6)
     tk.Button(bar, text="Close", command=root.destroy).pack(side="right")
-    sample_header.pack(fill="x", padx=14, before=bar)
+    sample_header.pack(side="bottom", fill="x", padx=14, pady=(0, 2))
+    body.pack(side="top", fill="both", expand=True, padx=10, pady=(4, 0))
 
     rebuild_samples()
     try:
