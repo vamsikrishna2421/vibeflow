@@ -23,6 +23,7 @@ def test_winget_success_skips_download(monkeypatch):
     monkeypatch.setattr(ais, "is_installed", lambda: False)
     monkeypatch.setattr(ais.sys, "platform", "win32")
     monkeypatch.setattr(ais, "_install_ollama_winget", lambda p=ais._noop: True)
+    monkeypatch.setattr(ais, "_tidy_ollama_gui", lambda p=ais._noop: None)  # don't taskkill
     dl = []
     monkeypatch.setattr(ais, "_install_ollama_download", lambda p=ais._noop: dl.append(1) or True)
     assert ais.install_ollama() is True
@@ -34,7 +35,15 @@ def test_falls_back_to_download_when_winget_fails(monkeypatch):
     monkeypatch.setattr(ais.sys, "platform", "win32")
     monkeypatch.setattr(ais, "_install_ollama_winget", lambda p=ais._noop: False)
     monkeypatch.setattr(ais, "_install_ollama_download", lambda p=ais._noop: True)
+    tidied = []
+    monkeypatch.setattr(ais, "_tidy_ollama_gui", lambda p=ais._noop: tidied.append(1))
     assert ais.install_ollama() is True
+    assert tidied == [1]  # after WE install, we tidy Ollama's GUI/auto-start
+
+
+def test_tidy_ollama_gui_noop_off_windows(monkeypatch):
+    monkeypatch.setattr(ais.sys, "platform", "darwin")
+    ais._tidy_ollama_gui()  # must be a harmless no-op, never raise
 
 
 def test_all_paths_fail_returns_false(monkeypatch):

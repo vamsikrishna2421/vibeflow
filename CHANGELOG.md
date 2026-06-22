@@ -4,6 +4,16 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.20.1] — 2026-06-22
+
+### Changed
+- **When VibeFlow installs Ollama for you, it no longer leaves Ollama popping up on
+  every sign-in.** Right after a VibeFlow-performed install, it closes Ollama's
+  desktop-app window and removes the Startup shortcut Ollama adds — VibeFlow only
+  needs the background `ollama serve`, which it runs hidden. (Ollama's window still
+  flashes once *during* the install itself, which its installer controls; and a
+  pre-existing Ollama you installed yourself is left completely untouched.)
+
 ## [1.20.0] — 2026-06-22
 
 ### Changed

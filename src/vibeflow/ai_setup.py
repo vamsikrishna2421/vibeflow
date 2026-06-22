@@ -92,12 +92,50 @@ def install_ollama(progress=_noop) -> bool:
     official signed installer from ollama.com and running it.
     """
     if is_installed():
-        return True
+        return True  # already present — never touch the user's existing install
     if sys.platform != "win32":
         return False
-    if _install_ollama_winget(progress):
+    if _install_ollama_winget(progress) or _install_ollama_download(progress):
+        _tidy_ollama_gui(progress)  # we installed it: stop its window + boot auto-start
         return True
-    return _install_ollama_download(progress)
+    return False
+
+
+def _tidy_ollama_gui(progress=_noop) -> None:
+    """After VibeFlow installs Ollama, stop its desktop app and remove its boot
+    auto-start, so it doesn't pop a window or launch on every sign-in — VibeFlow
+    only needs ``ollama serve`` (which it starts itself, hidden). Best-effort and
+    never fatal. Only called when WE performed the install, never for a
+    pre-existing Ollama the user manages themselves.
+    """
+    if sys.platform != "win32":
+        return
+    # Close the Ollama desktop/tray app window (image "ollama app.exe"); this is
+    # NOT the "ollama.exe" server VibeFlow relies on.
+    try:
+        subprocess.run(
+            ["taskkill", "/IM", "ollama app.exe", "/F"],
+            check=False, capture_output=True, timeout=15,
+            creationflags=_CREATE_NO_WINDOW,
+        )
+    except Exception:
+        pass
+    # Remove the Startup shortcut Ollama drops so it stops auto-launching at boot.
+    try:
+        startup = os.path.join(
+            os.environ.get("APPDATA", ""),
+            "Microsoft", "Windows", "Start Menu", "Programs", "Startup",
+        )
+        if os.path.isdir(startup):
+            for name in os.listdir(startup):
+                low = name.lower()
+                if low.startswith("ollama") and low.endswith(".lnk"):
+                    try:
+                        os.remove(os.path.join(startup, name))
+                    except Exception:
+                        pass
+    except Exception:
+        pass
 
 
 def _install_ollama_winget(progress=_noop) -> bool:
