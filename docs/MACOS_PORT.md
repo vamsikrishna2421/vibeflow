@@ -60,14 +60,17 @@ config — `CLAUDE.md` — **already ships in the repo**, so you only need the
 `CLAUDE.md` "Setup" section:
 
 ```bash
-# The first word after "claude mcp add" is the SERVER NAME (a label you choose).
-# Name it "ruflo" so it matches this project's CLAUDE.md (which calls the tools
-# `ruflo`); the package behind it is @claude-flow/cli either way.
-claude mcp add ruflo -- npx -y @claude-flow/cli@latest         # register (shows up as "ruflo")
-npx @claude-flow/cli@latest daemon start                       # start the daemon
-npx @claude-flow/cli@latest doctor --fix                       # health-check
-claude mcp list                                                # verify "ruflo" is listed
+# ruflo is its own npm package, and the MCP server is started with `mcp start`
+# (the bare CLI does NOT serve MCP -> "not connected"). The first word after
+# "claude mcp add" is the server NAME; keep it "ruflo" to match CLAUDE.md.
+claude mcp add ruflo -- npx ruflo@latest mcp start    # register the ruflo MCP server
+claude mcp list                                       # verify: ruflo -> Connected
 ```
+
+> Verified against the working Windows registration:
+> `Command: npx  ·  Args: ruflo@latest mcp start`. (On Windows it shows `npx.cmd`;
+> on macOS/Linux it's `npx`.) Ignore any `@claude-flow/cli` form — that does not
+> start the MCP server.
 
 > ⚠️ **Do NOT run `ruflo init` / `claude-flow init` in this repo** — it
 > regenerates `CLAUDE.md` and would overwrite the project's customised version
