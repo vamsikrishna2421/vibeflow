@@ -37,10 +37,10 @@ from ..update_check import REPO, RELEASES_PAGE
 API_LIST = f"https://api.github.com/repos/{REPO}/releases?per_page=100"
 _MAC_ASSET = "vibeflow-mac.zip"          # exact asset name (compared lowercased)
 _TEAM_ID = "CJ8SV692GN"                  # pin self-updates to OUR Developer ID
-_ALLOWED_HOSTS = (
-    "github.com", "api.github.com",
-    "objects.githubusercontent.com", "codeload.github.com",
-)
+# GitHub-controlled hosts. `_host_ok` also matches any subdomain, so
+# "githubusercontent.com" covers release-assets / objects / codeload /raw.* —
+# GitHub serves release-asset downloads from release-assets.githubusercontent.com.
+_ALLOWED_HOSTS = ("github.com", "githubusercontent.com")
 _MAX_PAGES = 10
 
 

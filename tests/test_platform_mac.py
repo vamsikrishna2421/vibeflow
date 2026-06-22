@@ -174,3 +174,15 @@ def test_select_mac_equal_version_is_not_newer():
     out = updater._select_mac([_rel("mac-v1.16.0", _ZIP)])  # == __version__
     assert out["newer"] is False
     assert out["version"] == "1.16.0"
+
+
+def test_download_host_allowlist():
+    # GitHub serves release assets from release-assets.githubusercontent.com — the
+    # downloader must accept it (and other GitHub hosts), reject everything else.
+    assert updater._host_ok("github.com")
+    assert updater._host_ok("release-assets.githubusercontent.com")
+    assert updater._host_ok("objects.githubusercontent.com")
+    assert updater._host_ok("codeload.github.com")
+    assert not updater._host_ok("evil.com")
+    assert not updater._host_ok("githubusercontent.com.evil.com")
+    assert not updater._host_ok("")
