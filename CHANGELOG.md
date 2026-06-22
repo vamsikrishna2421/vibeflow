@@ -4,6 +4,16 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.16.1] — 2026-06-22
+
+### Added
+- **macOS support** — VibeFlow now runs as a native menu-bar app on macOS
+  (Apple Silicon), reusing the shared `vibeflow.core` brain. Hold **Right ⌘** to
+  dictate; on-device transcription, per-app formatting, on-screen status, and a
+  branded menu-bar logo. The build is **Developer ID signed and notarized**
+  (opens with no Gatekeeper warning) and **self-updates** from GitHub Releases on
+  its own `mac-v*` channel, independent of the Windows release stream.
+
 ## [1.16.0] — 2026-06-21
 
 ### Added
