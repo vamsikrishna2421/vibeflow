@@ -50,6 +50,12 @@ def run(persona_path: str) -> int:
     except Exception:
         return 1
 
+    global _BG, _FG, _MUTED, _ACCENT
+    from . import winteme
+
+    _pal = winteme.palette()  # Match Windows light/dark
+    _BG, _FG, _MUTED, _ACCENT = _pal["bg"], _pal["fg"], _pal["muted"], _pal["accent"]
+
     from . import config as config_mod
     from .core import ai_format
     from .core.persona import Persona
@@ -62,6 +68,7 @@ def run(persona_path: str) -> int:
     root.geometry("560x640")
     root.minsize(520, 480)  # keep the bottom buttons on-screen
     root.configure(bg=_BG)
+    winteme.style_ttk(root, _pal)
     ico = _icon_path()
     if ico:
         try:
@@ -93,7 +100,7 @@ def run(persona_path: str) -> int:
         root,
         height=7,
         wrap="word",
-        bg="#16223F",
+        bg=_pal["field"],
         fg=_FG,
         insertbackground=_FG,
         relief="flat",

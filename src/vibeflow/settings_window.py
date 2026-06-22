@@ -61,7 +61,13 @@ def run(config_path: str | None = None) -> int:
     except Exception:
         return 1
 
-    from . import autostart, config as config_mod
+    global _BG, _CARD, _FG, _MUTED, _ACCENT
+    from . import autostart, config as config_mod, winteme
+
+    _pal = winteme.palette()  # Match Windows light/dark
+    _BG, _CARD, _FG, _MUTED, _ACCENT = (
+        _pal["bg"], _pal["card"], _pal["fg"], _pal["muted"], _pal["accent"]
+    )
 
     cfg = config_mod.load_config(config_path)
 
@@ -71,6 +77,7 @@ def run(config_path: str | None = None) -> int:
     root.geometry("500x600")  # provisional — resized to fit the content below
     root.minsize(480, 420)
     root.configure(bg=_BG)
+    winteme.style_ttk(root, _pal)
     ico = _icon_path()
     if ico:
         try:
@@ -195,7 +202,7 @@ def run(config_path: str | None = None) -> int:
                 _safe(autostart.enable if want else autostart.disable)
             status.config(text="Saved ✓  — applied to VibeFlow.")
         except Exception as exc:  # pragma: no cover - defensive
-            status.config(text=f"Could not save: {exc}", fg="#FF8A8A")
+            status.config(text=f"Could not save: {exc}", fg=_pal["danger"])
 
     def clear_app_rules():
         try:
@@ -203,7 +210,7 @@ def run(config_path: str | None = None) -> int:
             cfg.save()
             status.config(text="Cleared your per-app formatting rules ✓", fg=_ACCENT)
         except Exception as exc:  # pragma: no cover - defensive
-            status.config(text=f"Couldn't clear rules: {exc}", fg="#FF8A8A")
+            status.config(text=f"Couldn't clear rules: {exc}", fg=_pal["danger"])
 
     def open_log():
         try:
@@ -212,7 +219,7 @@ def run(config_path: str | None = None) -> int:
             target = log_path()
             os.startfile(str(target if target.exists() else target.parent))
         except Exception as exc:  # pragma: no cover - defensive
-            status.config(text=f"Couldn't open the log: {exc}", fg="#FF8A8A")
+            status.config(text=f"Couldn't open the log: {exc}", fg=_pal["danger"])
 
     # Utility row (per-app rules + log) sits just above the Save / Close bar.
     util = tk.Frame(root, bg=_BG)

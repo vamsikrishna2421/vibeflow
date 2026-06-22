@@ -48,6 +48,12 @@ def run(vocab_path: str) -> int:
     except Exception:
         return 1
 
+    global _BG, _FG, _ACCENT
+    from . import winteme
+
+    _pal = winteme.palette()  # Match Windows light/dark
+    _BG, _FG, _ACCENT = _pal["bg"], _pal["fg"], _pal["accent"]
+
     from .core.vocabulary import Vocabulary
 
     vocab = Vocabulary(path=vocab_path)
@@ -57,6 +63,7 @@ def run(vocab_path: str) -> int:
     root.geometry("500x560")
     root.minsize(480, 440)  # never shrink below where the buttons stay visible
     root.configure(bg=_BG)
+    winteme.style_ttk(root, _pal)
     ico = _icon_path()
     if ico:
         try:
@@ -105,7 +112,7 @@ def run(vocab_path: str) -> int:
                 listframe,
                 text="Nothing learned yet — dictate and correct a few times.",
                 bg=_BG,
-                fg="#9AA4B2",
+                fg=_pal["muted"],
                 font=("Segoe UI", 9),
             ).pack(anchor="w", padx=6, pady=6)
         for term in terms:

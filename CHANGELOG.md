@@ -4,6 +4,15 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.21.0] — 2026-06-22
+
+### Changed
+- **The windows now match your Windows theme (light/dark).** Settings, My
+  Vocabulary, and Personalized AI follow your system app theme — light when
+  Windows is in light mode, dark when it's in dark mode — instead of always being
+  dark. The dropdown and scrollbars are themed to match. (Falls back to the dark
+  look if the system theme can't be read.)
+
 ## [1.20.1] — 2026-06-22
 
 ### Changed
