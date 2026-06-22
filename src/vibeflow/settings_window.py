@@ -67,11 +67,9 @@ def run(config_path: str | None = None) -> int:
 
     root = tk.Tk()
     root.title("VibeFlow — Settings")
-    # Cap the height to the screen so the bottom buttons are never off-screen on
-    # short laptop displays.
     _sh = root.winfo_screenheight()
-    root.geometry(f"490x{min(800, max(560, _sh - 90))}")
-    root.minsize(480, min(560, max(420, _sh - 140)))
+    root.geometry("500x600")  # provisional — resized to fit the content below
+    root.minsize(480, 420)
     root.configure(bg=_BG)
     ico = _icon_path()
     if ico:
@@ -218,6 +216,11 @@ def run(config_path: str | None = None) -> int:
     tk.Button(bar, text="Save & apply", command=save,
               font=("Segoe UI", 10, "bold")).pack(side="left")
     tk.Button(bar, text="Close", command=root.destroy).pack(side="right")
+
+    # Size the window to exactly fit its content (no empty gap below the cards),
+    # capped to the screen height so the bottom buttons stay on-screen.
+    root.update_idletasks()
+    root.geometry(f"500x{min(root.winfo_reqheight(), _sh - 80)}")
 
     try:
         root.lift()

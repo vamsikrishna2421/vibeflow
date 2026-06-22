@@ -4,6 +4,14 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.19.3] — 2026-06-22
+
+### Fixed
+- **Settings window no longer has a big empty gap.** It was sized to the screen
+  height rather than its content, so on tall displays there was a large blank area
+  between the options and the bottom buttons. It now sizes to fit its content
+  (capped to the screen so the buttons stay visible).
+
 ## [1.19.2] — 2026-06-22
 
 ### Fixed
