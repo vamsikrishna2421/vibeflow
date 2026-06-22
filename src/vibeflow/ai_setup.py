@@ -19,10 +19,13 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
 
 ENDPOINT = "http://127.0.0.1:11434"
+# Official signed Windows installer — the winget-free fallback path.
+OLLAMA_SETUP_URL = "https://ollama.com/download/OllamaSetup.exe"
 
 # Friendly tiers -> (Ollama model, approx download size). Chosen by benchmark.
 MODEL_TIERS = {
@@ -82,12 +85,26 @@ def has_model(model: str) -> bool:
 # Setup steps
 # ---------------------------------------------------------------------------
 def install_ollama(progress=_noop) -> bool:
-    """Silently install the Ollama runtime via winget (one-time)."""
+    """Install the Ollama runtime (one-time). Returns True once it is present.
+
+    Tries winget first (no extra download); if winget is missing or fails — common
+    on fresh PCs with no/outdated App Installer — falls back to downloading the
+    official signed installer from ollama.com and running it.
+    """
     if is_installed():
         return True
     if sys.platform != "win32":
         return False
-    progress("Installing the local AI runtime (one-time, ~1 GB)…")
+    if _install_ollama_winget(progress):
+        return True
+    return _install_ollama_download(progress)
+
+
+def _install_ollama_winget(progress=_noop) -> bool:
+    """Install via winget. False if winget is absent or the install didn't take."""
+    if not shutil.which("winget"):
+        return False
+    progress("Installing the local AI runtime (one-time)…")
     try:
         subprocess.run(
             [
@@ -100,7 +117,61 @@ def install_ollama(progress=_noop) -> bool:
             creationflags=_CREATE_NO_WINDOW,
         )
     except Exception:
+        return False
+    return is_installed()
+
+
+def _install_ollama_download(progress=_noop) -> bool:
+    """Download the official Ollama installer and run it (winget-free path).
+
+    Installs silently when the installer honours ``/VERYSILENT``; if it instead
+    shows its window, we wait for the user to finish it, then detect it. Any
+    failure leaves AI off and dictation untouched.
+    """
+    progress("Downloading the local AI runtime…")
+    dst = os.path.join(tempfile.gettempdir(), "VibeFlow-OllamaSetup.exe")
+    try:
+        req = urllib.request.Request(OLLAMA_SETUP_URL, headers={"User-Agent": "VibeFlow"})
+        with urllib.request.urlopen(req, timeout=600) as resp, open(dst, "wb") as f:
+            total = int(resp.headers.get("Content-Length") or 0)
+            done, last = 0, -1
+            while True:
+                chunk = resp.read(262144)
+                if not chunk:
+                    break
+                f.write(chunk)
+                done += len(chunk)
+                if total:
+                    pct = int(done / total * 100)
+                    if pct != last:
+                        last = pct
+                        progress(f"Downloading the local AI runtime… {pct}%")
+    except Exception:
+        return False
+
+    progress("Installing the local AI runtime…")
+    try:
+        subprocess.run(
+            [dst, "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"],
+            check=False, timeout=900, creationflags=_CREATE_NO_WINDOW,
+        )
+    except Exception:
         pass
+    if is_installed():
+        return True
+
+    # Silent flags weren't honoured by this build: open the installer for the
+    # user to click through, then wait (bounded) for it to appear.
+    try:
+        subprocess.Popen([dst])
+    except Exception:
+        return False
+    progress("Finish the Ollama installer window — it will continue automatically…")
+    deadline = time.time() + 300
+    while time.time() < deadline:
+        if is_installed():
+            return True
+        time.sleep(2)
     return is_installed()
 
 

@@ -4,6 +4,17 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.18.1] — 2026-06-22
+
+### Fixed
+- **AI runtime (Ollama) now auto-installs even without winget.** The one-click AI
+  setup relied solely on `winget`, which is missing or outdated on many fresh PCs,
+  so "Adaptive learning setup failed — couldn't install the local AI runtime"
+  was a dead end. VibeFlow now falls back to downloading the official signed
+  installer from ollama.com and running it (silently, or by opening it for you to
+  finish if the silent install isn't supported). Dictation is unaffected either
+  way — the AI runtime is only for the optional LLM formatting/learning features.
+
 ## [1.18.0] — 2026-06-22
 
 ### Fixed
