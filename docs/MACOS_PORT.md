@@ -21,8 +21,17 @@ writing only the thin macOS "hands." Read this first, then build.
 # Toolchain: Node (for the ruflo / claude-flow CLI via npx), git, Python
 brew install node git python@3.12
 
-# Claude Code CLI  (or use the macOS desktop app — see https://claude.ai/code)
-npm install -g @anthropic-ai/claude-code
+# Claude Code — native installer (recommended; no Node needed for Claude itself):
+curl -fsSL https://claude.ai/install.sh | bash
+#   …or via npm:                 npm install -g @anthropic-ai/claude-code
+#   …or the macOS desktop app:   https://claude.ai/download
+```
+
+Then authenticate (first run opens your browser to log in — needs a Claude
+Pro/Max plan or Anthropic API access):
+
+```bash
+claude            # start it once to sign in; `claude doctor` to verify the setup
 ```
 
 **Get the project:**
