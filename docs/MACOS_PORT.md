@@ -10,6 +10,54 @@ writing only the thin macOS "hands." Read this first, then build.
 
 ---
 
+## 0. Set up the dev environment (new Mac)
+
+**Prerequisites — install once:**
+
+```bash
+# Homebrew (skip if already installed)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Toolchain: Node (for the ruflo / claude-flow CLI via npx), git, Python
+brew install node git python@3.12
+
+# Claude Code CLI  (or use the macOS desktop app — see https://claude.ai/code)
+npm install -g @anthropic-ai/claude-code
+```
+
+**Get the project:**
+
+```bash
+git clone https://github.com/vamsikrishna2421/vibeflow
+cd vibeflow
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+git checkout -b macos
+```
+
+**ruflo / claude-flow** (the MCP coordination layer this project uses). The
+config — `CLAUDE.md` — **already ships in the repo**, so you only need the
+*runtime*. From the repo root, run the same three commands as the project's
+`CLAUDE.md` "Setup" section:
+
+```bash
+claude mcp add claude-flow -- npx -y @claude-flow/cli@latest   # register the MCP server
+npx @claude-flow/cli@latest daemon start                       # start the daemon
+npx @claude-flow/cli@latest doctor --fix                       # health-check
+```
+
+> ⚠️ **Do NOT run `ruflo init` / `claude-flow init` in this repo** — it
+> regenerates `CLAUDE.md` and would overwrite the project's customised version
+> that just cloned with the code. You only re-init when starting a *brand-new*
+> project.
+
+ruflo is **optional** for building the Mac app — Claude Code + this repo is
+enough on its own. It just adds the swarm / memory / hooks tooling the project's
+`CLAUDE.md` describes (the MCP server appears as `ruflo`). If you originally
+installed it a different way on Windows, use that same method here.
+
+---
+
 ## 1. Principle: brain vs. hands
 
 - **Brain — reuse as-is** (`src/vibeflow/core/`): the intelligence. No OS / GUI /
