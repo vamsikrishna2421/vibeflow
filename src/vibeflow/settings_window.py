@@ -57,6 +57,7 @@ def run(config_path: str | None = None) -> int:
     _make_dpi_aware()
     try:
         import tkinter as tk
+        from tkinter import ttk
     except Exception:
         return 1
 
@@ -105,6 +106,39 @@ def run(config_path: str | None = None) -> int:
     out_var = tk.StringVar(value=str(cfg.get("output.mode", "auto") or "auto"))
     radio(card("WHERE DICTATED TEXT GOES"), out_var, _OUTPUTS)
 
+    # Microphone — pin a device so Windows switching to a Bluetooth headset can't
+    # silently break dictation. Stored by NAME (indices shift when devices change).
+    mic_card = card("MICROPHONE")
+    try:
+        from .audio import input_devices
+        _devs = input_devices()
+    except Exception:
+        _devs = []
+    _DEFAULT_MIC = "Default (follow Windows)"
+    mic_values = [_DEFAULT_MIC] + [name for _i, name in _devs]
+    mic_var = tk.StringVar()
+    _cur_dev = str(cfg.get("audio.input_device", "default") or "default").strip()
+    if _cur_dev in ("", "default"):
+        mic_var.set(_DEFAULT_MIC)
+    else:
+        _match = next(
+            (n for n in mic_values[1:]
+             if _cur_dev.lower() in n.lower() or n.lower() in _cur_dev.lower()),
+            None,
+        )
+        mic_var.set(_match or _cur_dev)
+    ttk.Combobox(
+        mic_card, textvariable=mic_var, values=mic_values, state="readonly",
+        font=("Segoe UI", 10),
+    ).pack(fill="x", padx=10, pady=(8, 2))
+    tk.Label(
+        mic_card,
+        text="Pick your built-in mic here so connecting Bluetooth headphones "
+        "doesn't switch VibeFlow to a mic that picks up no sound.",
+        bg=_CARD, fg=_MUTED, font=("Segoe UI", 8), anchor="w",
+        wraplength=430, justify="left",
+    ).pack(fill="x", padx=10, pady=(0, 8))
+
     # Checkboxes
     cardf = card("FORMATTING, LEARNING & FEEDBACK")
     check_vars = {}
@@ -137,6 +171,8 @@ def run(config_path: str | None = None) -> int:
     def save():
         try:
             cfg.set("output.mode", out_var.get())
+            _sel = mic_var.get().strip()
+            cfg.set("audio.input_device", "default" if _sel.startswith("Default") else _sel)
             for key, var in check_vars.items():
                 cfg.set(key, bool(var.get()))
             cfg.save()

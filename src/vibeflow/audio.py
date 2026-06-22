@@ -142,6 +142,27 @@ def _normalize_device(device: str | int | None):
     return text  # sounddevice accepts a (sub)string name match
 
 
+def input_devices() -> list[tuple[int, str]]:
+    """``(index, name)`` for each input-capable device; ``[]`` if none/unavailable.
+
+    Names are stored (not indices) when pinning a mic, because indices shift when
+    devices connect/disconnect (e.g. plugging in a Bluetooth headset).
+    """
+    try:
+        import sounddevice as sd
+    except Exception:
+        return []
+    out: list[tuple[int, str]] = []
+    try:
+        for index, dev in enumerate(sd.query_devices()):
+            if dev.get("max_input_channels", 0) > 0:
+                name = " ".join(str(dev.get("name", "unknown")).split())
+                out.append((index, name))
+    except Exception:
+        return []
+    return out
+
+
 def list_input_devices() -> list[str]:
     """Return human-readable lines describing available input devices."""
     try:

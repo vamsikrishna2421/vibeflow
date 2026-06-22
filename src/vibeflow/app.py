@@ -1560,6 +1560,16 @@ class VibeFlowApp:
                 self.transcriber.language = self.cfg.get("model.language", "en")
             except Exception:
                 pass
+            # Apply a microphone change (Settings → Microphone) live. The recorder
+            # opens a fresh stream each recording, so updating the device is enough.
+            try:
+                from .audio import _normalize_device
+
+                self.recorder.input_device = _normalize_device(
+                    self.cfg.get("audio.input_device", "default")
+                )
+            except Exception:
+                pass
             logging.getLogger("vibeflow").info("settings reloaded from disk")
             self._refresh()
         except Exception:  # pragma: no cover - never break on a bad reload

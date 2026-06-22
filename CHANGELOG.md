@@ -4,6 +4,16 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.19.1] — 2026-06-22
+
+### Added
+- **Choose your microphone (Settings → Microphone).** Pin a specific input device
+  so that connecting Bluetooth headphones — whose Hands-Free mic often delivers
+  silence — no longer switches VibeFlow to a mic that hears nothing and makes
+  dictation fail with "No sound from mic." Defaults to "follow Windows," and your
+  choice is stored by **name** (so it survives devices being plugged/unplugged and
+  their indices shifting). Applies live — no restart.
+
 ## [1.19.0] — 2026-06-22
 
 ### Fixed

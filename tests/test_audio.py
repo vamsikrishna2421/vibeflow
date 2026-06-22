@@ -3,7 +3,31 @@ apart from a working mic that simply caught no recognisable speech."""
 
 import numpy as np
 
-from vibeflow.audio import SILENCE_PEAK, is_silent, peak_level
+from vibeflow.audio import (
+    SILENCE_PEAK,
+    _normalize_device,
+    input_devices,
+    is_silent,
+    peak_level,
+)
+
+
+def test_normalize_device():
+    # "default"/blank/None -> None (let the backend pick the Windows default).
+    assert _normalize_device("default") is None
+    assert _normalize_device("") is None
+    assert _normalize_device(None) is None
+    # A numeric string or int -> an index; a name -> kept as a substring match.
+    assert _normalize_device(3) == 3
+    assert _normalize_device("5") == 5
+    assert _normalize_device("Microphone Array (Realtek)") == "Microphone Array (Realtek)"
+
+
+def test_input_devices_is_a_list():
+    devs = input_devices()
+    assert isinstance(devs, list)
+    for entry in devs:
+        assert isinstance(entry, tuple) and isinstance(entry[0], int) and isinstance(entry[1], str)
 
 
 def test_peak_level_empty_or_invalid():
