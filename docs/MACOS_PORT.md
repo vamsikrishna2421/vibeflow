@@ -60,9 +60,13 @@ config — `CLAUDE.md` — **already ships in the repo**, so you only need the
 `CLAUDE.md` "Setup" section:
 
 ```bash
-claude mcp add claude-flow -- npx -y @claude-flow/cli@latest   # register the MCP server
+# The first word after "claude mcp add" is the SERVER NAME (a label you choose).
+# Name it "ruflo" so it matches this project's CLAUDE.md (which calls the tools
+# `ruflo`); the package behind it is @claude-flow/cli either way.
+claude mcp add ruflo -- npx -y @claude-flow/cli@latest         # register (shows up as "ruflo")
 npx @claude-flow/cli@latest daemon start                       # start the daemon
 npx @claude-flow/cli@latest doctor --fix                       # health-check
+claude mcp list                                                # verify "ruflo" is listed
 ```
 
 > ⚠️ **Do NOT run `ruflo init` / `claude-flow init` in this repo** — it
