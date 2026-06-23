@@ -6,6 +6,6 @@ runs locally on your machine — no internet, no accounts, no cloud.
 """
 
 __app_name__ = "VibeFlow"
-__version__ = "1.22.0"
+__version__ = "1.22.1"
 
 __all__ = ["__app_name__", "__version__"]

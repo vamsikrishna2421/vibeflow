@@ -176,3 +176,7 @@ ai:
   model: qwen2.5:3b                    # keeps your exact words; qwen2.5:1.5b is faster but paraphrases
   timeout: 20                          # seconds before giving up (falls back to plain)
   prompt: ""                          # empty = built-in formatting prompt
+  # How long Ollama keeps the model loaded after use. Longer = fewer reloads (and
+  # fewer brief Ollama console-window flashes on Windows), but holds the RAM
+  # longer. "30m" is a good balance; "-1" keeps it loaded until you quit.
+  keep_alive: "30m"

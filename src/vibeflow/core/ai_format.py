@@ -167,6 +167,7 @@ def _ollama_generate(
         "prompt": f"{prompt}\n\nText:\n{text}\n\nCleaned text:",
         "stream": False,
         "options": {"temperature": 0},
+        "keep_alive": _keep_alive(cfg),
     }
     body = _post_json(f"{endpoint}/api/generate", payload, timeout)
     result = (body.get("response") or "").strip()
@@ -211,6 +212,7 @@ def build_persona_profile(samples, cfg, timeout: float | None = None):
         "prompt": _PERSONA_PROMPT.format(samples=joined),
         "stream": False,
         "options": {"temperature": 0.3},
+        "keep_alive": _keep_alive(cfg),
     }
     try:
         body = _post_json(f"{endpoint}/api/generate", payload, t)
@@ -291,6 +293,7 @@ def extract_terms(corrected: str, cfg, timeout: float | None = None):
         "prompt": _EXTRACT_PROMPT.format(text=corrected.strip()),
         "stream": False,
         "options": {"temperature": 0},
+        "keep_alive": _keep_alive(cfg),
     }
     try:
         body = _post_json(f"{endpoint}/api/generate", payload, t)
@@ -351,6 +354,13 @@ def check(cfg) -> tuple[bool, str]:
 # ---------------------------------------------------------------------------
 # Tiny HTTP helpers (stdlib only)
 # ---------------------------------------------------------------------------
+def _keep_alive(cfg) -> str:
+    """How long Ollama keeps the model resident after a request. Keeping it loaded
+    avoids re-spawning the runner — which briefly flashes a console window on
+    Windows — on the first dictation after each ~5-minute idle gap."""
+    return str(cfg.get("ai.keep_alive", "30m") or "30m")
+
+
 def _post_json(url: str, payload: dict, timeout: float) -> dict:
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(

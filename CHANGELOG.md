@@ -4,6 +4,19 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.22.1] — 2026-06-23
+
+### Changed
+- **Fewer brief Ollama console-window flashes while dictating.** With AI formatting
+  on, VibeFlow sent no `keep_alive`, so Ollama unloaded the model after ~5 minutes
+  idle and re-loaded it on your next dictation — and each *load* briefly flashes
+  Ollama's own console/runner window on Windows. VibeFlow now asks Ollama to keep
+  the model loaded for **30 minutes** (configurable via `ai.keep_alive`, e.g.
+  `"-1"` to keep it until you quit), so the model stays resident during normal use
+  and the flashes become rare instead of after every idle gap. (The window itself
+  is Ollama's to suppress — a recent Ollama already includes the upstream fix for
+  the runner window; VibeFlow can only reduce how often a reload happens.)
+
 ## [1.22.0] — 2026-06-22
 
 ### Added

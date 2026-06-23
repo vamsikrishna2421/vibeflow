@@ -27,6 +27,25 @@ def test_empty_text_returns_none():
     assert ai_format.format_text("", _Cfg({"ai.enabled": True})) is None
 
 
+def test_keep_alive_default_and_configured():
+    assert ai_format._keep_alive(_Cfg({})) == "30m"
+    assert ai_format._keep_alive(_Cfg({"ai.keep_alive": "-1"})) == "-1"
+    assert ai_format._keep_alive(_Cfg({"ai.keep_alive": ""})) == "30m"  # blank -> default
+
+
+def test_format_sends_keep_alive(monkeypatch):
+    captured = {}
+
+    def fake_post(url, payload, timeout):
+        captured.update(payload)
+        return {"response": "Hello world."}
+
+    monkeypatch.setattr(ai_format, "_post_json", fake_post)
+    cfg = _Cfg({"ai.enabled": True, "ai.model": "qwen2.5:3b", "ai.keep_alive": "30m"})
+    ai_format.format_text("hello world", cfg)
+    assert captured.get("keep_alive") == "30m"  # the model is kept resident
+
+
 def test_parse_terms_basic():
     src = "Deploy to Kubernetes with kubectl and check the Grafana dashboard."
     assert ai_format._parse_terms("Kubernetes, kubectl, Grafana", src) == [
