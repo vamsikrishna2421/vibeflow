@@ -30,6 +30,7 @@ from . import (
     notifier,
     overlay as overlay_mod,
 )
+from . import licensing
 from .core import ai_format, appmode, history
 from .audio import AudioError, Recorder, is_silent
 from .focus_detect import detect_focus
@@ -90,6 +91,10 @@ class VibeFlowApp:
         self._deliver_pending_until = 0.0  # arms the Ctrl+Shift+V delivery hotkey
         self._delivery_hotkey = None
         self.icon = None  # set in run()
+        # Licensing (offline): paid features (AI formatting) gate on this.
+        self._license = licensing.evaluate(config_mod.config_dir())
+        self._license_nudged = False
+        self._license_mtime = None
 
     # ------------------------------------------------------------------
     # Builders (re-used on config reload)
@@ -218,6 +223,17 @@ class VibeFlowApp:
 
             strip_fillers = bool(self.cfg.get("text.strip_fillers", False))
             ai_on = ai_format.is_enabled(self.cfg)
+            if ai_on and not self._license.is_paid:
+                # AI formatting is a paid feature; voice-to-text stays free.
+                ai_on = False
+                if not self._license_nudged:
+                    self._license_nudged = True
+                    self._notify(
+                        __app_name__,
+                        "AI formatting is a VibeFlow Pro feature and your trial has "
+                        "ended. Open the tray menu ▸ License to unlock it. "
+                        "Voice-to-text stays free.",
+                    )
             persona_on = bool(self.cfg.get("text.persona", True))
 
             # Per-app formatting: choose how to format for the destination app,
@@ -395,6 +411,7 @@ class VibeFlowApp:
             self._maybe_reload_config()          # pick up Settings-window edits
             self.vocabulary.reload_if_changed()  # pick up manager-window deletes
             self.persona.reload_if_changed()     # pick up profile-window edits
+            self._maybe_reload_license()          # pick up a newly-activated license
             if not bool(self.cfg.get("text.teach_back", True)):
                 continue
             try:
@@ -810,6 +827,8 @@ class VibeFlowApp:
                 ),
                 self._update_action,
             ),
+            Menu.SEPARATOR,
+            Item(lambda i: self._license_label(), self._open_license),
             Item(f"About {__app_name__} {__version__}", self._about),
             Item("Quit", self._quit),
         )
@@ -827,6 +846,12 @@ class VibeFlowApp:
 
     def _open_config_dir(self, *_args) -> None:
         self._open_path(str(config_mod.config_dir()))
+
+    def _license_label(self) -> str:
+        return f"License · {self._license.badge}"
+
+    def _open_license(self, *_args) -> None:
+        self._launch_manager("--license")
 
     def _reload(self, *_args) -> None:
         self.cfg = config_mod.load_config(self.cfg.path)
@@ -1262,6 +1287,24 @@ class VibeFlowApp:
             return True
         except Exception:
             return False
+
+    def _maybe_reload_license(self) -> None:
+        """Re-evaluate the license if license.key changed (activated in the window)."""
+        try:
+            lic = config_mod.config_dir() / licensing.LICENSE_FILENAME
+            mtime = lic.stat().st_mtime if lic.exists() else 0.0
+        except Exception:
+            return
+        if mtime != self._license_mtime:
+            self._license_mtime = mtime
+            new = licensing.evaluate(config_mod.config_dir())
+            if new.is_paid and not self._license.is_paid:
+                self._license_nudged = False
+                self._notify(__app_name__, f"Activated — {new.badge}. AI formatting unlocked.")
+            self._license = new
+            if self.icon is not None:
+                try: self.icon.update_menu()
+                except Exception: pass
 
     def _maybe_apply_vocab_edits(self) -> None:
         """Apply the user's edits to the word list (delete/add words) when they

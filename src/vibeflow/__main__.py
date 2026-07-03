@@ -58,6 +58,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Open the interactive Personalized-AI profile window and exit.",
     )
     p.add_argument(
+        "--license",
+        action="store_true",
+        help="Open the license window (activate / manage your VibeFlow license) and exit.",
+    )
+    p.add_argument(
         "--models-manager",
         action="store_true",
         help="Open the AI model manager (remove models / free disk) and exit.",
@@ -115,6 +120,9 @@ def main(argv: list[str] | None = None) -> int:
         from .persona_window import run as run_persona_manager
 
         return run_persona_manager(str(config_mod.config_dir() / "persona.json"))
+    if args.license:
+        from .license_window import run as run_license
+        return run_license(args.config)
     if args.models_manager:
         from .models_window import run as run_models_manager
 
