@@ -1,7 +1,7 @@
-"""The VibeFlow application: state machine + system-tray UI.
+"""The Mynah application: state machine + system-tray UI.
 
 Wires together the hotkey listener, microphone, transcriber and output router,
-and exposes everything through a small tray icon menu. The VibeFlow logo sits in
+and exposes everything through a small tray icon menu. The Mynah logo sits in
 the system tray with a small status dot:
 
     (no dot)  = idle (ready)
@@ -46,7 +46,7 @@ _APP_USER_MODEL_ID = "VibeFlow.Dictation"
 
 
 def _set_app_user_model_id() -> None:
-    """Tag the process so Windows shows the VibeFlow identity in notifications
+    """Tag the process so Windows shows the Mynah identity in notifications
     and groups it on the taskbar. (The microphone 'in use by' name comes from
     the packaged executable's version metadata, not from this.)"""
     if sys.platform != "win32":
@@ -180,7 +180,7 @@ class VibeFlowApp:
             seconds = self.recorder.duration(audio)
             min_seconds = float(self.cfg.get("audio.min_seconds", 0.4))
             if seconds < min_seconds:
-                self.overlay.show("info", "VibeFlow · Too short — ignored")
+                self.overlay.show("info", "Mynah · Too short — ignored")
                 self._notify(__app_name__, "Recording too short — ignored.")
                 return
 
@@ -204,7 +204,7 @@ class VibeFlowApp:
                 # fresh-install trap: Windows hands a blocked/muted mic a silent
                 # stream (no error), so dictation looks broken for no clear reason.
                 if is_silent(audio):
-                    self.overlay.show("info", "VibeFlow · No sound from mic")
+                    self.overlay.show("info", "Mynah · No sound from mic")
                     self._notify(
                         __app_name__,
                         "No sound from the microphone. Check Windows mic access "
@@ -213,7 +213,7 @@ class VibeFlowApp:
                         "right mic is selected and not muted.",
                     )
                 else:
-                    self.overlay.show("info", "VibeFlow · No speech detected")
+                    self.overlay.show("info", "Mynah · No speech detected")
                     self._notify(__app_name__, "No speech detected.")
                 return
 
@@ -230,7 +230,7 @@ class VibeFlowApp:
                     self._license_nudged = True
                     self._notify(
                         __app_name__,
-                        "AI formatting is a VibeFlow Pro feature and your trial has "
+                        "AI formatting is a Mynah Pro feature and your trial has "
                         "ended. Open the tray menu ▸ License to unlock it. "
                         "Voice-to-text stays free.",
                     )
@@ -260,7 +260,7 @@ class VibeFlowApp:
                 # deterministic curation, no AI (protects commands / code).
                 text = self._last_raw_transcript
                 if target_name:
-                    self.overlay.show("info", f"VibeFlow · As spoken — {target_name}")
+                    self.overlay.show("info", f"Mynah · As spoken — {target_name}")
             else:
                 # DEFAULT / PROFESSIONAL / CASUAL all start from deterministic
                 # offline curation; AI then applies the tone when it is enabled.
@@ -283,7 +283,7 @@ class VibeFlowApp:
                             f"Restructuring for {target_name}…" if tone
                             else f"Cleaning up — {target_name}"
                         )
-                        self.overlay.show("info", f"VibeFlow · {label}")
+                        self.overlay.show("info", f"Mynah · {label}")
                     profile = self.persona.profile_text() if persona_on else None
                     ai_text = ai_format.format_text(
                         text, self.cfg, persona=profile,
@@ -347,7 +347,7 @@ class VibeFlowApp:
                     self._save_config()
                     self._notify(
                         __app_name__,
-                        "Tip: VibeFlow can keep terminals & code editors exactly as you "
+                        "Tip: Mynah can keep terminals & code editors exactly as you "
                         "speak them and adapt other apps to your style. Turn it on in "
                         "Settings → “Adapt formatting to each app”.",
                     )
@@ -384,11 +384,11 @@ class VibeFlowApp:
                 "Transcription error:\n%s", traceback.format_exc()
             )
             notifier.play(notifier.ERROR, self._sounds)
-            self.overlay.show("error", "VibeFlow · Transcription error")
+            self.overlay.show("error", "Mynah · Transcription error")
             self._notify("Transcription error", str(exc))
         except Exception as exc:  # pragma: no cover - defensive
             notifier.play(notifier.ERROR, self._sounds)
-            self.overlay.show("error", "VibeFlow · Something went wrong")
+            self.overlay.show("error", "Mynah · Something went wrong")
             self._notify("Unexpected error", str(exc))
         finally:
             with self._lock:
@@ -462,7 +462,7 @@ class VibeFlowApp:
         ai_on = bool(self.cfg.get("text.ai_learning", False))
         if ai_on:
             # Show a live pill — the local model can take a few seconds to warm up.
-            self.overlay.show("working", "VibeFlow · Learning your terms…")
+            self.overlay.show("working", "Mynah · Learning your terms…")
             try:
                 from .core import ai_format
 
@@ -482,7 +482,7 @@ class VibeFlowApp:
             shown = ", ".join(learned[:6])
             # The overlay is what the user actually sees (tray balloons are
             # unreliable on Windows); show it there *and* fire the notification.
-            self.overlay.show("learned", f"VibeFlow · Learned: {shown}")
+            self.overlay.show("learned", f"Mynah · Learned: {shown}")
             self._notify(__app_name__, "Learned from your edit: " + shown)
         elif ai_on:
             self.overlay.hide()  # clear the "Learning…" pill if nothing qualified
@@ -565,7 +565,7 @@ class VibeFlowApp:
                 self._notify(
                     __app_name__,
                     "First launch: downloading the speech model (~150 MB). This "
-                    "happens once and needs internet — after that VibeFlow runs "
+                    "happens once and needs internet — after that Mynah runs "
                     "fully offline.",
                 )
                 self.transcriber.load()
@@ -575,7 +575,7 @@ class VibeFlowApp:
                 # hiccup (e.g. antivirus scanning the model file). The real
                 # auto-update failure — Windows "Redirection Guard", inherited from
                 # the installer, refusing to traverse the model's cache symlink —
-                # is fixed at the source: the installer now relaunches VibeFlow via
+                # is fixed at the source: the installer now relaunches Mynah via
                 # Explorer, outside its mitigated process tree.
                 deadline = time.monotonic() + 12.0
                 last_err = None
@@ -877,9 +877,9 @@ class VibeFlowApp:
         enabled = autostart.toggle()
         self._notify(
             __app_name__,
-            "VibeFlow will start automatically with Windows."
+            "Mynah will start automatically with Windows."
             if enabled
-            else "VibeFlow will no longer start with Windows.",
+            else "Mynah will no longer start with Windows.",
         )
 
     def _toggle_overlay(self, *_args) -> None:
@@ -888,7 +888,7 @@ class VibeFlowApp:
         self._save_config()
         self.overlay.set_enabled(enabled)
         if enabled:
-            self.overlay.show("info", "VibeFlow · On-screen status on")
+            self.overlay.show("info", "Mynah · On-screen status on")
         self._refresh()
 
     def _toggle_fillers(self, *_args) -> None:
@@ -1011,7 +1011,7 @@ class VibeFlowApp:
             self._update_info = info
             self._notify(
                 __app_name__,
-                f"VibeFlow {info['version']} is available — open the tray menu to update.",
+                f"Mynah {info['version']} is available — open the tray menu to update.",
             )
             self._refresh()
 
@@ -1035,7 +1035,7 @@ class VibeFlowApp:
                 self._update_info = info
                 self._notify(
                     __app_name__,
-                    f"VibeFlow {info['version']} is available — choose “Install "
+                    f"Mynah {info['version']} is available — choose “Install "
                     "update” in the tray menu.",
                 )
             else:
@@ -1081,7 +1081,7 @@ class VibeFlowApp:
                 self._set_status("Ready")
                 self._refresh()
                 return
-            self._notify(__app_name__, f"Installing VibeFlow {info['version']}…")
+            self._notify(__app_name__, f"Installing Mynah {info['version']}…")
             update_check.run_installer(path)  # closes this instance & relaunches
 
         threading.Thread(target=work, daemon=True).start()
@@ -1171,10 +1171,10 @@ class VibeFlowApp:
             # The tray menu had focus; let Windows restore focus to your window.
             time.sleep(0.35)
             if cleaned:
-                self.overlay.show("info", "VibeFlow · Cleaning up…")
+                self.overlay.show("info", "Mynah · Cleaning up…")
                 text = self._apply_outcome(raw, appmode.DEFAULT)
             else:
-                self.overlay.show("info", "VibeFlow · Re-inserting as spoken…")
+                self.overlay.show("info", "Mynah · Re-inserting as spoken…")
                 text = raw
             self._deliver_text(text)
         except Exception as exc:  # pragma: no cover - defensive
@@ -1237,9 +1237,9 @@ class VibeFlowApp:
             except Exception:
                 outcome = appmode.DEFAULT
             if outcome != appmode.VERBATIM and ai_format.is_enabled(self.cfg) and name:
-                self.overlay.show("info", f"VibeFlow · Restructuring for {name}…")
+                self.overlay.show("info", f"Mynah · Restructuring for {name}…")
             elif name:
-                self.overlay.show("info", f"VibeFlow · Delivering — {name}")
+                self.overlay.show("info", f"Mynah · Delivering — {name}")
             self._deliver_text(self._apply_outcome(raw, outcome))
         except Exception as exc:  # pragma: no cover - defensive
             self._notify(__app_name__, f"Couldn't deliver: {exc}")
@@ -1250,7 +1250,7 @@ class VibeFlowApp:
         self._open_path("https://github.com/vamsikrishna2421/vibeflow/issues")
         self._notify(
             __app_name__,
-            "Opened your VibeFlow folder — please attach 'vibeflow.log' to your report.",
+            "Opened your Mynah folder — please attach 'vibeflow.log' to your report.",
         )
 
     # -- vocabulary viewing / pruning ----------------------------------
@@ -1341,7 +1341,7 @@ class VibeFlowApp:
         if enabled:
             self._notify(
                 __app_name__,
-                "Personalized AI on. VibeFlow keeps a small, local sample of your "
+                "Personalized AI on. Mynah keeps a small, local sample of your "
                 "dictation and learns your domain & tone to format text more like "
                 "you. Works with AI formatting; nothing leaves your PC. View or "
                 "clear it anytime in the tray.",
@@ -1374,13 +1374,13 @@ class VibeFlowApp:
             return
         path = config_mod.config_dir() / "my_writing_profile.txt"
         profile = self.persona.profile_text() or (
-            "(Not enough dictation yet — keep using VibeFlow and it will learn "
+            "(Not enough dictation yet — keep using Mynah and it will learn "
             "your style.)"
         )
         body = (
-            "# VibeFlow — your writing profile\n"
+            "# Mynah — your writing profile\n"
             "#\n"
-            "# What VibeFlow has learned about your domain and tone from your\n"
+            "# What Mynah has learned about your domain and tone from your\n"
             "# recent dictation. Used (only when 'Match my writing style' AND AI\n"
             "# formatting are on) to format text more like you. Local to this PC.\n"
             "# To reset it, choose 'Forget my writing style' in the tray.\n"
@@ -1647,7 +1647,7 @@ class VibeFlowApp:
             self._notify(__app_name__, "Couldn't open the AI model manager.")
 
     def _record_pulled_model(self, model: str) -> None:
-        """Remember a model VibeFlow downloaded, so the model manager can show
+        """Remember a model Mynah downloaded, so the model manager can show
         which models are ours vs. ones you installed in Ollama yourself."""
         try:
             pulled = list(self.cfg.get("ai.pulled_models", []) or [])

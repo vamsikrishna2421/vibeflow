@@ -1,4 +1,4 @@
-"""Command-line entry point for VibeFlow.
+"""Command-line entry point for Mynah.
 
 Usage examples
 --------------
@@ -60,7 +60,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--license",
         action="store_true",
-        help="Open the license window (activate / manage your VibeFlow license) and exit.",
+        help="Open the license window (activate / manage your Mynah license) and exit.",
     )
     p.add_argument(
         "--models-manager",
@@ -226,7 +226,7 @@ def _download_model(cfg: config_mod.Config) -> int:
     except TranscriptionError as exc:
         print(f"Failed: {exc}", file=sys.stderr)
         return 2
-    print("Model ready. VibeFlow can now run fully offline.")
+    print("Model ready. Mynah can now run fully offline.")
     return 0
 
 

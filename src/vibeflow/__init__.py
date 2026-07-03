@@ -5,7 +5,7 @@ text field is focused, the text is copied to your clipboard instead. Everything
 runs locally on your machine — no internet, no accounts, no cloud.
 """
 
-__app_name__ = "VibeFlow"
+__app_name__ = "Mynah"
 __version__ = "1.22.1"
 
 __all__ = ["__app_name__", "__version__"]

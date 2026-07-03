@@ -1,9 +1,9 @@
 """Interactive vocabulary manager — a small, standalone window.
 
-Lists the words VibeFlow has learned with a checkbox each; tick the ones you
+Lists the words Mynah has learned with a checkbox each; tick the ones you
 want to forget and click **Delete selected**. You can also add a word directly.
 
-It runs as its *own* process (launched from the tray, ``VibeFlow.exe
+It runs as its *own* process (launched from the tray, ``Mynah.exe
 --vocab-manager``) so it has an independent Tk main loop and never interferes
 with the tray icon or the dictation hotkey. The running app notices the edited
 ``vocabulary.json`` and reloads it automatically (see
@@ -59,7 +59,7 @@ def run(vocab_path: str) -> int:
     vocab = Vocabulary(path=vocab_path)
 
     root = tk.Tk()
-    root.title("VibeFlow — My Vocabulary")
+    root.title("Mynah — My Vocabulary")
     root.geometry("500x560")
     root.minsize(480, 440)  # never shrink below where the buttons stay visible
     root.configure(bg=_BG)
@@ -104,7 +104,7 @@ def run(vocab_path: str) -> int:
         vars_by_term.clear()
         terms = vocab.list_terms()
         header.config(
-            text=f"{len(terms)} learned word(s). Tick any you want VibeFlow to "
+            text=f"{len(terms)} learned word(s). Tick any you want Mynah to "
             "forget, then click “Delete selected”."
         )
         if not terms:
@@ -138,12 +138,12 @@ def run(vocab_path: str) -> int:
         chosen = [t for t, v in vars_by_term.items() if v.get()]
         if not chosen:
             messagebox.showinfo(
-                "VibeFlow", "Tick the word(s) you want to forget first.", parent=root
+                "Mynah", "Tick the word(s) you want to forget first.", parent=root
             )
             return
         preview = ", ".join(chosen[:20]) + ("…" if len(chosen) > 20 else "")
         if not messagebox.askyesno(
-            "VibeFlow",
+            "Mynah",
             f"Forget {len(chosen)} word(s)?\n\n{preview}",
             parent=root,
         ):
@@ -155,7 +155,7 @@ def run(vocab_path: str) -> int:
 
     def add_word():
         word = simpledialog.askstring(
-            "Add word", "Word to teach VibeFlow:", parent=root
+            "Add word", "Word to teach Mynah:", parent=root
         )
         if word and vocab.add(word.strip(), weight=5):
             vocab.save()

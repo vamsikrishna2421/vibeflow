@@ -10,7 +10,7 @@
 ;  Per-user install (no administrator rights needed) into LocalAppData.
 ; ============================================================================
 
-#define MyAppName "VibeFlow"
+#define MyAppName "Mynah"
 #define MyAppVersion "1.22.1"
 #define MyAppPublisher "VibeFlow"
 #define MyAppExeName "VibeFlow.exe"

@@ -1,13 +1,13 @@
 """Interactive "Personalized AI" manager — a small, standalone window.
 
-Lets you see and manage the writing profile VibeFlow learns from your dictation:
+Lets you see and manage the writing profile Mynah learns from your dictation:
 
 * view and **edit** the distilled profile (it's injected into AI formatting),
 * **Regenerate** it on demand from your recent dictation,
 * see and **delete** the stored dictation samples (full transparency/privacy),
 * **Forget everything**.
 
-Runs as its own process (``VibeFlow.exe --persona-manager``) so it has an
+Runs as its own process (``Mynah.exe --persona-manager``) so it has an
 independent Tk loop. The running app reloads ``persona.json`` when it changes
 (:meth:`vibeflow.persona.Persona.reload_if_changed`).
 """
@@ -64,7 +64,7 @@ def run(persona_path: str) -> int:
     cfg = config_mod.load_config()
 
     root = tk.Tk()
-    root.title("VibeFlow — Personalized AI")
+    root.title("Mynah — Personalized AI")
     root.geometry("560x640")
     root.minsize(520, 480)  # keep the bottom buttons on-screen
     root.configure(bg=_BG)
@@ -86,7 +86,7 @@ def run(persona_path: str) -> int:
     ).pack(fill="x", padx=14, pady=(14, 0))
     tk.Label(
         root,
-        text="VibeFlow learned this from your dictation; it nudges AI formatting "
+        text="Mynah learned this from your dictation; it nudges AI formatting "
         "to sound like you. You can edit it.",
         bg=_BG,
         fg=_MUTED,
@@ -127,8 +127,8 @@ def run(persona_path: str) -> int:
     def regenerate():
         if len(persona.sample_texts()) < 3:
             messagebox.showinfo(
-                "VibeFlow",
-                "Not enough dictation yet to build a profile. Keep using VibeFlow "
+                "Mynah",
+                "Not enough dictation yet to build a profile. Keep using Mynah "
                 "and try again.",
                 parent=root,
             )
@@ -151,7 +151,7 @@ def run(persona_path: str) -> int:
                 else:
                     status.config(text="")
                     messagebox.showwarning(
-                        "VibeFlow",
+                        "Mynah",
                         "Couldn't regenerate — a local AI model needs to be set up "
                         "(tray → AI formatting).",
                         parent=root,
@@ -225,7 +225,7 @@ def run(persona_path: str) -> int:
     def delete_selected():
         chosen = {i for i, v in sample_vars if v.get()}
         if not chosen:
-            messagebox.showinfo("VibeFlow", "Tick the sample(s) to delete first.", parent=root)
+            messagebox.showinfo("Mynah", "Tick the sample(s) to delete first.", parent=root)
             return
         persona.reload_if_changed()
         persona.samples = [s for i, s in enumerate(persona.samples) if i not in chosen]
@@ -234,7 +234,7 @@ def run(persona_path: str) -> int:
 
     def forget_all():
         if messagebox.askyesno(
-            "VibeFlow",
+            "Mynah",
             "Forget your writing profile AND all stored samples? This can't be undone.",
             parent=root,
         ):
