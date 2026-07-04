@@ -37,11 +37,14 @@ jobs:
           python-version: '3.11'
           architecture: ${{ matrix.py_arch }}   # x64 → an x86_64 interpreter (runs under Rosetta)
 
-      - name: Confirm Python architecture
+      - name: Confirm Python interpreter architecture
         run: |
-          M=$(python -c "import platform; print(platform.machine())")
-          echo "python arch = $M  (want ${{ matrix.arch }})"
-          test "$M" = "${{ matrix.arch }}"       # fail early if the wrong interpreter was provisioned
+          # NOTE: platform.machine() reports the HARDWARE (arm64) even for an x86_64
+          # Python under Rosetta — so check the interpreter's Mach-O arch directly.
+          PYBIN=$(python -c "import sys; print(sys.executable)")
+          A=$(lipo -archs "$PYBIN" 2>/dev/null || file -b "$PYBIN")
+          echo "python ($PYBIN) arch = $A  (want ${{ matrix.arch }})"
+          echo "$A" | grep -qw "${{ matrix.arch }}"
 
       - name: Create venv + install deps (arch-matched wheels)
         run: |
