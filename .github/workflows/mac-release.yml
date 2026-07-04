@@ -1,0 +1,70 @@
+name: Build macOS app (Intel + Apple Silicon)
+
+# Produces BOTH architectures so any Mac can run it:
+#   • macos-13  = Intel  → x86_64  (e.g. 2018 MacBook Pro)
+#   • macos-14  = Apple Silicon → arm64  (M1/M2/M3…)
+# Push a `mac-v*` tag → both zips are attached to that GitHub Release.
+# Or trigger manually (workflow_dispatch) → both zips as downloadable artifacts.
+
+on:
+  push:
+    tags: ['mac-v*']
+  workflow_dispatch: {}
+
+permissions:
+  contents: write        # create/upload release assets
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: macos-13, arch: x86_64 }   # Intel
+          - { runner: macos-14, arch: arm64 }    # Apple Silicon
+    runs-on: ${{ matrix.runner }}
+    name: build-${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'   # setup-python matches the runner's native arch
+
+      - name: Confirm runner architecture
+        run: |
+          echo "runner uname -m = $(uname -m)  (expected: ${{ matrix.arch }})"
+          test "$(uname -m)" = "${{ matrix.arch }}"   # fail loudly if a runner ever changes arch
+
+      - name: Create venv + install runtime deps
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install -r requirements.txt
+
+      - name: Build the .app (PyInstaller, native arch)
+        run: bash scripts/build_mac_app.sh
+
+      - name: Verify the built binary is the expected arch
+        run: |
+          BIN="release/VibeFlow.app/Contents/MacOS"
+          F="$(ls "$BIN" | head -1)"
+          echo "built arch: $(lipo -archs "$BIN/$F")"
+          lipo -archs "$BIN/$F" | grep -qw "${{ matrix.arch }}"
+
+      - name: Zip the app (arch-labelled)
+        run: |
+          ditto -c -k --keepParent "release/VibeFlow.app" "Mynah-mac-${{ matrix.arch }}.zip"
+          ls -lh "Mynah-mac-${{ matrix.arch }}.zip"
+
+      - name: Upload build artifact (for manual runs)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mynah-mac-${{ matrix.arch }}
+          path: Mynah-mac-${{ matrix.arch }}.zip
+
+      - name: Attach to the GitHub Release (on a mac-v* tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Mynah-mac-${{ matrix.arch }}.zip
