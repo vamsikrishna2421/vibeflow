@@ -3,9 +3,11 @@ name: Build macOS app (Intel + Apple Silicon)
 # Produces BOTH architectures so any Mac can run it — WITHOUT depending on GitHub's
 # scarce/retiring Intel (macos-13) runners. Both jobs run on Apple Silicon (macos-14):
 #   • arm64  — native.
-#   • x86_64 — cross-built with an x64 Python running under Rosetta 2.
+#   • x86_64 — the ENTIRE toolchain (venv, pip, PyInstaller) runs under `arch -x86_64`
+#              via Rosetta 2, so uname/pip/PyInstaller all resolve to Intel and fetch
+#              x86_64 wheels. (The setup-python "x64" build is universal2, so without the
+#              arch wrapper it would run its arm64 slice natively and build arm64.)
 # Push a `mac-v*` tag → both zips are attached to that GitHub Release.
-# Or trigger manually (workflow_dispatch) → both zips as downloadable artifacts.
 
 on:
   push:
@@ -13,7 +15,7 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  contents: write        # create/upload release assets
+  contents: write
 
 jobs:
   build:
@@ -21,8 +23,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { arch: arm64,  py_arch: arm64 }   # native on Apple Silicon
-          - { arch: x86_64, py_arch: x64 }     # cross-built via Rosetta 2
+          - { arch: arm64,  py_arch: arm64, wrap: '' }
+          - { arch: x86_64, py_arch: x64,   wrap: 'arch -x86_64' }
     runs-on: macos-14      # Apple Silicon — reliable; Intel runners are being retired
     name: build-${{ matrix.arch }}
     steps:
@@ -35,25 +37,22 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          architecture: ${{ matrix.py_arch }}   # x64 → an x86_64 interpreter (runs under Rosetta)
+          architecture: ${{ matrix.py_arch }}
 
-      - name: Confirm Python interpreter architecture
+      - name: Confirm effective build architecture
         run: |
-          # NOTE: platform.machine() reports the HARDWARE (arm64) even for an x86_64
-          # Python under Rosetta — so check the interpreter's Mach-O arch directly.
-          PYBIN=$(python -c "import sys; print(sys.executable)")
-          A=$(lipo -archs "$PYBIN" 2>/dev/null || file -b "$PYBIN")
-          echo "python ($PYBIN) arch = $A  (want ${{ matrix.arch }})"
-          echo "$A" | grep -qw "${{ matrix.arch }}"
+          M=$(${{ matrix.wrap }} python -c "import platform; print(platform.machine())")
+          echo "effective arch = $M  (want ${{ matrix.arch }})"
+          test "$M" = "${{ matrix.arch }}"
 
       - name: Create venv + install deps (arch-matched wheels)
         run: |
-          python -m venv .venv
-          .venv/bin/python -m pip install --upgrade pip
-          .venv/bin/python -m pip install -r requirements.txt
+          ${{ matrix.wrap }} python -m venv .venv
+          ${{ matrix.wrap }} .venv/bin/python -m pip install --upgrade pip
+          ${{ matrix.wrap }} .venv/bin/python -m pip install -r requirements.txt
 
-      - name: Build the .app (PyInstaller follows the venv's arch)
-        run: bash scripts/build_mac_app.sh
+      - name: Build the .app (under the target arch)
+        run: ${{ matrix.wrap }} bash scripts/build_mac_app.sh
 
       - name: Verify the built binary is the expected arch
         run: |
