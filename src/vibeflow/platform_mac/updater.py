@@ -23,6 +23,7 @@ that re-verifies the installed bundle and rolls back on failure.
 from __future__ import annotations
 
 import os
+import platform
 import plistlib
 import re
 import subprocess
@@ -35,7 +36,7 @@ from .. import __app_name__, __version__
 from ..update_check import REPO, RELEASES_PAGE
 
 API_LIST = f"https://api.github.com/repos/{REPO}/releases?per_page=100"
-_MAC_ASSET = "vibeflow-mac.zip"          # exact asset name (compared lowercased)
+_MAC_ASSET = f"vibeflow-mac-{platform.machine().lower()}.zip"   # arch-aware (compared lowercased)
 _TEAM_ID = "CJ8SV692GN"                  # pin self-updates to OUR Developer ID
 # GitHub-controlled hosts. `_host_ok` also matches any subdomain, so
 # "githubusercontent.com" covers release-assets / objects / codeload /raw.* —

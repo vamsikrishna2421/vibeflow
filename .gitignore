@@ -49,3 +49,6 @@ ruvector.db
 # Published one-file installer — committed so testers can download it directly.
 # (Overrides the *.exe rule above for this one tracked artifact.)
 !installer/VibeFlowSetup.exe
+
+# local mac build artifacts
+*-mac-*.zip

@@ -63,17 +63,17 @@ jobs:
 
       - name: Zip the app (arch-labelled)
         run: |
-          ditto -c -k --keepParent "release/VibeFlow.app" "Mynah-mac-${{ matrix.arch }}.zip"
-          ls -lh "Mynah-mac-${{ matrix.arch }}.zip"
+          ditto -c -k --keepParent "release/VibeFlow.app" "VibeFlow-mac-${{ matrix.arch }}.zip"
+          ls -lh "VibeFlow-mac-${{ matrix.arch }}.zip"
 
       - name: Upload build artifact (for manual runs)
         uses: actions/upload-artifact@v4
         with:
-          name: Mynah-mac-${{ matrix.arch }}
-          path: Mynah-mac-${{ matrix.arch }}.zip
+          name: VibeFlow-mac-${{ matrix.arch }}
+          path: VibeFlow-mac-${{ matrix.arch }}.zip
 
       - name: Attach to the GitHub Release (on a mac-v* tag)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: Mynah-mac-${{ matrix.arch }}.zip
+          files: VibeFlow-mac-${{ matrix.arch }}.zip
