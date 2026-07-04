@@ -1,8 +1,9 @@
 name: Build macOS app (Intel + Apple Silicon)
 
-# Produces BOTH architectures so any Mac can run it:
-#   • macos-13  = Intel  → x86_64  (e.g. 2018 MacBook Pro)
-#   • macos-14  = Apple Silicon → arm64  (M1/M2/M3…)
+# Produces BOTH architectures so any Mac can run it — WITHOUT depending on GitHub's
+# scarce/retiring Intel (macos-13) runners. Both jobs run on Apple Silicon (macos-14):
+#   • arm64  — native.
+#   • x86_64 — cross-built with an x64 Python running under Rosetta 2.
 # Push a `mac-v*` tag → both zips are attached to that GitHub Release.
 # Or trigger manually (workflow_dispatch) → both zips as downloadable artifacts.
 
@@ -20,29 +21,35 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { runner: macos-13, arch: x86_64 }   # Intel
-          - { runner: macos-14, arch: arm64 }    # Apple Silicon
-    runs-on: ${{ matrix.runner }}
+          - { arch: arm64,  py_arch: arm64 }   # native on Apple Silicon
+          - { arch: x86_64, py_arch: x64 }     # cross-built via Rosetta 2
+    runs-on: macos-14      # Apple Silicon — reliable; Intel runners are being retired
     name: build-${{ matrix.arch }}
     steps:
       - uses: actions/checkout@v4
 
+      - name: Ensure Rosetta 2 (for the x86_64 cross-build)
+        if: matrix.arch == 'x86_64'
+        run: softwareupdate --install-rosetta --agree-to-license || true
+
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'   # setup-python matches the runner's native arch
+          python-version: '3.11'
+          architecture: ${{ matrix.py_arch }}   # x64 → an x86_64 interpreter (runs under Rosetta)
 
-      - name: Confirm runner architecture
+      - name: Confirm Python architecture
         run: |
-          echo "runner uname -m = $(uname -m)  (expected: ${{ matrix.arch }})"
-          test "$(uname -m)" = "${{ matrix.arch }}"   # fail loudly if a runner ever changes arch
+          M=$(python -c "import platform; print(platform.machine())")
+          echo "python arch = $M  (want ${{ matrix.arch }})"
+          test "$M" = "${{ matrix.arch }}"       # fail early if the wrong interpreter was provisioned
 
-      - name: Create venv + install runtime deps
+      - name: Create venv + install deps (arch-matched wheels)
         run: |
           python -m venv .venv
           .venv/bin/python -m pip install --upgrade pip
           .venv/bin/python -m pip install -r requirements.txt
 
-      - name: Build the .app (PyInstaller, native arch)
+      - name: Build the .app (PyInstaller follows the venv's arch)
         run: bash scripts/build_mac_app.sh
 
       - name: Verify the built binary is the expected arch
