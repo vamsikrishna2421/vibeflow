@@ -53,29 +53,8 @@ def _cubic(p0, p1, p2, p3, t):
     return x, y
 
 
-_MASTER = None  # cached Mynah PNG master (loaded once)
-
-
 def render_logo(size: int = 256):
-    """Return an RGBA PIL image of the Mynah icon at ``size`` pixels.
-
-    Loads the brand PNG (resources/logos/mynah.png); falls back to the original
-    drawn mark if the resource is ever missing, so the tray never breaks.
-    """
-    import os
-    from PIL import Image
-    global _MASTER
-    try:
-        if _MASTER is None:
-            path = os.path.join(os.path.dirname(__file__), "resources", "logos", "mynah.png")
-            _MASTER = Image.open(path).convert("RGBA")
-        return _MASTER.resize((size, size), Image.LANCZOS)
-    except Exception:
-        return _render_drawn(size)
-
-
-def _render_drawn(size: int = 256):
-    """Fallback: the original drawn waveform mark (kept dependency-light)."""
+    """Return an RGBA PIL image of the VibeFlow icon at ``size`` pixels."""
     from PIL import Image, ImageDraw
 
     scale = 4 if size <= 128 else 1          # supersample small icons

@@ -1,7 +1,7 @@
 """
 License window — a standalone Tk dialog (own process, like settings_window.py).
 Shows current status, lets the user paste/open a license file, and links to buy.
-Launched via `python -m vibeflow --license` (or `Mynah.exe --license`).
+Launched via `python -m vibeflow --license` (or `VibeFlow.exe --license`).
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ def run(config_path: str | None = None) -> int:
     status = licensing.evaluate(cfg_dir)
 
     root = tk.Tk()
-    root.title("Mynah · License")
+    root.title("VibeFlow · License")
     root.configure(bg=_BG)
     try:
         root.geometry("460x460")
@@ -38,7 +38,7 @@ def run(config_path: str | None = None) -> int:
     def label(parent, text, **kw):
         return tk.Label(parent, text=text, bg=kw.pop("bg", _BG), fg=kw.pop("fg", _INK), **kw)
 
-    label(root, "Mynah License", font=("Segoe UI", 18, "bold")).pack(anchor="w", padx=22, pady=(20, 2))
+    label(root, "VibeFlow License", font=("Segoe UI", 18, "bold")).pack(anchor="w", padx=22, pady=(20, 2))
 
     # Status card
     card = tk.Frame(root, bg=_CARD)
@@ -70,13 +70,13 @@ def run(config_path: str | None = None) -> int:
             msg.config(text=f"✓ Activated — {new.badge}", fg="#3ed598")
             state_line.config(text=new.badge)
         else:
-            msg.config(text="✗ That doesn't look like a valid Mynah license.", fg="#ff6b6b")
+            msg.config(text="✗ That doesn't look like a valid VibeFlow license.", fg="#ff6b6b")
 
     def on_activate():
         apply_text(box.get("1.0", "end"))
 
     def on_open_file():
-        p = filedialog.askopenfilename(title="Choose your Mynah license file",
+        p = filedialog.askopenfilename(title="Choose your VibeFlow license file",
                                        filetypes=[("License", "*.key *.txt *.lic"), ("All", "*.*")])
         if p:
             try:

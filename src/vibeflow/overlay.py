@@ -22,14 +22,14 @@ import threading
 
 # state -> (dot colour, default text, auto-hide ms or None, pulse?)
 _STATES = {
-    "listening": ("#E23A3A", "Mynah · Listening…", None, True),
-    "transcribing": ("#F0A52A", "Mynah · Transcribing…", None, False),
-    "done": ("#39B36A", "Mynah · Completed successfully", 1900, False),
-    "clipboard": ("#5B8DEF", "Mynah · Copied to clipboard", 2800, False),
-    "working": ("#F0A52A", "Mynah · Working…", None, True),   # stays until replaced
-    "learned": ("#39B36A", "Mynah · Learned", 4200, False),   # green, lingers to read
-    "info": ("#9AA4B2", "Mynah", 2200, False),
-    "error": ("#E23A3A", "Mynah", 3500, False),
+    "listening": ("#E23A3A", "VibeFlow · Listening…", None, True),
+    "transcribing": ("#F0A52A", "VibeFlow · Transcribing…", None, False),
+    "done": ("#39B36A", "VibeFlow · Completed successfully", 1900, False),
+    "clipboard": ("#5B8DEF", "VibeFlow · Copied to clipboard", 2800, False),
+    "working": ("#F0A52A", "VibeFlow · Working…", None, True),   # stays until replaced
+    "learned": ("#39B36A", "VibeFlow · Learned", 4200, False),   # green, lingers to read
+    "info": ("#9AA4B2", "VibeFlow", 2200, False),
+    "error": ("#E23A3A", "VibeFlow", 3500, False),
 }
 
 _BG = "#0E1730"
@@ -122,7 +122,7 @@ class StatusOverlay:
         self._canvas.pack(side="left", padx=(0, 11))
         self._dot = self._canvas.create_oval(2, 2, 14, 14, fill="#E23A3A", outline="")
         self._label = tk.Label(
-            frame, text="Mynah", fg=_FG, bg=_BG, font=("Segoe UI", 11)
+            frame, text="VibeFlow", fg=_FG, bg=_BG, font=("Segoe UI", 11)
         )
         self._label.pack(side="left")
         root.update_idletasks()

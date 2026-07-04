@@ -1,4 +1,4 @@
-"""Guarantee only one Mynah runs at a time.
+"""Guarantee only one VibeFlow runs at a time.
 
 On Windows this uses a named mutex held for the lifetime of the process — the
 OS releases it automatically if the app exits or crashes, so the lock can never
@@ -92,10 +92,10 @@ class SingleInstance:
 
 
 def notify_already_running() -> None:
-    """Tell the user (via a small dialog) that Mynah is already running."""
+    """Tell the user (via a small dialog) that VibeFlow is already running."""
     message = (
-        "Mynah is already running.\n\n"
-        "Look for the Mynah icon in the system tray (near the clock — click "
+        "VibeFlow is already running.\n\n"
+        "Look for the VibeFlow icon in the system tray (near the clock — click "
         "the up-arrow ↑ to show hidden icons)."
     )
     if sys.platform != "win32":
@@ -108,7 +108,7 @@ def notify_already_running() -> None:
         MB_ICONINFORMATION = 0x40
         MB_TOPMOST = 0x40000
         ctypes.windll.user32.MessageBoxW(
-            None, message, "Mynah", MB_OK | MB_ICONINFORMATION | MB_TOPMOST
+            None, message, "VibeFlow", MB_OK | MB_ICONINFORMATION | MB_TOPMOST
         )
     except Exception:
         pass

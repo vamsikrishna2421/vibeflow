@@ -3,10 +3,10 @@
 Lists the local LLM models Ollama has installed (with sizes), and lets you remove
 the ones you don't need — no terminal, no reinstalling anything. It talks to the
 live Ollama server (GET /api/tags, DELETE /api/delete), so it always reflects the
-real store, and it labels which models Mynah added vs. ones you installed
+real store, and it labels which models VibeFlow added vs. ones you installed
 yourself (removing one of yours asks for an extra confirmation).
 
-Runs as its own process (``Mynah.exe --models-manager``) so it has an
+Runs as its own process (``VibeFlow.exe --models-manager``) so it has an
 independent Tk loop and never blocks the tray icon or the dictation hotkey.
 """
 
@@ -70,7 +70,7 @@ def run(config_path: str | None = None) -> int:
     pulled |= {_base_name(m) for m in pulled}
 
     root = tk.Tk()
-    root.title("Mynah — AI models")
+    root.title("VibeFlow — AI models")
     root.geometry("560x520")
     root.minsize(520, 420)
     root.configure(bg=_BG)
@@ -127,7 +127,7 @@ def run(config_path: str | None = None) -> int:
             mine = name in pulled or _base_name(name) in pulled
             label = f"{name}   ·   {_fmt_size(m['size'])}"
             if not mine:
-                label += "   (not added by Mynah)"
+                label += "   (not added by VibeFlow)"
             var = tk.BooleanVar(value=False)
             tk.Checkbutton(
                 listframe, text=label, variable=var, bg=_BG, fg=_FG, selectcolor=_BG,
@@ -139,7 +139,7 @@ def run(config_path: str | None = None) -> int:
     def remove_selected():
         chosen = [n for n, (v, _mine) in vars_by_name.items() if v.get()]
         if not chosen:
-            messagebox.showinfo("Mynah", "Tick the model(s) to remove first.", parent=root)
+            messagebox.showinfo("VibeFlow", "Tick the model(s) to remove first.", parent=root)
             return
         foreign = [n for n in chosen if not vars_by_name[n][1]]
         msg = "Remove these model(s)?\n\n" + "\n".join(chosen)
@@ -147,15 +147,15 @@ def run(config_path: str | None = None) -> int:
             msg += (
                 "\n\nNote: "
                 + ", ".join(foreign)
-                + " were not added by Mynah — removing them frees space but "
+                + " were not added by VibeFlow — removing them frees space but "
                 "they'll be gone for any other app that uses Ollama too."
             )
-        if not messagebox.askyesno("Mynah", msg, parent=root):
+        if not messagebox.askyesno("VibeFlow", msg, parent=root):
             return
         failed = [n for n in chosen if not ai_setup.delete_model(n)]
         if failed:
             messagebox.showwarning(
-                "Mynah", "Couldn't remove: " + ", ".join(failed), parent=root
+                "VibeFlow", "Couldn't remove: " + ", ".join(failed), parent=root
             )
         rebuild()
 

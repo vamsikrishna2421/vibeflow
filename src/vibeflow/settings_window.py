@@ -1,8 +1,8 @@
-"""Mynah Settings — one window where every common option lives and **stays
+"""VibeFlow Settings — one window where every common option lives and **stays
 open** until you close it (the tray's right-click menu is a native Windows menu
 that always closes after a single click; this panel solves that).
 
-Runs as its own process (``Mynah.exe --settings``) so it has an independent Tk
+Runs as its own process (``VibeFlow.exe --settings``) so it has an independent Tk
 main loop and never blocks the tray icon or the dictation hotkey. It edits
 ``config.yaml``; the running app watches that file and reloads + re-applies the
 changes within a second or two (no restart needed for these settings). Speech
@@ -72,7 +72,7 @@ def run(config_path: str | None = None) -> int:
     cfg = config_mod.load_config(config_path)
 
     root = tk.Tk()
-    root.title("Mynah — Settings")
+    root.title("VibeFlow — Settings")
     _sh = root.winfo_screenheight()
     root.geometry("500x600")  # provisional — resized to fit the content below
     root.minsize(480, 420)
@@ -169,7 +169,7 @@ def run(config_path: str | None = None) -> int:
     # Autostart is a registry setting, not config — handle it specially.
     autostart_var = tk.BooleanVar(value=bool(_safe(autostart.is_enabled)))
     tk.Checkbutton(
-        cardf, text="Start Mynah when I sign in to Windows", variable=autostart_var,
+        cardf, text="Start VibeFlow when I sign in to Windows", variable=autostart_var,
         bg=_CARD, fg=_FG, selectcolor=_CARD, activebackground=_CARD,
         activeforeground=_ACCENT, anchor="w", font=("Segoe UI", 10),
         highlightthickness=0, bd=0,
@@ -200,7 +200,7 @@ def run(config_path: str | None = None) -> int:
             want = bool(autostart_var.get())
             if want != bool(_safe(autostart.is_enabled)):
                 _safe(autostart.enable if want else autostart.disable)
-            status.config(text="Saved ✓  — applied to Mynah.")
+            status.config(text="Saved ✓  — applied to VibeFlow.")
         except Exception as exc:  # pragma: no cover - defensive
             status.config(text=f"Could not save: {exc}", fg=_pal["danger"])
 

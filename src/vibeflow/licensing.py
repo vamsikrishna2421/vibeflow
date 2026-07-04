@@ -1,5 +1,5 @@
 """
-Mynah licensing — fully offline, air-gap friendly, zero hard dependencies.
+VibeFlow licensing — fully offline, air-gap friendly, zero hard dependencies.
 
 A license is a signed token: b64url(json_payload) + "." + b64url(ed25519_sig).
 The app ships ONLY the public key and verifies with no network access — the point
@@ -56,7 +56,7 @@ class LicenseStatus:
     @property
     def badge(self) -> str:
         if self.state == "licensed":
-            base = f"Mynah {self.edition.title()}"
+            base = f"VibeFlow {self.edition.title()}"
             return base + (f" · {self.seats} seats" if self.edition == "business" else "")
         if self.state == "trial":
             n = self.days_left or 0
