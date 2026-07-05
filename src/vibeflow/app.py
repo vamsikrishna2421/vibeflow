@@ -184,8 +184,18 @@ class VibeFlowApp:
                 self._notify(__app_name__, "Recording too short — ignored.")
                 return
 
+            _t0 = time.perf_counter()
             text = self.transcriber.transcribe(audio, prompt=self.vocabulary.prompt())
+            _took = time.perf_counter() - _t0
             self._model_ready = True
+            _size = self.cfg.get("model.size", "base")
+            logging.getLogger("vibeflow").info(
+                "transcribed with %s in %.2fs (audio %.1fs)", _size, _took, seconds
+            )
+            # Surface model + runtime so accuracy-vs-speed is visible without the log
+            # (the model-bake-off readout). Toggle off via model.show_timing = false.
+            if bool(self.cfg.get("model.show_timing", True)):
+                self.overlay.show("info", f"VibeFlow · {_size} · {_took:.1f}s")
             if bool(self.cfg.get("text.debug_log", False)):
                 logging.getLogger("vibeflow").info(
                     "debug raw transcript: %r", (text or "")[:240]
@@ -549,8 +559,13 @@ class VibeFlowApp:
     def _model_cached(self) -> bool:
         """Is the chosen speech model already downloaded? (False on a fresh PC.)"""
         try:
+            from .transcriber import model_cache_dirname
+
             size = self.cfg.get("model.size", "base")
-            base = config_mod.models_dir() / f"models--Systran--faster-whisper-{size}"
+            dirname = model_cache_dirname(size)
+            if not dirname:
+                return True  # unknown model id — let the loader handle the download
+            base = config_mod.models_dir() / dirname
             return base.exists() and any(base.rglob("model.bin"))
         except Exception:
             return True  # don't nag if we can't tell
@@ -696,6 +711,24 @@ class VibeFlowApp:
                         "Balanced (small · ~2.7s)",
                         lambda i: self._set_accuracy("small"),
                         checked=lambda i: self.cfg.get("model.size") == "small",
+                        radio=True,
+                    ),
+                    Item(
+                        "Accurate (medium · slower)",
+                        lambda i: self._set_accuracy("medium"),
+                        checked=lambda i: self.cfg.get("model.size") == "medium",
+                        radio=True,
+                    ),
+                    Item(
+                        "Max — Turbo (large-v3-turbo)",
+                        lambda i: self._set_accuracy("large-v3-turbo"),
+                        checked=lambda i: self.cfg.get("model.size") == "large-v3-turbo",
+                        radio=True,
+                    ),
+                    Item(
+                        "Max — Distil (distil-large-v3 · English)",
+                        lambda i: self._set_accuracy("distil-large-v3"),
+                        checked=lambda i: self.cfg.get("model.size") == "distil-large-v3",
                         radio=True,
                     ),
                 ),
@@ -1505,7 +1538,10 @@ class VibeFlowApp:
         self._save_config()
         self.transcriber = self._build_transcriber()
         self._model_ready = False
-        labels = {"base": "Fast", "small": "Balanced"}
+        labels = {
+            "base": "Fast", "small": "Balanced", "medium": "Accurate",
+            "large-v3-turbo": "Turbo", "distil-large-v3": "Distil",
+        }
         self._notify(
             __app_name__,
             f"Speech accuracy: {labels.get(size, size)}. The model downloads on "

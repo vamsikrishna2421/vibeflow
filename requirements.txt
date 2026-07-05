@@ -2,7 +2,7 @@
 # Install with:  pip install -r requirements.txt
 # (The provided installer script does this for you inside a virtual environment.)
 
-faster-whisper>=1.0.0     # offline speech-to-text engine (CTranslate2)
+faster-whisper>=1.1.0     # offline speech-to-text engine (CTranslate2)
 sounddevice>=0.4.6        # microphone capture
 numpy>=1.24              # audio buffers
 pynput>=1.7.6            # global hotkeys + keyboard output

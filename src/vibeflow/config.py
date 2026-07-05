@@ -25,10 +25,11 @@ from typing import Any
 # ---------------------------------------------------------------------------
 DEFAULTS: dict[str, Any] = {
     "model": {
-        "size": "base",          # tiny | base | small | medium | large-v3
+        "size": "base",          # tiny | base | small | medium | large-v3 | large-v3-turbo | distil-large-v3
         "language": "en",        # English by default (unknown values fall back to English)
         "device": "auto",        # auto | cpu | cuda
         "compute_type": "auto",  # auto | int8 | int8_float16 | float16 | float32
+        "show_timing": True,     # briefly flash "<model> · <seconds>" after each dictation
     },
     "hotkey": {
         "mode": "push_to_talk",            # push_to_talk only (toggle disabled for now)

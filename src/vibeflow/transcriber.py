@@ -15,6 +15,32 @@ class TranscriptionError(RuntimeError):
     """Raised when a model cannot be loaded or audio cannot be transcribed."""
 
 
+# The speech models VibeFlow exposes, mapped to their HuggingFace CTranslate2 repo.
+# Passing the explicit repo id (rather than a bare shorthand) makes model loading
+# independent of the installed faster-whisper version's built-in shortcut table, so
+# large-v3-turbo / distil-large-v3 load reliably. distil-large-v3 is English-only.
+MODEL_REPOS = {
+    "tiny": "Systran/faster-whisper-tiny",
+    "base": "Systran/faster-whisper-base",
+    "small": "Systran/faster-whisper-small",
+    "medium": "Systran/faster-whisper-medium",
+    "large-v3": "Systran/faster-whisper-large-v3",
+    "large-v3-turbo": "mobiuslabsgmbh/faster-whisper-large-v3-turbo",
+    "distil-large-v3": "Systran/faster-distil-whisper-large-v3",
+}
+
+
+def resolve_model(size: str) -> str:
+    """Model shorthand -> the HF repo id to hand faster-whisper (pass-through if unknown)."""
+    return MODEL_REPOS.get(size, size)
+
+
+def model_cache_dirname(size: str) -> str | None:
+    """HF-hub cache folder name for a model shorthand (None if unknown)."""
+    repo = MODEL_REPOS.get(size)
+    return ("models--" + repo.replace("/", "--")) if repo else None
+
+
 class Transcriber:
     """Lazy wrapper around a faster-whisper model."""
 
@@ -108,12 +134,13 @@ class Transcriber:
         common = dict(
             device=device, compute_type=compute_type, download_root=self.models_dir
         )
+        name = resolve_model(self.size)
         try:
-            return WhisperModel(self.size, local_files_only=True, **common)
+            return WhisperModel(name, local_files_only=True, **common)
         except Exception:
             if not allow_download:
                 raise
-            return WhisperModel(self.size, local_files_only=False, **common)
+            return WhisperModel(name, local_files_only=False, **common)
 
     def transcribe(self, audio, prompt: str | None = None) -> str:
         """Transcribe a float32 numpy audio array (16 kHz) into text.
