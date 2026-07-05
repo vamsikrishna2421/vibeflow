@@ -45,13 +45,19 @@ DEFAULT_ENDPOINT = "http://127.0.0.1:11434"
 DEFAULT_MODEL = "qwen2.5:1.5b"  # benchmark winner: fast, tiny, clean, reliable
 
 _DEFAULT_PROMPT = (
-    "You lightly clean up dictated text. Fix ONLY capitalization, punctuation, "
-    "paragraph breaks, and obvious speech-to-text errors. Keep the speaker's own "
-    "words, phrasing, and tone — do not paraphrase, summarise, reword, or make it "
-    "more formal. Keep the point of view and pronouns EXACTLY: if it is first "
-    "person (I, we, my), keep it first person; never address or describe the "
-    "speaker as 'you' or 'the user'. Do not add commentary or quotation marks. "
-    "Output ONLY the cleaned-up text."
+    "You are a strict proofreader for speech-to-text dictation. Fix ONLY:\n"
+    "- punctuation, capitalization, and sentence breaks;\n"
+    "- clearly mis-transcribed TECHNICAL TERMS, ACRONYMS, PRODUCT/TOOL NAMES and "
+    "VERSION NUMBERS, using context — a garbled protocol, service, command or product "
+    "name that is obvious from the surrounding words, and common variants (e.g. "
+    "'Postgres SQL' -> 'PostgreSQL', 'push to name' -> 'push to main', 'pytest tool' "
+    "-> 'pytest suite', 'GRPC' -> 'gRPC').\n"
+    "STRICT RULES: do NOT rephrase, restructure, summarise, expand, reorder, add, or "
+    "drop ANY words beyond those corrections. Keep every number exactly. Preserve the "
+    "speaker's exact wording, sentence order, length, and FIRST-PERSON voice (I, we, "
+    "my) — never address or describe the speaker as 'you' or 'the user'. Return the "
+    "FULL text corrected in place; do not add commentary or quotation marks. Output "
+    "ONLY the corrected text."
 )
 
 # Appended to the prompt only when filler removal is enabled. Context-aware:
@@ -166,7 +172,10 @@ def _ollama_generate(
         "model": model,
         "prompt": f"{prompt}\n\nText:\n{text}\n\nCleaned text:",
         "stream": False,
-        "options": {"temperature": 0},
+        # num_ctx/num_predict sized for a long dictation so a 5-minute transcript is
+        # never truncated by a too-small context or output cap.
+        "options": {"temperature": 0, "num_ctx": 8192, "num_predict": 3072},
+        "keep_alive": _keep_alive(cfg),
     }
     body = _post_json(f"{endpoint}/api/generate", payload, timeout)
     result = (body.get("response") or "").strip()
@@ -211,6 +220,7 @@ def build_persona_profile(samples, cfg, timeout: float | None = None):
         "prompt": _PERSONA_PROMPT.format(samples=joined),
         "stream": False,
         "options": {"temperature": 0.3},
+        "keep_alive": _keep_alive(cfg),
     }
     try:
         body = _post_json(f"{endpoint}/api/generate", payload, t)
@@ -291,6 +301,7 @@ def extract_terms(corrected: str, cfg, timeout: float | None = None):
         "prompt": _EXTRACT_PROMPT.format(text=corrected.strip()),
         "stream": False,
         "options": {"temperature": 0},
+        "keep_alive": _keep_alive(cfg),
     }
     try:
         body = _post_json(f"{endpoint}/api/generate", payload, t)
@@ -351,6 +362,13 @@ def check(cfg) -> tuple[bool, str]:
 # ---------------------------------------------------------------------------
 # Tiny HTTP helpers (stdlib only)
 # ---------------------------------------------------------------------------
+def _keep_alive(cfg) -> str:
+    """How long Ollama keeps the model resident after a request. Keeping it loaded
+    avoids re-spawning the runner — which briefly flashes a console window on
+    Windows — on the first dictation after each ~5-minute idle gap."""
+    return str(cfg.get("ai.keep_alive", "30m") or "30m")
+
+
 def _post_json(url: str, payload: dict, timeout: float) -> dict:
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(

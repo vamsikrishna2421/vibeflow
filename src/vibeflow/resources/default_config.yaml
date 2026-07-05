@@ -10,12 +10,14 @@
 #  Speech model — turns your voice into text. Bigger = more accurate but slower.
 # ----------------------------------------------------------------------------
 model:
-  # tiny | base | small | medium | large-v3
-  #   tiny  = fastest, least accurate (good for old/slow laptops)
-  #   base  = great everyday balance (default)
-  #   small = noticeably more accurate, still fast on most machines
-  #   medium / large-v3 = most accurate, needs a strong CPU or a GPU
-  size: base
+  # small | medium  (medium recommended). Other sizes were removed from the menu.
+  #   small  = fast, still accurate
+  #   medium = most accurate (recommended)
+  size: medium
+
+  # Transcribe WHILE you speak (capped-segment streaming) so the paste is
+  # near-instant on release instead of after you stop. On by default.
+  streaming: true
 
   # Language of your speech. Defaults to English ("en"). Use "auto" to detect it
   # for you, or set a code such as es (Spanish), fr (French), de (German),
@@ -71,7 +73,7 @@ output:
 
   # In "auto" mode, what to do when VibeFlow can't tell if a text box is
   # focused: clipboard (safe, recommended) | type
-  auto_fallback: clipboard
+  auto_fallback: type
 
 # ----------------------------------------------------------------------------
 #  Audio.
@@ -105,7 +107,7 @@ text:
   # "uh-huh", etc.); when AI is off, a conservative offline regex strips only the
   # unambiguous standalone cases. Off by default; recover the raw text from the
   # tray ("Copy last transcript (unedited)").
-  strip_fillers: false
+  strip_fillers: true
   fillers: []                 # Custom filler list; [] uses the built-in safe set.
 
   # Adaptive vocabulary — learns your names/jargon so they transcribe correctly.

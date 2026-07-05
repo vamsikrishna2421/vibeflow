@@ -49,6 +49,8 @@ class MenuBarApp:
         self._busy = False
         self._model_ready = False
         self._stopping = False
+        self._stream_session = None          # active streaming session, if any
+        self._offline_dl = False             # offline-model download in progress
 
         self._status = "Starting…"
         self._state = "idle"
@@ -142,6 +144,22 @@ class MenuBarApp:
             self._overlay_flash("⚠️ Microphone error")
             self._notify("Microphone error", str(exc))
             return
+
+        # Streaming (default): transcribe WHILE speaking so the paste is near-instant
+        # on release. Whisper engine only; any failure falls back to batch.
+        self._stream_session = None
+        try:
+            if bool(self.cfg.get("model.streaming", True)) and \
+                    getattr(self.transcriber, "engine", "whisper") == "whisper":
+                from ..streaming import StreamingSession
+                self._stream_session = StreamingSession(
+                    self.transcriber, self.recorder, prompt=self.vocabulary.prompt()
+                )
+                self._stream_session.start()
+        except Exception as exc:
+            self._stream_session = None
+            log.info("streaming start failed (%s); using batch", exc)
+
         self._set("recording", "Listening…")
         self._overlay_persist("🎙 Listening…")
 
@@ -161,12 +179,33 @@ class MenuBarApp:
         self._busy_deadline = time.time() + max(60.0, dur * 3.0)
         self._set("busy", "Transcribing…")
         self._overlay_persist("✍️ Transcribing…")
-        threading.Thread(target=self._process, args=(audio,), daemon=True).start()
+        session = getattr(self, "_stream_session", None)
+        self._stream_session = None
+        if session is not None:
+            threading.Thread(
+                target=self._process_streamed, args=(session, audio), daemon=True
+            ).start()
+        else:
+            threading.Thread(target=self._process, args=(audio,), daemon=True).start()
 
     # ------------------------------------------------------------------
     # The pipeline (worker thread) — mirrors app.py:_process
     # ------------------------------------------------------------------
-    def _process(self, audio) -> None:
+    def _process_streamed(self, session, audio) -> None:
+        """Deliver a streamed transcript; fall back to batch on failure or if the
+        result looks implausibly short (streaming fell behind → never ship a cut-off)."""
+        text = None
+        try:
+            text = session.finalize(audio)  # full recording — the live buffer is cleared
+        except Exception as exc:
+            log.info("streaming failed (%s); falling back to batch transcribe", exc)
+        secs = self.recorder.duration(audio)
+        if text and len(text.strip()) >= max(12, secs * 6):
+            self._process(audio, text=text)
+        else:
+            self._process(audio)
+
+    def _process(self, audio, text=None) -> None:
         try:
             seconds = self.recorder.duration(audio)
             if seconds < float(self.cfg.get("audio.min_seconds", 0.4)):
@@ -174,9 +213,10 @@ class MenuBarApp:
                 self._notify(__app_name__, "Recording too short — ignored.")
                 return
 
-            log.info("transcribing %.1fs of audio", seconds)
-            text = self.transcriber.transcribe(audio, prompt=self.vocabulary.prompt())
-            self._model_ready = True
+            if text is None:  # streaming may have already transcribed during speech
+                log.info("transcribing %.1fs of audio", seconds)
+                text = self.transcriber.transcribe(audio, prompt=self.vocabulary.prompt())
+                self._model_ready = True
             if bool(self.cfg.get("text.debug_log", False)):
                 log.info("debug raw transcript: %r", (text or "")[:240])
             text = clean_transcript(
@@ -224,7 +264,7 @@ class MenuBarApp:
                     capitalize_sentences=bool(
                         self.cfg.get("text.capitalize_sentences", True)
                     ),
-                    strip_fillers=(strip_fillers and not ai_on),
+                    strip_fillers=True,  # always: deterministic filler removal is a default cleanup layer
                     fillers=self.cfg.get("text.fillers", []) or None,
                 )
                 tone = {appmode.PROFESSIONAL: "professional",
@@ -235,10 +275,15 @@ class MenuBarApp:
                         self._set("busy", f"Restructuring for {target_name}…")
                         self._overlay_persist(f"Restructuring for {target_name}…")
                     profile = self.persona.profile_text() if persona_on else None
-                    ai_text = ai_format.format_text(
-                        text, self.cfg, persona=profile,
-                        strip_fillers=strip_fillers, tone=tone,
-                    )
+                    if self.cfg.get("ai.provider", "ollama") == "builtin":
+                        # "Offline — no Ollama" tier: clean up with the built-in local LLM.
+                        from ..core import offline_cleanup
+                        ai_text = offline_cleanup.format_text(text, self.cfg, persona=profile)
+                    else:
+                        ai_text = ai_format.format_text(
+                            text, self.cfg, persona=profile,
+                            strip_fillers=False, tone=tone,
+                        )
                     if ai_text:
                         text = ai_text
 
@@ -556,10 +601,10 @@ class MenuBarApp:
                          lambda s: self._set_output("clipboard")),
             ]),
             ("Speech accuracy", [
-                self._mi(rumps, "acc_base", "Fast (base · recommended)",
-                         lambda s: self._set_accuracy("base")),
-                self._mi(rumps, "acc_small", "Balanced (small)",
+                self._mi(rumps, "acc_small", "Fast (small)",
                          lambda s: self._set_accuracy("small")),
+                self._mi(rumps, "acc_medium", "Accurate (medium · recommended)",
+                         lambda s: self._set_accuracy("medium")),
             ]),
             ("AI formatting", [
                 self._mi(rumps, "ai_off", "Off (plain voice-to-text)",
@@ -570,10 +615,10 @@ class MenuBarApp:
                          lambda s: self._set_ai_model("balanced")),
                 self._mi(rumps, "ai_best", "Best — gemma2:2b",
                          lambda s: self._set_ai_model("best")),
+                None,
+                self._mi(rumps, "ai_offline", "Offline — no Ollama (built-in 3B · ~2 GB)",
+                         lambda s: self._set_ai_model("offline")),
             ]),
-            None,
-            self._mi(rumps, "fillers", "Remove filler words (um, uh)",
-                     self._toggle_fillers),
             ("Adapt formatting to each app", [
                 self._mi(rumps, "modes_enabled", "Enabled", self._toggle_modes),
                 None,
@@ -714,16 +759,16 @@ class MenuBarApp:
         self._check("out_clip", mode == "clipboard")
 
         size = self.cfg.get("model.size")
-        self._check("acc_base", size == "base")
         self._check("acc_small", size == "small")
+        self._check("acc_medium", size == "medium")
 
         tier = self._ai_tier()
         self._check("ai_off", not bool(self.cfg.get("ai.enabled", False)))
         self._check("ai_fast", tier == "fast")
         self._check("ai_balanced", tier == "balanced")
         self._check("ai_best", tier == "best")
+        self._check("ai_offline", tier == "offline")
 
-        self._check("fillers", bool(self.cfg.get("text.strip_fillers", False)))
         self._check("modes_enabled", bool(self.cfg.get("text.modes.enabled", True)))
         self._check("teachback", bool(self.cfg.get("text.teach_back", True)))
         self._check("ai_learning", bool(self.cfg.get("text.ai_learning", False)))
@@ -749,7 +794,7 @@ class MenuBarApp:
         self._save_config()
         self.transcriber = self._build_transcriber()
         self._model_ready = False
-        labels = {"base": "Fast", "small": "Balanced"}
+        labels = {"small": "Fast", "medium": "Accurate"}
         self._notify(__app_name__, f"Speech accuracy: {labels.get(size, size)}. "
                      "The model downloads on first use if it's new.")
         threading.Thread(target=self._preload_model, daemon=True).start()
@@ -757,6 +802,8 @@ class MenuBarApp:
     def _ai_tier(self):
         if not bool(self.cfg.get("ai.enabled", False)):
             return None
+        if self.cfg.get("ai.provider", "ollama") == "builtin":
+            return "offline"
         model = self.cfg.get("ai.model")
         for tier, (tier_model, _size) in ai_setup.MODEL_TIERS.items():
             if tier_model == model:
@@ -765,9 +812,14 @@ class MenuBarApp:
 
     def _set_ai_model(self, tier: str) -> None:
         if tier == "off":
+            from ..core import offline_cleanup
+            offline_cleanup.unload()
             self.cfg.set("ai.enabled", False)
             self._save_config()
             self._notify(__app_name__, "AI formatting off — plain voice-to-text.")
+            return
+        if tier == "offline":
+            self._set_ai_offline()
             return
         model, size = ai_setup.MODEL_TIERS[tier]
         self._notify(__app_name__, f"Setting up AI ({model}, {size}). Needs Ollama "
@@ -780,22 +832,47 @@ class MenuBarApp:
 
         ok, message = ai_setup.setup(model, progress=progress)
         if ok:
+            from ..core import offline_cleanup
+            offline_cleanup.unload()  # leaving the built-in tier → free its RAM
             self.cfg.set("ai.enabled", True)
+            self.cfg.set("ai.provider", "ollama")
             self.cfg.set("ai.model", model)
             self._save_config()
         self._notify("AI formatting ready" if ok else "AI setup failed", message)
         self._set("idle", "Ready")
 
+    def _set_ai_offline(self) -> None:
+        """Built-in no-Ollama model as the AI engine. Downloads ~2 GB on first use."""
+        from ..core import offline_cleanup
+
+        self.cfg.set("ai.enabled", True)
+        self.cfg.set("ai.provider", "builtin")
+        self._save_config()
+        if offline_cleanup.is_downloaded():
+            self._notify(__app_name__, "AI formatting: Offline (no Ollama) — ready.")
+            return
+        if getattr(self, "_offline_dl", False):
+            self._notify(__app_name__, "Offline model is still downloading…")
+            return
+        self._offline_dl = True
+        self._notify(__app_name__, f"AI formatting: Offline — downloading the model "
+                     f"({offline_cleanup.MODEL_SIZE_HINT}). I'll notify you when it's ready.")
+
+        def _fetch() -> None:
+            def _prog(frac: float) -> None:
+                self._set(self._state, f"Offline model… {int(frac * 100)}%")
+
+            ok = offline_cleanup.download(progress=_prog)
+            self._offline_dl = False
+            self._notify(__app_name__, "Offline AI ready — no Ollama needed. ✓" if ok
+                         else "Offline AI download failed — re-select it to retry.")
+            self._set("idle", "Ready")
+
+        threading.Thread(target=_fetch, daemon=True).start()
+
     # ------------------------------------------------------------------
     # Menu actions — toggles
     # ------------------------------------------------------------------
-    def _toggle_fillers(self, _s=None) -> None:
-        enabled = not bool(self.cfg.get("text.strip_fillers", False))
-        self.cfg.set("text.strip_fillers", enabled)
-        self._save_config()
-        self._notify(__app_name__, "Filler words (um, uh) will be removed."
-                     if enabled else "Keeping filler words as spoken.")
-
     def _toggle_modes(self, _s=None) -> None:
         enabled = not bool(self.cfg.get("text.modes.enabled", True))
         self.cfg.set("text.modes.enabled", enabled)

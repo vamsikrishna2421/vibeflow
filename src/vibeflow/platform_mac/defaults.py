@@ -51,6 +51,12 @@ def apply_mac_defaults(cfg: config_mod.Config) -> config_mod.Config:
     if str(cfg.get("output.auto_fallback", "clipboard")).strip().lower() == "clipboard":
         cfg.set("output.auto_fallback", "type")
 
+    # The model menu now offers only small/medium (medium recommended). Migrate any
+    # earlier choice that's no longer selectable (base, large, turbo, …) to medium
+    # so existing users aren't left on a model that's gone from the UI.
+    if str(cfg.get("model.size", "medium")).strip().lower() not in ("small", "medium"):
+        cfg.set("model.size", "medium")
+
     # Allow longer single dictations on Mac (10 min). This is the auto-stop safety
     # cap, not a product limit; only bump it when the user is still on the shipped
     # 120s default so an explicit choice is preserved.

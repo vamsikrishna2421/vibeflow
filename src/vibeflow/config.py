@@ -25,10 +25,12 @@ from typing import Any
 # ---------------------------------------------------------------------------
 DEFAULTS: dict[str, Any] = {
     "model": {
-        "size": "base",          # tiny | base | small | medium | large-v3
+        "size": "medium",        # small | medium (medium recommended). Others removed from the UI.
         "language": "en",        # English by default (unknown values fall back to English)
         "device": "auto",        # auto | cpu | cuda
         "compute_type": "auto",  # auto | int8 | int8_float16 | float16 | float32
+        "show_timing": True,     # briefly flash "<model> · <seconds>" after each dictation
+        "streaming": True,       # DEFAULT: transcribe WHILE speaking (capped-segment) — near-instant paste on release
     },
     "hotkey": {
         "mode": "push_to_talk",            # push_to_talk only (toggle disabled for now)
@@ -40,7 +42,7 @@ DEFAULTS: dict[str, Any] = {
         "insertion": "paste",        # paste | keystroke
         "restore_clipboard": True,   # put your old clipboard back after pasting
         "trailing_space": True,      # add a space after inserted text
-        "auto_fallback": "clipboard",  # when focus is unknown: clipboard | type
+        "auto_fallback": "type",     # when focus is unknown: TYPE (paste) rather than clipboard-only
     },
     "audio": {
         "sample_rate": 16000,
@@ -57,7 +59,7 @@ DEFAULTS: dict[str, Any] = {
         "strip": True,
         "capitalize_sentences": True,   # capitalise the start of each sentence
         "spoken_commands": True,        # "new line" / "new paragraph" become breaks
-        "strip_fillers": False,         # OPT-IN: remove fillers (LLM when AI on, else regex)
+        "strip_fillers": True,          # ALWAYS ON: deterministic filler removal is a default cleanup layer
         "fillers": [],                  # custom filler list ([] = built-in um/uh/...)
         "capitalize_first": False,
         "remove_trailing_period": False,
@@ -95,6 +97,8 @@ DEFAULTS: dict[str, Any] = {
         "model": "qwen2.5:3b",       # best at keeping your exact words (1.5b paraphrases)
         "timeout": 20,
         "prompt": "",                # empty = use the built-in formatting prompt
+        "keep_alive": "30m",         # keep the model loaded this long (fewer Ollama reloads)
+        "pulled_models": [],         # models VibeFlow downloaded (for the model manager)
     },
 }
 

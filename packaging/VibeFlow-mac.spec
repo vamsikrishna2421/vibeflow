@@ -32,7 +32,7 @@ datas, binaries, hiddenimports = [], [], []
 
 # Heavy/native packages PyInstaller can't fully trace on its own.
 for pkg in ("faster_whisper", "ctranslate2", "tokenizers", "av", "onnxruntime",
-            "rumps"):
+            "rumps", "llama_cpp"):
     try:
         d, b, h = collect_all(pkg)
         datas += d
