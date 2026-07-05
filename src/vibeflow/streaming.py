@@ -97,15 +97,20 @@ class StreamingSession:
             self._error = exc
             _log.info("streaming: worker stopped (%s)", exc)
 
-    def finalize(self) -> str:
+    def finalize(self, final_audio=None) -> str:
         """Stop the worker, transcribe the final tail, return the full transcript.
-        Raises if the worker errored so the caller can fall back to batch."""
+        Raises if the worker errored so the caller can fall back to batch.
+
+        ``final_audio`` MUST be the full recording (from recorder.stop()). By the
+        time we're called the live recorder has been stopped and its buffer cleared,
+        so recorder.snapshot() would be empty and the tail (last segment) would be
+        lost — the cause of the "missing last line" truncation."""
         self._stop.set()
         if self._thread:
             self._thread.join(timeout=60)  # let the current chunk finish (no concurrency)
         if self._error:
             raise self._error
-        snap = self.recorder.snapshot()
+        snap = final_audio if final_audio is not None else self.recorder.snapshot()
         self._transcribe(snap, self._boundary, len(snap))  # the tail since the last cut
         self._boundary = len(snap)
         return " ".join(p for p in self._parts if p).strip()

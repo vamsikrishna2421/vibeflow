@@ -206,7 +206,7 @@ class VibeFlowApp:
         batch (guaranteed complete) — streaming can never hand you a cut-off dictation."""
         text = None
         try:
-            text = session.finalize()
+            text = session.finalize(audio)  # pass the full recording — the live buffer is cleared
         except Exception as exc:
             logging.getLogger("vibeflow").info(
                 "streaming failed (%s); falling back to batch transcribe", exc
