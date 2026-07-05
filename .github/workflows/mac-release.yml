@@ -72,6 +72,57 @@ jobs:
           echo "built arch: $(lipo -archs "$BIN/$F")"
           lipo -archs "$BIN/$F" | grep -qw "${{ matrix.arch }}"
 
+      # ── Sign + notarize (Developer ID). Both steps NO-OP gracefully when the
+      #    secrets are absent, so the build still works before they're configured.
+      #    Secrets: MAC_CERT_P12_BASE64, MAC_CERT_P12_PASSWORD (signing);
+      #    MAC_NOTARY_APPLE_ID, MAC_NOTARY_TEAM_ID, MAC_NOTARY_PASSWORD (notarize).
+      - name: Sign with Developer ID
+        env:
+          MAC_CERT_P12_BASE64: ${{ secrets.MAC_CERT_P12_BASE64 }}
+          MAC_CERT_P12_PASSWORD: ${{ secrets.MAC_CERT_P12_PASSWORD }}
+        run: |
+          if [ -z "$MAC_CERT_P12_BASE64" ]; then
+            echo "::warning::No MAC_CERT_P12_BASE64 secret — shipping UNSIGNED (ad-hoc) build."
+            exit 0
+          fi
+          KEYCHAIN="$RUNNER_TEMP/vibeflow-signing.keychain-db"
+          KP="ci-$RANDOM$RANDOM"
+          echo "$MAC_CERT_P12_BASE64" | base64 --decode > "$RUNNER_TEMP/devid.p12"
+          security create-keychain -p "$KP" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KP" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/devid.p12" -k "$KEYCHAIN" -P "$MAC_CERT_P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KP" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | sed s/\"//g)
+          rm -f "$RUNNER_TEMP/devid.p12"
+          ID="Developer ID Application"
+          APP="release/VibeFlow.app"
+          # Sign every nested Mach-O inside-out, then the bundle with entitlements + hardened runtime.
+          find "$APP/Contents" -type f \( -name '*.dylib' -o -name '*.so' -o -perm +111 \) | while read -r f; do
+            file "$f" | grep -q "Mach-O" && codesign --force --options runtime --timestamp -s "$ID" "$f" >/dev/null 2>&1 || true
+          done
+          codesign --force --options runtime --timestamp --entitlements packaging/entitlements.mac.plist -s "$ID" "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+          echo "✓ signed with Developer ID"
+
+      - name: Notarize + staple
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          MAC_NOTARY_APPLE_ID: ${{ secrets.MAC_NOTARY_APPLE_ID }}
+          MAC_NOTARY_TEAM_ID: ${{ secrets.MAC_NOTARY_TEAM_ID }}
+          MAC_NOTARY_PASSWORD: ${{ secrets.MAC_NOTARY_PASSWORD }}
+        run: |
+          if [ -z "$MAC_NOTARY_PASSWORD" ]; then
+            echo "::warning::No MAC_NOTARY_PASSWORD secret — skipping notarization."
+            exit 0
+          fi
+          ditto -c -k --keepParent release/VibeFlow.app "$RUNNER_TEMP/notarize.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/notarize.zip" \
+            --apple-id "$MAC_NOTARY_APPLE_ID" --team-id "$MAC_NOTARY_TEAM_ID" --password "$MAC_NOTARY_PASSWORD" --wait
+          xcrun stapler staple release/VibeFlow.app
+          spctl -a -vvv -t exec release/VibeFlow.app || true
+          echo "✓ notarized + stapled"
+
       - name: Zip the app (arch-labelled)
         run: |
           ditto -c -k --keepParent "release/VibeFlow.app" "VibeFlow-mac-${{ matrix.arch }}.zip"
