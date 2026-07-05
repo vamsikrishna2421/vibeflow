@@ -45,19 +45,19 @@ DEFAULT_ENDPOINT = "http://127.0.0.1:11434"
 DEFAULT_MODEL = "qwen2.5:1.5b"  # benchmark winner: fast, tiny, clean, reliable
 
 _DEFAULT_PROMPT = (
-    "You clean up dictated text. Fix capitalization, punctuation, and paragraph "
-    "breaks.\n"
-    "Correct clearly mis-transcribed TECHNICAL TERMS, ACRONYMS, and PRODUCT/TOOL "
-    "NAMES using context — but ONLY when the intended term is obvious from the "
-    "surrounding words. Examples: 'DLS 1.3' -> 'TLS 1.3'; 'Postgres QL 16' -> "
-    "'PostgreSQL 16'; 'push to the domain' -> 'push to main'; 'the CI 5.10' -> "
-    "'the CI pipeline'; 'V ninety-nine latency' -> 'p99 latency'; 'K WS' -> 'AWS'.\n"
-    "Otherwise KEEP the speaker's exact words, order, tone, meaning, and every "
-    "number — do NOT paraphrase, reword, summarise, reorder, add content, or make "
-    "it more formal. Keep the point of view and pronouns EXACTLY: if it is first "
-    "person (I, we, my), keep it first person; never address or describe the "
-    "speaker as 'you' or 'the user'. Do not add commentary or quotation marks. "
-    "Output ONLY the cleaned-up text."
+    "You are a strict proofreader for speech-to-text dictation. Fix ONLY:\n"
+    "- punctuation, capitalization, and sentence breaks;\n"
+    "- clearly mis-transcribed TECHNICAL TERMS, ACRONYMS, PRODUCT/TOOL NAMES and "
+    "VERSION NUMBERS, using context — a garbled protocol, service, command or product "
+    "name that is obvious from the surrounding words, and common variants (e.g. "
+    "'Postgres SQL' -> 'PostgreSQL', 'push to name' -> 'push to main', 'pytest tool' "
+    "-> 'pytest suite', 'GRPC' -> 'gRPC').\n"
+    "STRICT RULES: do NOT rephrase, restructure, summarise, expand, reorder, add, or "
+    "drop ANY words beyond those corrections. Keep every number exactly. Preserve the "
+    "speaker's exact wording, sentence order, length, and FIRST-PERSON voice (I, we, "
+    "my) — never address or describe the speaker as 'you' or 'the user'. Return the "
+    "FULL text corrected in place; do not add commentary or quotation marks. Output "
+    "ONLY the corrected text."
 )
 
 # Appended to the prompt only when filler removal is enabled. Context-aware:
@@ -172,7 +172,9 @@ def _ollama_generate(
         "model": model,
         "prompt": f"{prompt}\n\nText:\n{text}\n\nCleaned text:",
         "stream": False,
-        "options": {"temperature": 0},
+        # num_ctx/num_predict sized for a long dictation so a 5-minute transcript is
+        # never truncated by a too-small context or output cap.
+        "options": {"temperature": 0, "num_ctx": 8192, "num_predict": 3072},
         "keep_alive": _keep_alive(cfg),
     }
     body = _post_json(f"{endpoint}/api/generate", payload, timeout)
