@@ -14,3 +14,9 @@ PyYAML>=6.0             # human-friendly settings file
 # Windows-only: reliable detection of the focused text field.
 comtypes>=1.2.0 ; sys_platform == "win32"
 
+# Optional "Offline cleanup (no Ollama)" feature — an in-process llama.cpp LLM.
+# Bundled so the feature works on enable; the model itself downloads on demand.
+# The extra index serves prebuilt CPU wheels so CI/installs never compile llama.cpp.
+--extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+llama-cpp-python>=0.3.0
+
