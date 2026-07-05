@@ -62,6 +62,17 @@ jobs:
           ${{ matrix.wrap }} .venv/bin/python -m pip install --upgrade pip
           ${{ matrix.wrap }} .venv/bin/python -m pip install -r requirements.txt
 
+      - name: Install offline-AI runtime (best-effort — never fail the build)
+        run: |
+          # llama-cpp-python powers the optional "Offline — no Ollama" tier. Try a
+          # prebuilt CPU wheel first, then plain PyPI (compile). If neither works on
+          # this arch, warn and continue — the offline tier just stays unavailable,
+          # and the app degrades gracefully (offline_cleanup + spec both tolerate it).
+          ${{ matrix.wrap }} .venv/bin/python -m pip install "llama-cpp-python>=0.3.0" \
+              --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu \
+            || ${{ matrix.wrap }} .venv/bin/python -m pip install "llama-cpp-python>=0.3.0" \
+            || echo "::warning::llama-cpp-python unavailable on ${{ matrix.arch }} — offline AI tier disabled in this build"
+
       - name: Build the .app (under the target arch)
         run: ${{ matrix.wrap }} bash scripts/build_mac_app.sh
 

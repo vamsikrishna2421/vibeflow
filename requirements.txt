@@ -23,8 +23,7 @@ pyobjc-framework-Quartz>=10.0 ; sys_platform == "darwin"
 pyobjc-framework-ApplicationServices>=10.0 ; sys_platform == "darwin"
 pyobjc-framework-AVFoundation>=10.0 ; sys_platform == "darwin"
 
-# Optional "Offline — no Ollama" AI tier: an in-process llama.cpp LLM.
-# Bundled so the tier works on select; the model itself downloads on demand.
-# The extra index serves prebuilt CPU wheels so installs never compile llama.cpp.
---extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
-llama-cpp-python>=0.3.0
+# NOTE: llama-cpp-python (for the optional "Offline — no Ollama" AI tier) is
+# installed as a SEPARATE best-effort step in the Mac build, not pinned here —
+# its wheel isn't reliably available for both Mac arches, and a failure there
+# must not break the whole build (the offline tier just stays unavailable).
