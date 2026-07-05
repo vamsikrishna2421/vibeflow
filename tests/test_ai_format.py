@@ -123,6 +123,7 @@ def test_tone_none_uses_conservative_default_prompt(monkeypatch):
     monkeypatch.setattr(ai_format, "_post_json", fake_post)
     cfg = _Cfg({"ai.enabled": True})
     ai_format.format_text("i shipped the release today", cfg)
-    # The default prompt is the conservative light-cleanup one, NOT a tone prompt.
-    assert "do not paraphrase" in captured["prompt"].lower()
-    assert "professional" not in captured["prompt"].lower()
+    # The default prompt is the strict proofreader (correct-in-place) one, NOT a tone prompt.
+    low = captured["prompt"].lower()
+    assert "strict proofreader" in low and "do not rephrase" in low
+    assert "professional" not in low
