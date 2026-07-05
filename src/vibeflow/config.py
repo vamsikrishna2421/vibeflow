@@ -99,7 +99,6 @@ DEFAULTS: dict[str, Any] = {
         "prompt": "",                # empty = use the built-in formatting prompt
         "keep_alive": "30m",         # keep the model loaded this long (fewer Ollama reloads)
         "pulled_models": [],         # models VibeFlow downloaded (for the model manager)
-        "offline_fallback": False,   # OPT-IN: clean up with a built-in local LLM (no Ollama). Downloads ~2 GB on enable.
     },
 }
 

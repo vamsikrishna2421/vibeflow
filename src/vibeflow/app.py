@@ -349,8 +349,7 @@ class VibeFlowApp:
                 tone = {appmode.PROFESSIONAL: "professional",
                         appmode.CASUAL: "casual",
                         appmode.EMAIL: "email"}.get(outcome)
-                offline_on = bool(self.cfg.get("ai.offline_fallback", False))
-                if ai_on or offline_on:
+                if ai_on:
                     # Visible "Restructuring for <App>…" while the local model runs.
                     if target_name:
                         label = (
@@ -359,16 +358,15 @@ class VibeFlowApp:
                         )
                         self.overlay.show("info", f"VibeFlow · {label}")
                     profile = self.persona.profile_text() if persona_on else None
-                    ai_text = None
-                    if ai_on:  # Ollama first when available
+                    if self.cfg.get("ai.provider", "ollama") == "builtin":
+                        # "Offline — no Ollama" tier: clean up with the built-in local LLM.
+                        from .core import offline_cleanup
+                        ai_text = offline_cleanup.format_text(text, self.cfg, persona=profile)
+                    else:
                         ai_text = ai_format.format_text(
                             text, self.cfg, persona=profile,
                             strip_fillers=False, tone=tone,  # curate() already stripped fillers deterministically
                         )
-                    if not ai_text and offline_on:
-                        # No Ollama result — clean up with the built-in local LLM.
-                        from .core import offline_cleanup
-                        ai_text = offline_cleanup.format_text(text, self.cfg, persona=profile)
                     if ai_text:
                         text = ai_text
                 # If AI is OFF but a tone was requested, the deterministic
@@ -815,8 +813,9 @@ class VibeFlowApp:
                     Menu.SEPARATOR,
                     Item(
                         lambda i: self._offline_cleanup_label(),
-                        self._toggle_offline_cleanup,
-                        checked=lambda i: bool(self.cfg.get("ai.offline_fallback", False)),
+                        lambda i: self._set_ai_model("offline"),
+                        checked=lambda i: self._ai_tier() == "offline",
+                        radio=True,
                     ),
                 ),
             ),
@@ -1477,48 +1476,39 @@ class VibeFlowApp:
         self._refresh()
 
     def _offline_cleanup_label(self) -> str:
-        """Menu label reflecting the offline-cleanup state (idle / downloading / on)."""
+        """Radio label for the built-in (no-Ollama) AI tier — shows download %."""
         if self._offline_dl is not None:
-            return f"Offline cleanup — downloading {int(self._offline_dl * 100)}%…"
-        if bool(self.cfg.get("ai.offline_fallback", False)):
-            return "Offline cleanup — no Ollama ✓ (on)"
-        return "Offline cleanup — no Ollama (Beta · downloads ~2 GB)"
+            return f"Offline — downloading {int(self._offline_dl * 100)}%…"
+        return "Offline — no Ollama (built-in 3B · ~2 GB)"
 
-    def _toggle_offline_cleanup(self, *_args) -> None:
-        """Opt in/out of the no-Ollama cleanup. On opt-in, download the ~2 GB
-        model once (in the background, with live % in the menu); it enables
-        itself when ready."""
+    def _set_ai_offline(self) -> None:
+        """Select the built-in no-Ollama model as the AI-formatting engine. Enables
+        it immediately and downloads the ~2 GB model in the background (live % in
+        the menu) if it isn't set up yet."""
         from .core import offline_cleanup
 
+        self.cfg.set("ai.enabled", True)
+        self.cfg.set("ai.provider", "builtin")
+        self._save_config()
+
+        if offline_cleanup.is_downloaded():
+            self._notify(__app_name__, "AI formatting: Offline (no Ollama) — ready.")
+            self._refresh()
+            return
         if self._offline_dl is not None:  # a download is already running
-            self._notify(__app_name__, "Offline cleanup is still downloading — see the % in the menu.")
-            return
-
-        if bool(self.cfg.get("ai.offline_fallback", False)):  # turning OFF
-            self.cfg.set("ai.offline_fallback", False)
-            self._save_config()
-            offline_cleanup.unload()  # free ~2 GB RAM; keep the file on disk
-            self._notify(__app_name__, "Offline cleanup off.")
+            self._notify(__app_name__, "Offline model is still downloading — see the % in the menu.")
             self._refresh()
             return
 
-        if offline_cleanup.is_downloaded():  # already set up → just enable
-            self.cfg.set("ai.offline_fallback", True)
-            self._save_config()
-            self._notify(__app_name__, "Offline cleanup on — cleans up without Ollama.")
-            self._refresh()
-            return
-
-        # Not set up yet → fetch the model with visible progress, enable on success.
         self._offline_dl = 0.0
         try:
-            self.overlay.show("info", "VibeFlow · Setting up offline cleanup…")
+            self.overlay.show("info", "VibeFlow · Setting up offline AI…")
         except Exception:
             pass
         self._notify(
             __app_name__,
-            f"Setting up offline cleanup — downloading the model ({offline_cleanup.MODEL_SIZE_HINT}). "
-            "Progress shows in this menu; it turns on automatically when ready.",
+            f"AI formatting: Offline — downloading the model ({offline_cleanup.MODEL_SIZE_HINT}). "
+            "Progress shows in the menu; ready automatically when done.",
         )
         self._refresh()
 
@@ -1536,15 +1526,11 @@ class VibeFlowApp:
 
             ok = offline_cleanup.download(progress=_prog)
             self._offline_dl = None
-            if ok:
-                self.cfg.set("ai.offline_fallback", True)
-                self._save_config()
-                self._notify(__app_name__, "Offline cleanup ready — no Ollama needed. ✓")
-            else:
-                self._notify(
-                    __app_name__,
-                    "Offline cleanup setup failed — check your connection and try again.",
-                )
+            self._notify(
+                __app_name__,
+                "Offline AI ready — no Ollama needed. ✓" if ok
+                else "Offline AI download failed — check your connection and re-select it.",
+            )
             try:
                 self._refresh()
             except Exception:
@@ -1671,6 +1657,8 @@ class VibeFlowApp:
     def _ai_tier(self):
         if not bool(self.cfg.get("ai.enabled", False)):
             return None
+        if self.cfg.get("ai.provider", "ollama") == "builtin":
+            return "offline"
         model = self.cfg.get("ai.model")
         for tier, (tier_model, _size) in ai_setup.MODEL_TIERS.items():
             if tier_model == model:
@@ -1679,10 +1667,15 @@ class VibeFlowApp:
 
     def _set_ai_model(self, tier: str) -> None:
         if tier == "off":
+            from .core import offline_cleanup
+            offline_cleanup.unload()  # free the built-in model's RAM if it was loaded
             self.cfg.set("ai.enabled", False)
             self._save_config()
             self._notify(__app_name__, "AI formatting off — plain voice-to-text.")
             self._refresh()
+            return
+        if tier == "offline":
+            self._set_ai_offline()
             return
         model, size = ai_setup.MODEL_TIERS[tier]
         threading.Thread(
@@ -1714,7 +1707,10 @@ class VibeFlowApp:
             "AI setup: model=%s ok=%s msg=%s", model, ok, message
         )
         if ok:
+            from .core import offline_cleanup
+            offline_cleanup.unload()  # leaving the built-in tier → free its RAM
             self.cfg.set("ai.enabled", True)
+            self.cfg.set("ai.provider", "ollama")
             self.cfg.set("ai.model", model)
             self._record_pulled_model(model)
             self._save_config()
