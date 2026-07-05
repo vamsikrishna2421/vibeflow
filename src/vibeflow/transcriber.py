@@ -41,6 +41,21 @@ def model_cache_dirname(size: str) -> str | None:
     return ("models--" + repo.replace("/", "--")) if repo else None
 
 
+# Prepend this much silence before transcription. Whisper's encoder has an edge
+# effect and its VAD can trim a soft speech onset, so audio that starts *exactly*
+# at the first spoken word tends to lose that word ("spin up a…" → "…"). A short
+# lead-in of silence gives the model a clean run-up and fixes the dropped opener.
+LEAD_PAD_S = 0.5
+
+
+def _lead_pad(audio):
+    import numpy as np
+
+    x = np.asarray(audio, dtype="float32")
+    n = int(LEAD_PAD_S * 16000)
+    return x if n <= 0 else np.concatenate([np.zeros(n, dtype="float32"), x])
+
+
 # A non-Whisper engine exposed for the bake-off, dispatched by the model-id prefix.
 def _engine_of(size: str) -> str:
     return "moonshine" if str(size or "").startswith("moonshine") else "whisper"
@@ -266,7 +281,7 @@ class Transcriber:
 
     def _run(self, audio, language, prompt: str | None):
         segments, _info = self._model.transcribe(
-            audio,
+            _lead_pad(audio),
             language=language,
             beam_size=self.beam_size,
             vad_filter=self.vad_filter,
@@ -285,7 +300,7 @@ class Transcriber:
         if lang in ("", "auto", "auto-detect", "autodetect"):
             lang = "en"
         segments, _info = self._model.transcribe(
-            audio,
+            _lead_pad(audio),
             language=lang,
             beam_size=self.beam_size,
             vad_filter=self.vad_filter,
@@ -296,7 +311,11 @@ class Transcriber:
         out = []
         for seg in segments:
             for w in (getattr(seg, "words", None) or []):
-                out.append((float(w.start), float(w.end), w.word))
+                # Shift back by the lead pad so times are relative to the real audio.
+                s, e = float(w.start) - LEAD_PAD_S, float(w.end) - LEAD_PAD_S
+                if e <= 0:  # word falls entirely inside the silent pad
+                    continue
+                out.append((max(0.0, s), max(0.0, e), w.word))
         return out
 
 

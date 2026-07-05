@@ -64,6 +64,7 @@ class Recorder:
                 dtype="float32",
                 device=_resolve_input_device(self.input_device),
                 callback=self._callback,
+                latency="low",  # start capturing sooner so the first word isn't clipped
             )
             self._stream.start()
         except Exception as exc:
