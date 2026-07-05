@@ -299,10 +299,15 @@ class Transcriber:
         lang = str(self.language or "").strip().lower()
         if lang in ("", "auto", "auto-detect", "autodetect"):
             lang = "en"
+        # GREEDY decoding (beam_size=1) for streaming: each pass must run well faster
+        # than real time so the model keeps up while you speak (then only a short tail
+        # remains on release). LocalAgreement's cross-pass agreement recovers the small
+        # accuracy that greedy loses, so the committed text stays clean. This is what
+        # takes a 5-minute dictation from ~5 min of waiting to a few seconds.
         segments, _info = self._model.transcribe(
             _lead_pad(audio),
             language=lang,
-            beam_size=self.beam_size,
+            beam_size=1,
             vad_filter=self.vad_filter,
             initial_prompt=prompt or None,
             word_timestamps=True,
