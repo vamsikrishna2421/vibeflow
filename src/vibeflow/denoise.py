@@ -36,6 +36,30 @@ def _bandpass(x, sample_rate: int, low_hz: float, high_hz: float):
     return sosfilt(sos, x)
 
 
+def _is_noisy(x, sample_rate: int) -> bool:
+    """Rough check for GENUINE background noise. Clean speech has near-silent gaps
+    between words (a low noise floor); steady noise (a fan/AC) lifts that floor. We
+    only want spectral subtraction when it's actually noisy — on clean audio it
+    strips speech detail and wrecks accuracy (the "WinAPK/Nox/Kali" garbage)."""
+    try:
+        import numpy as np
+
+        n = max(1, int(0.025 * sample_rate))  # 25 ms frames
+        usable = (len(x) // n) * n
+        if usable < n * 8:
+            return False
+        frames = x[:usable].reshape(-1, n).astype("float64")
+        rms = np.sqrt(np.mean(frames ** 2, axis=1) + 1e-12)
+        floor = float(np.percentile(rms, 20))    # quiet frames ≈ background
+        speech = float(np.percentile(rms, 95))   # loud frames ≈ speech
+        if speech < 1e-4:
+            return False
+        # Quiet parts NOT much quieter than speech ⇒ there's a noise floor ⇒ noisy.
+        return (floor / speech) > 0.15
+    except Exception:
+        return False
+
+
 def reduce_noise(
     audio,
     sample_rate: int = 16000,
@@ -46,8 +70,12 @@ def reduce_noise(
     high_hz: float = 8000.0,
 ):
     """Clean ``audio`` (float32 mono @ ``sample_rate``). Returns the cleaned array,
-    or the ORIGINAL on any failure — never raises. Over-cleaning can hurt ASR, so
-    both stages are individually toggleable."""
+    or the ORIGINAL on any failure — never raises.
+
+    Spectral subtraction is applied ONLY when the audio is genuinely noisy (see
+    :func:`_is_noisy`) and gently (``prop_decrease=0.75``), because over-cleaning
+    clean audio destroys accuracy. The band-pass (removing sub-80 Hz rumble and
+    >8 kHz hiss) is safe on speech, so it always runs."""
     try:
         import numpy as np
 
@@ -61,16 +89,20 @@ def reduce_noise(
             except Exception as exc:  # scipy missing / bad params
                 _log.info("denoise: band-pass skipped (%s)", exc)
 
-        if spectral:
+        if spectral and _is_noisy(x, int(sample_rate)):
             try:
                 import noisereduce as nr
 
                 x = np.asarray(
-                    nr.reduce_noise(y=x, sr=int(sample_rate), stationary=True),
+                    nr.reduce_noise(
+                        y=x, sr=int(sample_rate), stationary=True, prop_decrease=0.75
+                    ),
                     dtype="float32",
                 )
             except Exception as exc:  # noisereduce missing / failure
                 _log.info("denoise: spectral reduction skipped (%s)", exc)
+        elif spectral:
+            _log.info("denoise: audio is clean — spectral reduction skipped")
 
         return x
     except Exception as exc:
