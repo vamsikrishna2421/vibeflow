@@ -119,11 +119,15 @@ def _send_paste() -> None:
     Pasting is more reliable than simulating each keystroke for long text and
     Unicode, and it respects the user's keyboard layout / IME.
     """
+    import sys
+
     from pynput.keyboard import Controller, Key
 
     time.sleep(0.03)  # let the clipboard settle before pasting
     keyboard = Controller()
-    with keyboard.pressed(Key.ctrl):
+    # macOS pastes with Cmd+V; Windows/Linux with Ctrl+V.
+    modifier = Key.cmd if sys.platform == "darwin" else Key.ctrl
+    with keyboard.pressed(modifier):
         keyboard.press("v")
         keyboard.release("v")
 
