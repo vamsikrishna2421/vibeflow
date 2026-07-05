@@ -110,6 +110,13 @@ var
 begin
   Exec(ExpandConstant('{cmd}'), '/C taskkill /IM {#MyAppExeName} /F', '',
     SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  // taskkill /F terminates the process immediately, but Windows can take a moment
+  // to release the file handles of a large one-folder PyInstaller app (VibeFlow.exe
+  // + its many DLLs/pyds). If we start copying before those unlock, a SILENT update
+  // (/VERYSILENT /SUPPRESSMSGBOXES) can't prompt, so it skips the locked files and
+  // the OLD version relaunches — the "downloads but stays on the old version" bug.
+  // A short settle delay lets the handles release so the overwrite succeeds.
+  Sleep(2500);
   Result := '';
 end;
 
