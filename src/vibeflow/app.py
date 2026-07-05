@@ -195,6 +195,11 @@ class VibeFlowApp:
                     int(self.cfg.get("audio.sample_rate", 16000)),
                     bandpass=bool(self.cfg.get("audio.bandpass", True)),
                 )
+            # Warm the model OUTSIDE the timer so the runtime readout reflects pure
+            # inference, not the one-time model load — a fair bake-off comparison
+            # (loading large-v3 the first time can add tens of seconds).
+            if not self.transcriber.is_loaded:
+                self.transcriber.load()
             _t0 = time.perf_counter()
             text = self.transcriber.transcribe(audio, prompt=self.vocabulary.prompt())
             _took = time.perf_counter() - _t0

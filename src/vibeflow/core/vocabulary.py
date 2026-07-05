@@ -27,6 +27,20 @@ from pathlib import Path
 _WORD = re.compile(r"[A-Za-z][A-Za-z0-9'._\-]*")
 MAX_TERMS = 60  # cap for the initial_prompt (Whisper prompt budget is limited)
 
+# An always-on baseline of commonly-dictated, commonly-misheard terms so jargon
+# ("Kubernetes", "PostgreSQL", "gRPC", "p99"…) transcribes correctly on a FRESH
+# install, before any learning. The user's own learned terms take priority and
+# fill the prompt first; these only fill the remaining budget, so a heavy user's
+# vocabulary crowds them out naturally.
+STARTER_TERMS = [
+    "Kubernetes", "PostgreSQL", "Postgres", "Redis", "Docker", "pytest", "gRPC",
+    "OAuth", "GraphQL", "Grafana", "Prometheus", "Kafka", "NGINX", "Terraform",
+    "Ansible", "Jenkins", "GitHub", "GitLab", "Kotlin", "TypeScript", "Node.js",
+    "React", "Next.js", "Supabase", "Firebase", "Vercel", "AWS", "Azure", "GCP",
+    "DevOps", "CI/CD", "JSON", "YAML", "Webhook", "JWT", "UUID", "p99", "TLS",
+    "Slack", "Notion", "Figma", "Jira", "macOS", "iOS", "Android",
+]
+
 # Header for the friendly, user-editable word list (see write_wordlist).
 WORDLIST_HEADER = (
     "# VibeFlow vocabulary — the words it has learned to spell from your speech.\n"
@@ -282,13 +296,26 @@ class Vocabulary:
 
     # -- use -----------------------------------------------------------
     def prompt(self) -> str:
-        """The ``initial_prompt`` string biasing Whisper toward top terms."""
-        if not self.terms:
-            return ""
+        """The ``initial_prompt`` string biasing Whisper toward top terms.
+
+        The user's own learned terms come first (highest weight → highest priority);
+        any leftover prompt budget is filled with the always-on STARTER_TERMS so
+        common jargon transcribes correctly even before VibeFlow has learned anything.
+        """
         top = sorted(
             self.terms.values(), key=lambda e: (e["w"], e["t"]), reverse=True
         )[:MAX_TERMS]
-        return "Vocabulary: " + ", ".join(e["term"] for e in top) + "."
+        words = [e["term"] for e in top]
+        seen = {w.lower() for w in words}
+        for term in STARTER_TERMS:
+            if len(words) >= MAX_TERMS:
+                break
+            if term.lower() not in seen:
+                words.append(term)
+                seen.add(term.lower())
+        if not words:
+            return ""
+        return "Vocabulary: " + ", ".join(words) + "."
 
     def _prune(self) -> None:
         if len(self.terms) <= MAX_TERMS * 3:

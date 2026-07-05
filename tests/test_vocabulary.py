@@ -123,6 +123,18 @@ def test_wordlist_roundtrip_and_edits(tmp_path):
 
 def test_empty():
     v = Vocabulary()
-    assert v.prompt() == ""
+    # With no learned terms, prompt() falls back to the always-on starter vocabulary
+    # so common jargon transcribes correctly out-of-the-box.
+    p = v.prompt()
+    assert p.startswith("Vocabulary: ") and "Kubernetes" in p
     assert v.learn_from_correction("", "") == []
     assert v.learn_from_text("") == 0
+
+
+def test_starter_vocab_yields_to_learned_terms():
+    """A learned term appears before the starters, which fill the leftover budget."""
+    v = Vocabulary()
+    v.add("Kubectl", weight=9)
+    p = v.prompt()
+    assert p.startswith("Vocabulary: Kubectl,")  # learned term ranks first
+    assert "Kubernetes" in p  # starters still present
