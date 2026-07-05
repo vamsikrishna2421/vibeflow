@@ -236,17 +236,6 @@ class VibeFlowApp:
             # When `text` is provided, streaming already transcribed it during
             # speech — skip the batch transcribe. Otherwise transcribe now (batch).
             if text is None:
-                # Optional noise front-end (band-pass + spectral reduction) before ASR —
-                # the fan/AC accuracy fix. Off by default; toggle in the tray. Defensive:
-                # returns the original audio if a dependency is missing.
-                if bool(self.cfg.get("audio.denoise", False)):
-                    from .denoise import reduce_noise
-
-                    audio = reduce_noise(
-                        audio,
-                        int(self.cfg.get("audio.sample_rate", 16000)),
-                        bandpass=bool(self.cfg.get("audio.bandpass", True)),
-                    )
                 # Warm the model OUTSIDE the timer so the runtime readout reflects pure
                 # inference, not the one-time model load — a fair bake-off comparison
                 # (loading large-v3 the first time can add tens of seconds).
@@ -353,7 +342,7 @@ class VibeFlowApp:
                     capitalize_sentences=bool(
                         self.cfg.get("text.capitalize_sentences", True)
                     ),
-                    strip_fillers=(strip_fillers and not ai_on),  # regex only when AI off
+                    strip_fillers=True,  # always: deterministic filler removal is a default cleanup layer
                     fillers=self.cfg.get("text.fillers", []) or None,
                 )
                 tone = {appmode.PROFESSIONAL: "professional",
@@ -370,7 +359,7 @@ class VibeFlowApp:
                     profile = self.persona.profile_text() if persona_on else None
                     ai_text = ai_format.format_text(
                         text, self.cfg, persona=profile,
-                        strip_fillers=strip_fillers, tone=tone,
+                        strip_fillers=False, tone=tone,  # curate() already stripped fillers deterministically
                     )
                     if ai_text:
                         text = ai_text
@@ -775,58 +764,18 @@ class VibeFlowApp:
                 "Speech accuracy",
                 Menu(
                     Item(
-                        "Fast (base · ~0.9s, recommended)",
-                        lambda i: self._set_accuracy("base"),
-                        checked=lambda i: self.cfg.get("model.size") == "base",
-                        radio=True,
-                    ),
-                    Item(
-                        "Balanced (small · ~2.7s)",
+                        "Fast (small)",
                         lambda i: self._set_accuracy("small"),
                         checked=lambda i: self.cfg.get("model.size") == "small",
                         radio=True,
                     ),
                     Item(
-                        "Accurate (medium · slower)",
+                        "Accurate (medium · recommended)",
                         lambda i: self._set_accuracy("medium"),
                         checked=lambda i: self.cfg.get("model.size") == "medium",
                         radio=True,
                     ),
-                    Item(
-                        "Max — Turbo (large-v3-turbo)",
-                        lambda i: self._set_accuracy("large-v3-turbo"),
-                        checked=lambda i: self.cfg.get("model.size") == "large-v3-turbo",
-                        radio=True,
-                    ),
-                    Item(
-                        "Max — Distil (distil-large-v3 · English)",
-                        lambda i: self._set_accuracy("distil-large-v3"),
-                        checked=lambda i: self.cfg.get("model.size") == "distil-large-v3",
-                        radio=True,
-                    ),
-                    Item(
-                        "Max — Full (large-v3 · most accurate · default)",
-                        lambda i: self._set_accuracy("large-v3"),
-                        checked=lambda i: self.cfg.get("model.size") == "large-v3",
-                        radio=True,
-                    ),
-                    Item(
-                        "Moonshine (base · tiny edge model)",
-                        lambda i: self._set_accuracy("moonshine/base"),
-                        checked=lambda i: self.cfg.get("model.size") == "moonshine/base",
-                        radio=True,
-                    ),
                 ),
-            ),
-            Item(
-                "Noise reduction (beta) — for fan / AC noise",
-                self._toggle_denoise,
-                checked=lambda i: bool(self.cfg.get("audio.denoise", False)),
-            ),
-            Item(
-                "Streaming (beta) — transcribe while you speak",
-                self._toggle_streaming,
-                checked=lambda i: bool(self.cfg.get("model.streaming", False)),
             ),
             Item(
                 "AI formatting",
@@ -867,11 +816,6 @@ class VibeFlowApp:
                 "Show on-screen status",
                 self._toggle_overlay,
                 checked=lambda i: bool(self.cfg.get("feedback.overlay", True)),
-            ),
-            Item(
-                "Remove filler words (um, uh)",
-                self._toggle_fillers,
-                checked=lambda i: bool(self.cfg.get("text.strip_fillers", True)),
             ),
             Item(
                 "Adapt formatting to each app",
@@ -1017,19 +961,6 @@ class VibeFlowApp:
         self.overlay.set_enabled(enabled)
         if enabled:
             self.overlay.show("info", "VibeFlow · On-screen status on")
-        self._refresh()
-
-    def _toggle_fillers(self, *_args) -> None:
-        enabled = not bool(self.cfg.get("text.strip_fillers", False))
-        self.cfg.set("text.strip_fillers", enabled)
-        self._save_config()
-        self._notify(
-            __app_name__,
-            "Filler words (um, uh) will be removed. Your unedited text stays "
-            "available via the tray's “Copy last transcript (unedited).”"
-            if enabled
-            else "Keeping filler words as spoken.",
-        )
         self._refresh()
 
     def _toggle_modes(self, *_args) -> None:
@@ -1627,31 +1558,6 @@ class VibeFlowApp:
             pass
         finally:
             winreg.CloseKey(key)
-
-    def _toggle_streaming(self, _sender) -> None:
-        new = not bool(self.cfg.get("model.streaming", False))
-        self.cfg.set("model.streaming", new)
-        self._save_config()
-        self._notify(
-            __app_name__,
-            "Streaming ON — VibeFlow transcribes while you speak, so the text is "
-            "ready almost instantly when you stop. Works best with small/medium; "
-            "large-v3 on a slow CPU may still lag. (Whisper models only.)"
-            if new
-            else "Streaming OFF — back to transcribing after you stop.",
-        )
-
-    def _toggle_denoise(self, _sender) -> None:
-        new = not bool(self.cfg.get("audio.denoise", False))
-        self.cfg.set("audio.denoise", new)
-        self._save_config()
-        self._notify(
-            __app_name__,
-            "Noise reduction ON — band-pass + spectral filtering before speech "
-            "recognition (helps in fan / AC noise)."
-            if new
-            else "Noise reduction OFF.",
-        )
 
     def _set_accuracy(self, size: str) -> None:
         self.cfg.set("model.size", size)

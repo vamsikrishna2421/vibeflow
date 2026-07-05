@@ -25,12 +25,12 @@ from typing import Any
 # ---------------------------------------------------------------------------
 DEFAULTS: dict[str, Any] = {
     "model": {
-        "size": "medium",        # tiny | base | small | medium | large-v3 | large-v3-turbo | distil-large-v3 | moonshine/base
+        "size": "medium",        # small | medium (medium recommended). Others removed from the UI.
         "language": "en",        # English by default (unknown values fall back to English)
         "device": "auto",        # auto | cpu | cuda
         "compute_type": "auto",  # auto | int8 | int8_float16 | float16 | float32
         "show_timing": True,     # briefly flash "<model> · <seconds>" after each dictation
-        "streaming": False,      # transcribe WHILE speaking (LocalAgreement) — near-instant paste on release
+        "streaming": True,       # DEFAULT: transcribe WHILE speaking (capped-segment) — near-instant paste on release
     },
     "hotkey": {
         "mode": "push_to_talk",            # push_to_talk only (toggle disabled for now)
@@ -42,12 +42,10 @@ DEFAULTS: dict[str, Any] = {
         "insertion": "paste",        # paste | keystroke
         "restore_clipboard": True,   # put your old clipboard back after pasting
         "trailing_space": True,      # add a space after inserted text
-        "auto_fallback": "clipboard",  # when focus is unknown: clipboard | type
+        "auto_fallback": "type",     # when focus is unknown: TYPE (paste) rather than clipboard-only
     },
     "audio": {
         "sample_rate": 16000,
-        "denoise": False,            # noise front-end (band-pass + spectral) before ASR — helps against fan/AC noise
-        "bandpass": True,            # within denoise: keep only the ~80 Hz–8 kHz human-voice band
         "input_device": "default",   # "default" or a device name/substring/index
         "min_seconds": 0.4,          # ignore accidental ultra-short recordings
         "max_seconds": 120,          # safety cap on a single recording
@@ -61,7 +59,7 @@ DEFAULTS: dict[str, Any] = {
         "strip": True,
         "capitalize_sentences": True,   # capitalise the start of each sentence
         "spoken_commands": True,        # "new line" / "new paragraph" become breaks
-        "strip_fillers": False,         # OPT-IN: remove fillers (LLM when AI on, else regex)
+        "strip_fillers": True,          # ALWAYS ON: deterministic filler removal is a default cleanup layer
         "fillers": [],                  # custom filler list ([] = built-in um/uh/...)
         "capitalize_first": False,
         "remove_trailing_period": False,
