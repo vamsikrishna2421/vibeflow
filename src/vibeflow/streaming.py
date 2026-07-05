@@ -76,6 +76,9 @@ class OnlineProcessor:
         self.audio = None            # numpy float32 — the uncommitted rolling window
         self.offset = 0.0            # seconds already trimmed away (committed)
         self.hyp = _HypothesisBuffer()
+        # CTranslate2 models are NOT safe for concurrent transcribe() calls. The
+        # worker and the final pass both touch the model, so serialize them.
+        self._model_lock = threading.Lock()
 
     def insert_audio(self, chunk) -> None:
         import numpy as np
@@ -85,7 +88,8 @@ class OnlineProcessor:
     def process(self) -> None:
         if self.audio is None or len(self.audio) < self.sr // 2:  # <0.5 s → wait
             return
-        words = self.t.transcribe_words(self.audio, prompt=self.prompt)
+        with self._model_lock:
+            words = self.t.transcribe_words(self.audio, prompt=self.prompt)
         self.hyp.insert(words, self.offset)
         committed = self.hyp.flush()
         if committed:
@@ -102,7 +106,8 @@ class OnlineProcessor:
         # Final pass on the remaining tail, then join committed + last hypothesis.
         try:
             if self.audio is not None and len(self.audio) > 0:
-                words = self.t.transcribe_words(self.audio, prompt=self.prompt)
+                with self._model_lock:
+                    words = self.t.transcribe_words(self.audio, prompt=self.prompt)
                 self.hyp.insert(words, self.offset)
                 self.hyp.flush()
         except Exception as exc:
@@ -148,7 +153,9 @@ class StreamingSession:
         Raises if the worker errored so the caller can fall back to batch."""
         self._stop.set()
         if self._thread:
-            self._thread.join(timeout=6)
+            # Wait for the worker to finish its current (possibly slow) pass, so the
+            # final pass never runs the model concurrently with it.
+            self._thread.join(timeout=30)
         if self._error:
             raise self._error
         self._drain()

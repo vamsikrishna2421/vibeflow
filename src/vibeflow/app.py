@@ -199,7 +199,11 @@ class VibeFlowApp:
             threading.Thread(target=self._process, args=(audio,), daemon=True).start()
 
     def _process_streamed(self, session, audio) -> None:
-        """Deliver a streamed transcript; fall back to batch on any failure/empty."""
+        """Deliver a streamed transcript; fall back to batch on failure/empty/short.
+
+        Streaming can truncate if the model fell behind on a slow CPU, so if the
+        result looks implausibly short for the audio length we re-transcribe it as
+        batch (guaranteed complete) — streaming can never hand you a cut-off dictation."""
         text = None
         try:
             text = session.finalize()
@@ -207,9 +211,17 @@ class VibeFlowApp:
             logging.getLogger("vibeflow").info(
                 "streaming failed (%s); falling back to batch transcribe", exc
             )
-        if text:
+        secs = self.recorder.duration(audio)
+        # ~6 chars/sec is well below real speech (~12–15), so this only trips on
+        # genuine truncation, never on normal (even slow) dictation.
+        if text and len(text.strip()) >= max(12, secs * 6):
             self._process(audio, text=text)
         else:
+            if text:
+                logging.getLogger("vibeflow").info(
+                    "streamed text implausibly short (%d chars / %.1fs) — using batch",
+                    len(text.strip()), secs,
+                )
             self._process(audio)
 
     def _process(self, audio, text=None) -> None:
