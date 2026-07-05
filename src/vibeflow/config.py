@@ -45,6 +45,8 @@ DEFAULTS: dict[str, Any] = {
     },
     "audio": {
         "sample_rate": 16000,
+        "denoise": False,            # noise front-end (band-pass + spectral) before ASR — helps against fan/AC noise
+        "bandpass": True,            # within denoise: keep only the ~80 Hz–8 kHz human-voice band
         "input_device": "default",   # "default" or a device name/substring/index
         "min_seconds": 0.4,          # ignore accidental ultra-short recordings
         "max_seconds": 120,          # safety cap on a single recording

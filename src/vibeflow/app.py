@@ -184,6 +184,17 @@ class VibeFlowApp:
                 self._notify(__app_name__, "Recording too short — ignored.")
                 return
 
+            # Optional noise front-end (band-pass + spectral reduction) before ASR —
+            # the fan/AC accuracy fix. Off by default; toggle in the tray. Defensive:
+            # returns the original audio if a dependency is missing.
+            if bool(self.cfg.get("audio.denoise", False)):
+                from .denoise import reduce_noise
+
+                audio = reduce_noise(
+                    audio,
+                    int(self.cfg.get("audio.sample_rate", 16000)),
+                    bandpass=bool(self.cfg.get("audio.bandpass", True)),
+                )
             _t0 = time.perf_counter()
             text = self.transcriber.transcribe(audio, prompt=self.vocabulary.prompt())
             _took = time.perf_counter() - _t0
@@ -732,6 +743,11 @@ class VibeFlowApp:
                         radio=True,
                     ),
                 ),
+            ),
+            Item(
+                "Noise reduction (beta) — for fan / AC noise",
+                self._toggle_denoise,
+                checked=lambda i: bool(self.cfg.get("audio.denoise", False)),
             ),
             Item(
                 "AI formatting",
@@ -1532,6 +1548,18 @@ class VibeFlowApp:
             pass
         finally:
             winreg.CloseKey(key)
+
+    def _toggle_denoise(self, _sender) -> None:
+        new = not bool(self.cfg.get("audio.denoise", False))
+        self.cfg.set("audio.denoise", new)
+        self._save_config()
+        self._notify(
+            __app_name__,
+            "Noise reduction ON — band-pass + spectral filtering before speech "
+            "recognition (helps in fan / AC noise)."
+            if new
+            else "Noise reduction OFF.",
+        )
 
     def _set_accuracy(self, size: str) -> None:
         self.cfg.set("model.size", size)

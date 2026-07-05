@@ -13,3 +13,5 @@ PyYAML>=6.0             # human-friendly settings file
 
 # Windows-only: reliable detection of the focused text field.
 comtypes>=1.2.0 ; sys_platform == "win32"
+
+noisereduce>=3.0.0        # optional noise front-end (band-pass + spectral reduction) before ASR
