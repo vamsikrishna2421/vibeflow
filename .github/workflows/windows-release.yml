@@ -1,0 +1,72 @@
+name: Build Windows installer
+
+# Push a `win-v*` tag → builds VibeFlowSetup.exe (PyInstaller + Inno Setup) and
+# attaches it to that GitHub Release, so the in-app "Check for updates" finds it.
+# Mirrors scripts/install.ps1 + scripts/build_installer.ps1 exactly.
+
+on:
+  push:
+    tags: ['win-v*']
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Stamp version from the tag (app + installer metadata)
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          V="${GITHUB_REF_NAME#win-v}"    # win-v1.22.2 -> 1.22.2
+          echo "building version $V"
+          python - "$V" <<'PY'
+          import re, sys
+          v = sys.argv[1]
+          # App version (what the updater compares)
+          p = "src/vibeflow/__init__.py"
+          s = re.sub(r'__version__ = "[^"]*"', f'__version__ = "{v}"', open(p).read())
+          open(p, "w").write(s)
+          # Installer metadata (Add/Remove Programs)
+          iss = "installer/vibeflow.iss"
+          t = open(iss, encoding="utf-8").read()
+          t = re.sub(r'#define MyAppVersion "[^"]*"', f'#define MyAppVersion "{v}"', t)
+          open(iss, "w", encoding="utf-8").write(t)
+          print("stamped", v)
+          PY
+
+      - name: Create venv + install VibeFlow (editable) + deps
+        shell: pwsh
+        run: |
+          python -m venv .venv
+          .venv\Scripts\python -m pip install --upgrade pip
+          .venv\Scripts\python -m pip install -e .
+          .venv\Scripts\python -m pip install -r requirements.txt
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup -y --no-progress
+
+      - name: Build the installer (PyInstaller + Inno Setup)
+        shell: pwsh
+        run: .\scripts\build_installer.ps1
+
+      - name: Upload build artifact (for manual runs)
+        uses: actions/upload-artifact@v4
+        with:
+          name: VibeFlowSetup
+          path: release/installer/VibeFlowSetup.exe
+
+      - name: Attach to the GitHub Release (on a win-v* tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/installer/VibeFlowSetup.exe
