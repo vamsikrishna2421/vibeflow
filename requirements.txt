@@ -15,3 +15,5 @@ PyYAML>=6.0             # human-friendly settings file
 comtypes>=1.2.0 ; sys_platform == "win32"
 
 noisereduce>=3.0.0        # optional noise front-end (band-pass + spectral reduction) before ASR
+
+useful-moonshine-onnx     # Moonshine v2 ASR (ONNX) — bake-off model option

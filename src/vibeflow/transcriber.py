@@ -41,8 +41,35 @@ def model_cache_dirname(size: str) -> str | None:
     return ("models--" + repo.replace("/", "--")) if repo else None
 
 
+# A non-Whisper engine exposed for the bake-off, dispatched by the model-id prefix.
+def _engine_of(size: str) -> str:
+    return "moonshine" if str(size or "").startswith("moonshine") else "whisper"
+
+
+def _audio_to_wav(audio, sample_rate: int = 16000) -> str:
+    """Write a float32 mono array to a temp 16-bit WAV and return its path — the
+    Moonshine ONNX runtime accepts a WAV path robustly."""
+    import os
+    import tempfile
+    import wave
+
+    import numpy as np
+
+    x = np.asarray(audio, dtype="float32").flatten()
+    pcm = (np.clip(x, -1.0, 1.0) * 32767.0).astype("<i2")
+    fd, path = tempfile.mkstemp(suffix=".wav")
+    os.close(fd)
+    with wave.open(path, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(int(sample_rate))
+        w.writeframes(pcm.tobytes())
+    return path
+
+
 class Transcriber:
-    """Lazy wrapper around a faster-whisper model."""
+    """Lazy wrapper around a speech model — faster-whisper by default, or the
+    Moonshine / Parakeet ONNX engines when the model id selects them."""
 
     def __init__(
         self,
@@ -55,6 +82,7 @@ class Transcriber:
         vad_filter: bool = True,
     ) -> None:
         self.size = size
+        self.engine = _engine_of(size)
         self.language = language
         self.device = device
         self.compute_type = compute_type
@@ -76,6 +104,9 @@ class Transcriber:
         locked (e.g. antivirus scanning model.bin right after an auto-update).
         """
         if self._model is not None:
+            return
+        if self.engine != "whisper":
+            self._model = self.engine  # sentinel — the ONNX engine loads/caches per call
             return
         try:
             from faster_whisper import WhisperModel
@@ -151,6 +182,9 @@ class Transcriber:
         if self._model is None:
             self.load()
 
+        if self.engine == "moonshine":
+            return self._transcribe_moonshine(audio)
+
         # English by default. A valid language code set in config still works,
         # but anything empty / "auto" / an unknown value falls back to English so
         # a bad setting can never crash transcription (faster-whisper raises on
@@ -170,6 +204,29 @@ class Transcriber:
                 except Exception as exc2:
                     raise TranscriptionError(f"Transcription failed: {exc2}") from exc2
             raise TranscriptionError(f"Transcription failed: {exc}") from exc
+
+    def _transcribe_moonshine(self, audio) -> str:
+        """Moonshine v2 via onnxruntime — a tiny, edge-optimized model. Best on
+        short (<~30 s) clips; may drift on long audio. self.size is e.g. 'moonshine/base'."""
+        import os
+
+        try:
+            from moonshine_onnx import transcribe as _moonshine_transcribe
+        except Exception as exc:
+            raise TranscriptionError(
+                "Moonshine isn't available in this build (useful-moonshine-onnx missing)."
+            ) from exc
+        path = _audio_to_wav(audio)
+        try:
+            res = _moonshine_transcribe(path, self.size)
+            if isinstance(res, (list, tuple)):
+                return " ".join(str(r) for r in res).strip()
+            return str(res).strip()
+        finally:
+            try:
+                os.remove(path)
+            except Exception:
+                pass
 
     def _run_with_lang(self, audio, lang: str, prompt: str | None) -> str:
         """Transcribe, falling back from a bad language code to English."""

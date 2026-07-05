@@ -742,6 +742,18 @@ class VibeFlowApp:
                         checked=lambda i: self.cfg.get("model.size") == "distil-large-v3",
                         radio=True,
                     ),
+                    Item(
+                        "Max — Full (large-v3 · most accurate · default)",
+                        lambda i: self._set_accuracy("large-v3"),
+                        checked=lambda i: self.cfg.get("model.size") == "large-v3",
+                        radio=True,
+                    ),
+                    Item(
+                        "Moonshine (base · tiny edge model)",
+                        lambda i: self._set_accuracy("moonshine/base"),
+                        checked=lambda i: self.cfg.get("model.size") == "moonshine/base",
+                        radio=True,
+                    ),
                 ),
             ),
             Item(
@@ -1568,7 +1580,8 @@ class VibeFlowApp:
         self._model_ready = False
         labels = {
             "base": "Fast", "small": "Balanced", "medium": "Accurate",
-            "large-v3-turbo": "Turbo", "distil-large-v3": "Distil",
+            "large-v3": "Full (large-v3)", "large-v3-turbo": "Turbo",
+            "distil-large-v3": "Distil", "moonshine/base": "Moonshine",
         }
         self._notify(
             __app_name__,

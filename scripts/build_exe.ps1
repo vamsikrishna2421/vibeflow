@@ -48,6 +48,7 @@ Write-Host "Building VibeFlow.exe (this takes a few minutes) ..." -ForegroundCol
     --collect-all onnxruntime `
     --collect-all comtypes `
     --collect-all noisereduce `
+    --collect-all moonshine_onnx `
     --hidden-import tkinter `
     --distpath release `
     --workpath build\pyinstaller `
