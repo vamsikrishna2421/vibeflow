@@ -30,6 +30,7 @@ DEFAULTS: dict[str, Any] = {
         "device": "auto",        # auto | cpu | cuda
         "compute_type": "auto",  # auto | int8 | int8_float16 | float16 | float32
         "show_timing": True,     # briefly flash "<model> · <seconds>" after each dictation
+        "streaming": False,      # transcribe WHILE speaking (LocalAgreement) — near-instant paste on release
     },
     "hotkey": {
         "mode": "push_to_talk",            # push_to_talk only (toggle disabled for now)

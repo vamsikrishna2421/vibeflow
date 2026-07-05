@@ -274,6 +274,31 @@ class Transcriber:
         )
         return "".join(segment.text for segment in segments)
 
+    def transcribe_words(self, audio, prompt: str | None = None):
+        """Word-level transcription — list of (start, end, word) with per-word
+        timestamps, for the streaming LocalAgreement processor. Whisper engine only.
+        Each pass re-transcribes the rolling window independently (no cross-window
+        conditioning), which is what LocalAgreement needs."""
+        if self._model is None:
+            self.load()
+        lang = str(self.language or "").strip().lower()
+        if lang in ("", "auto", "auto-detect", "autodetect"):
+            lang = "en"
+        segments, _info = self._model.transcribe(
+            audio,
+            language=lang,
+            beam_size=self.beam_size,
+            vad_filter=self.vad_filter,
+            initial_prompt=prompt or None,
+            word_timestamps=True,
+            condition_on_previous_text=False,
+        )
+        out = []
+        for seg in segments:
+            for w in (getattr(seg, "words", None) or []):
+                out.append((float(w.start), float(w.end), w.word))
+        return out
+
 
 def _resolve_device(device: str, compute_type: str) -> tuple[str, str]:
     """Pick a concrete (device, compute_type) pair.

@@ -101,6 +101,20 @@ class Recorder:
             audio = audio.mean(axis=1)
         return audio.astype("float32", copy=False)
 
+    def snapshot(self):
+        """Return the audio captured SO FAR without stopping — for streaming, which
+        transcribes the growing buffer while the user is still speaking."""
+        import numpy as np
+
+        with self._lock:
+            frames = list(self._frames)
+        if not frames:
+            return np.zeros(0, dtype="float32")
+        audio = np.concatenate(frames, axis=0)
+        if audio.ndim > 1:
+            audio = audio.mean(axis=1)
+        return audio.astype("float32", copy=False)
+
     def duration(self, audio) -> float:
         """Length of an audio array in seconds."""
         try:

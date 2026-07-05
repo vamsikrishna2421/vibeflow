@@ -155,6 +155,22 @@ class VibeFlowApp:
             self._refresh()
             return
 
+        # Streaming (opt-in): transcribe WHILE speaking so the paste is near-instant
+        # on release. Whisper engine only; any failure just falls back to batch.
+        self._stream_session = None
+        try:
+            if bool(self.cfg.get("model.streaming", False)) and \
+                    getattr(self.transcriber, "engine", "whisper") == "whisper":
+                from .streaming import StreamingSession
+
+                self._stream_session = StreamingSession(
+                    self.transcriber, self.recorder, prompt=self.vocabulary.prompt()
+                )
+                self._stream_session.start()
+        except Exception as exc:
+            self._stream_session = None
+            logging.getLogger("vibeflow").info("streaming start failed (%s); using batch", exc)
+
         notifier.play(notifier.START, self._sounds)
         self.overlay.show("listening")
         self._set_status("Listening…")
@@ -167,15 +183,36 @@ class VibeFlowApp:
             self._recording = False
             self._busy = True
 
+        session = getattr(self, "_stream_session", None)
+        self._stream_session = None
         audio = self.recorder.stop()
         notifier.play(notifier.STOP, self._sounds)
         self.overlay.show("transcribing")
         self._set_status("Transcribing…")
         self._refresh()
 
-        threading.Thread(target=self._process, args=(audio,), daemon=True).start()
+        if session is not None:
+            threading.Thread(
+                target=self._process_streamed, args=(session, audio), daemon=True
+            ).start()
+        else:
+            threading.Thread(target=self._process, args=(audio,), daemon=True).start()
 
-    def _process(self, audio) -> None:
+    def _process_streamed(self, session, audio) -> None:
+        """Deliver a streamed transcript; fall back to batch on any failure/empty."""
+        text = None
+        try:
+            text = session.finalize()
+        except Exception as exc:
+            logging.getLogger("vibeflow").info(
+                "streaming failed (%s); falling back to batch transcribe", exc
+            )
+        if text:
+            self._process(audio, text=text)
+        else:
+            self._process(audio)
+
+    def _process(self, audio, text=None) -> None:
         try:
             seconds = self.recorder.duration(audio)
             min_seconds = float(self.cfg.get("audio.min_seconds", 0.4))
@@ -184,34 +221,42 @@ class VibeFlowApp:
                 self._notify(__app_name__, "Recording too short — ignored.")
                 return
 
-            # Optional noise front-end (band-pass + spectral reduction) before ASR —
-            # the fan/AC accuracy fix. Off by default; toggle in the tray. Defensive:
-            # returns the original audio if a dependency is missing.
-            if bool(self.cfg.get("audio.denoise", False)):
-                from .denoise import reduce_noise
+            # When `text` is provided, streaming already transcribed it during
+            # speech — skip the batch transcribe. Otherwise transcribe now (batch).
+            if text is None:
+                # Optional noise front-end (band-pass + spectral reduction) before ASR —
+                # the fan/AC accuracy fix. Off by default; toggle in the tray. Defensive:
+                # returns the original audio if a dependency is missing.
+                if bool(self.cfg.get("audio.denoise", False)):
+                    from .denoise import reduce_noise
 
-                audio = reduce_noise(
-                    audio,
-                    int(self.cfg.get("audio.sample_rate", 16000)),
-                    bandpass=bool(self.cfg.get("audio.bandpass", True)),
+                    audio = reduce_noise(
+                        audio,
+                        int(self.cfg.get("audio.sample_rate", 16000)),
+                        bandpass=bool(self.cfg.get("audio.bandpass", True)),
+                    )
+                # Warm the model OUTSIDE the timer so the runtime readout reflects pure
+                # inference, not the one-time model load — a fair bake-off comparison
+                # (loading large-v3 the first time can add tens of seconds).
+                if not self.transcriber.is_loaded:
+                    self.transcriber.load()
+                _t0 = time.perf_counter()
+                text = self.transcriber.transcribe(audio, prompt=self.vocabulary.prompt())
+                _took = time.perf_counter() - _t0
+                self._model_ready = True
+                _size = self.cfg.get("model.size", "base")
+                logging.getLogger("vibeflow").info(
+                    "transcribed with %s in %.2fs (audio %.1fs)", _size, _took, seconds
                 )
-            # Warm the model OUTSIDE the timer so the runtime readout reflects pure
-            # inference, not the one-time model load — a fair bake-off comparison
-            # (loading large-v3 the first time can add tens of seconds).
-            if not self.transcriber.is_loaded:
-                self.transcriber.load()
-            _t0 = time.perf_counter()
-            text = self.transcriber.transcribe(audio, prompt=self.vocabulary.prompt())
-            _took = time.perf_counter() - _t0
-            self._model_ready = True
-            _size = self.cfg.get("model.size", "base")
-            logging.getLogger("vibeflow").info(
-                "transcribed with %s in %.2fs (audio %.1fs)", _size, _took, seconds
-            )
-            # Surface model + runtime so accuracy-vs-speed is visible without the log
-            # (the model-bake-off readout). Toggle off via model.show_timing = false.
-            if bool(self.cfg.get("model.show_timing", True)):
-                self.overlay.show("info", f"VibeFlow · {_size} · {_took:.1f}s")
+                # Surface model + runtime so accuracy-vs-speed is visible without the log
+                # (the model-bake-off readout). Toggle off via model.show_timing = false.
+                if bool(self.cfg.get("model.show_timing", True)):
+                    self.overlay.show("info", f"VibeFlow · {_size} · {_took:.1f}s")
+            else:
+                self._model_ready = True
+                logging.getLogger("vibeflow").info(
+                    "streamed transcript (%.1fs audio, %d chars)", seconds, len(text or "")
+                )
             if bool(self.cfg.get("text.debug_log", False)):
                 logging.getLogger("vibeflow").info(
                     "debug raw transcript: %r", (text or "")[:240]
@@ -765,6 +810,11 @@ class VibeFlowApp:
                 "Noise reduction (beta) — for fan / AC noise",
                 self._toggle_denoise,
                 checked=lambda i: bool(self.cfg.get("audio.denoise", False)),
+            ),
+            Item(
+                "Streaming (beta) — transcribe while you speak",
+                self._toggle_streaming,
+                checked=lambda i: bool(self.cfg.get("model.streaming", False)),
             ),
             Item(
                 "AI formatting",
@@ -1565,6 +1615,19 @@ class VibeFlowApp:
             pass
         finally:
             winreg.CloseKey(key)
+
+    def _toggle_streaming(self, _sender) -> None:
+        new = not bool(self.cfg.get("model.streaming", False))
+        self.cfg.set("model.streaming", new)
+        self._save_config()
+        self._notify(
+            __app_name__,
+            "Streaming ON — VibeFlow transcribes while you speak, so the text is "
+            "ready almost instantly when you stop. Works best with small/medium; "
+            "large-v3 on a slow CPU may still lag. (Whisper models only.)"
+            if new
+            else "Streaming OFF — back to transcribing after you stop.",
+        )
 
     def _toggle_denoise(self, _sender) -> None:
         new = not bool(self.cfg.get("audio.denoise", False))
