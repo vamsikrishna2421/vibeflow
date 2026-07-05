@@ -83,6 +83,7 @@ class VibeFlowApp:
         self._last_output = None        # what we last produced (for teach-back)
         self._last_output_ts = 0.0
         self._clip_last = None
+        self._offline_dl = None         # offline-cleanup download progress (None=idle, else 0..1)
         self._stopping = False
         self._vocab_wordlist_mtime = None  # set when the user opens the word list
         self._cfg_mtime = None  # config.yaml mtime, to pick up Settings-window edits
@@ -811,14 +812,15 @@ class VibeFlowApp:
                         checked=lambda i: self._ai_tier() == "best",
                         radio=True,
                     ),
+                    Menu.SEPARATOR,
+                    Item(
+                        lambda i: self._offline_cleanup_label(),
+                        self._toggle_offline_cleanup,
+                        checked=lambda i: bool(self.cfg.get("ai.offline_fallback", False)),
+                    ),
                 ),
             ),
             Item("Manage AI models…", self._open_models_manager),
-            Item(
-                "Offline cleanup — no Ollama (Beta, ~2 GB)",
-                self._toggle_offline_cleanup,
-                checked=lambda i: bool(self.cfg.get("ai.offline_fallback", False)),
-            ),
             Menu.SEPARATOR,
             Item("Open settings file", self._open_config),
             Item("Open settings folder", self._open_config_dir),
@@ -1474,10 +1476,23 @@ class VibeFlowApp:
         )
         self._refresh()
 
+    def _offline_cleanup_label(self) -> str:
+        """Menu label reflecting the offline-cleanup state (idle / downloading / on)."""
+        if self._offline_dl is not None:
+            return f"Offline cleanup — downloading {int(self._offline_dl * 100)}%…"
+        if bool(self.cfg.get("ai.offline_fallback", False)):
+            return "Offline cleanup — no Ollama ✓ (on)"
+        return "Offline cleanup — no Ollama (Beta · downloads ~2 GB)"
+
     def _toggle_offline_cleanup(self, *_args) -> None:
         """Opt in/out of the no-Ollama cleanup. On opt-in, download the ~2 GB
-        model once (in the background); it enables itself when ready."""
+        model once (in the background, with live % in the menu); it enables
+        itself when ready."""
         from .core import offline_cleanup
+
+        if self._offline_dl is not None:  # a download is already running
+            self._notify(__app_name__, "Offline cleanup is still downloading — see the % in the menu.")
+            return
 
         if bool(self.cfg.get("ai.offline_fallback", False)):  # turning OFF
             self.cfg.set("ai.offline_fallback", False)
@@ -1494,15 +1509,33 @@ class VibeFlowApp:
             self._refresh()
             return
 
-        # Not set up yet → fetch the model, then enable on success.
+        # Not set up yet → fetch the model with visible progress, enable on success.
+        self._offline_dl = 0.0
+        try:
+            self.overlay.show("info", "VibeFlow · Setting up offline cleanup…")
+        except Exception:
+            pass
         self._notify(
             __app_name__,
             f"Setting up offline cleanup — downloading the model ({offline_cleanup.MODEL_SIZE_HINT}). "
-            "Keep dictating; it turns on automatically when ready.",
+            "Progress shows in this menu; it turns on automatically when ready.",
         )
+        self._refresh()
 
         def _fetch() -> None:
-            ok = offline_cleanup.download()
+            last = [0.0]
+
+            def _prog(frac: float) -> None:
+                self._offline_dl = frac
+                if frac - last[0] >= 0.02:  # refresh the menu ~every 2%
+                    last[0] = frac
+                    try:
+                        self._refresh()
+                    except Exception:
+                        pass
+
+            ok = offline_cleanup.download(progress=_prog)
+            self._offline_dl = None
             if ok:
                 self.cfg.set("ai.offline_fallback", True)
                 self._save_config()

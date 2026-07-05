@@ -157,7 +157,13 @@ def _detect_uia() -> str:
         if _supports_editable_pattern(element, UIA):
             return EDITABLE
 
-        return NON_EDITABLE
+        # Unrecognized element: DON'T claim it's non-editable. Many real editable
+        # surfaces (browser inputs, Electron apps like Slack/VS Code, some chat and
+        # IME fields) don't expose a UIA Edit/Document control or a writable value
+        # pattern — labelling them NON_EDITABLE forced clipboard-only and broke
+        # pasting. Return UNKNOWN so the win32 caret check + auto_fallback (type)
+        # get a say. Only a *confirmed* read-only Edit/Document above is NON_EDITABLE.
+        return UNKNOWN
     except Exception:
         return UNKNOWN
 
