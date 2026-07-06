@@ -923,9 +923,9 @@ class VibeFlowApp:
                 lambda i: (
                     f"⬆ Install update ({self._update_info['version']})…"
                     if self._update_info
-                    else "Check for updates"
+                    else "Check for updates…"
                 ),
-                self._update_action,
+                self._open_update_dialog,
             ),
             Menu.SEPARATOR,
             Item(lambda i: self._license_label(), self._open_license),
@@ -952,6 +952,9 @@ class VibeFlowApp:
 
     def _open_license(self, *_args) -> None:
         self._launch_manager("--license")
+
+    def _open_update_dialog(self, *_args) -> None:
+        self._launch_manager("--update")
 
     def _reload(self, *_args) -> None:
         self.cfg = config_mod.load_config(self.cfg.path)
