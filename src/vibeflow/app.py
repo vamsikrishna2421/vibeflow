@@ -777,6 +777,7 @@ class VibeFlowApp:
             Item(lambda _: self._status, None, enabled=False),
             Item(lambda _: f"Hold {self._hotkey_label()} to talk", None, enabled=False),
             Menu.SEPARATOR,
+            Item("Open VibeFlow…", self._open_main),
             Item("Settings (stays open)…", self._open_settings),
             Item(
                 "Output",
@@ -975,6 +976,9 @@ class VibeFlowApp:
 
     def _open_update_dialog(self, *_args) -> None:
         self._launch_manager("--update")
+
+    def _open_main(self, *_args) -> None:
+        self._launch_manager("--main")
 
     def _open_mic_settings(self, *_args) -> None:
         """Open Windows' Microphone privacy settings (where mic access is granted)."""

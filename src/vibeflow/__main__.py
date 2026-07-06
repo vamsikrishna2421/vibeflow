@@ -83,6 +83,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Open the first-run welcome / mic-check window and exit.",
     )
     p.add_argument(
+        "--main",
+        action="store_true",
+        help="Open the unified VibeFlow window (sidebar) and exit.",
+    )
+    p.add_argument(
         "--check-ai",
         action="store_true",
         help="Test the local-LLM (AI formatting) connection and exit.",
@@ -149,6 +154,10 @@ def main(argv: list[str] | None = None) -> int:
         from .onboarding_window import run as run_onboarding
 
         return run_onboarding(args.config)
+    if args.main:
+        from .main_window import run as run_main
+
+        return run_main(args.config)
     if args.check_ai:
         return _check_ai(cfg)
     if args.setup_ai:
