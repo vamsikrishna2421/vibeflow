@@ -41,6 +41,11 @@ _TRIAL_HMAC_KEY = b"vibeflow-trial-v1"
 # life. Each key has activation_limit=1 in LS, so a 2nd device needs its own key.
 # Everything below is PUBLIC (no secrets) — the license key the customer pastes is
 # the only credential, and LS's activate endpoint needs no API token.
+# Master switch. While False, the app is NEVER gated (current public beta — the
+# store isn't live, so locking testers out would strand them). Flip to True at
+# commercial launch, together with the LIVE Lemon Squeezy ids below.
+LICENSING_ENFORCED = False
+
 LS_ACTIVATE_URL = "https://api.lemonsqueezy.com/v1/licenses/activate"
 LS_VALIDATE_URL = "https://api.lemonsqueezy.com/v1/licenses/validate"
 # NOTE: these are the LS TEST-mode ids (store is in test mode). At launch, after the
@@ -79,6 +84,8 @@ class LicenseStatus:
 
     @property
     def badge(self) -> str:
+        if self.edition == "beta":
+            return "VibeFlow"
         if self.state == "licensed":
             return "VibeFlow — Licensed (this device)"
         if self.state == "trial":
@@ -344,28 +351,92 @@ def activate_license(config_dir: Path, key: str) -> LicenseStatus:
     return LicenseStatus(state="licensed", edition="lifetime")
 
 
+# ── durable trial anchor (survives uninstall + config-folder deletion) ──
+# The trial start is ALSO stored, keyed by device fingerprint, in a spot the app
+# uninstaller and a config-folder wipe don't touch: the Windows registry (HKCU) or
+# a home dotfile on macOS. evaluate() always uses the EARLIEST start it can find
+# across trial.json + this anchor, so deleting trial.json alone can't reset the
+# trial. (A fully offline trial can never be 100% un-resettable — a determined user
+# can wipe every marker or reimage — but this stops casual "uninstall to reset".)
+def _anchor_name(device: str) -> str:
+    return f"t_{device[:12]}"
+
+
+def _read_anchor(device: str) -> Optional[str]:
+    import sys
+
+    try:
+        if sys.platform == "win32":
+            import winreg
+
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\VibeFlow") as k:
+                return winreg.QueryValueEx(k, _anchor_name(device))[0] or None
+        p = Path.home() / ".vibeflow_id"
+        if p.exists():
+            return json.loads(p.read_text(encoding="utf-8")).get(_anchor_name(device))
+    except Exception:
+        pass
+    return None
+
+
+def _write_anchor(device: str, started: str) -> None:
+    import sys
+
+    try:
+        if sys.platform == "win32":
+            import winreg
+
+            k = winreg.CreateKey(winreg.HKEY_CURRENT_USER, r"Software\VibeFlow")
+            # Only write if absent/earlier — never let a rewrite extend the trial.
+            try:
+                cur = winreg.QueryValueEx(k, _anchor_name(device))[0]
+            except FileNotFoundError:
+                cur = None
+            if not cur or started < cur:
+                winreg.SetValueEx(k, _anchor_name(device), 0, winreg.REG_SZ, started)
+            winreg.CloseKey(k)
+            return
+        p = Path.home() / ".vibeflow_id"
+        data = {}
+        if p.exists():
+            try:
+                data = json.loads(p.read_text(encoding="utf-8"))
+            except Exception:
+                data = {}
+        cur = data.get(_anchor_name(device))
+        if not cur or started < cur:
+            data[_anchor_name(device)] = started
+            p.write_text(json.dumps(data), encoding="utf-8")
+    except Exception:
+        pass
+
+
 def evaluate(config_dir: Path) -> LicenseStatus:
     """Single entry point: licensed (activated on THIS device) → trial → locked."""
+    if not LICENSING_ENFORCED:
+        # Beta phase: never gate. Neutral status so nothing shows a trial countdown.
+        return LicenseStatus(state="licensed", edition="beta")
     # A device activation is only valid on the machine it was made on: a copied
     # activation.json fails the device check → locked. LS also caps the key at 1
     # device server-side, so the key can't be re-activated elsewhere either.
+    device = device_fingerprint()
     act = _read_activation(config_dir / ACTIVATION_FILENAME)
-    if act and hmac.compare_digest(str(act.get("device", "")), device_fingerprint()):
+    if act and hmac.compare_digest(str(act.get("device", "")), device):
         return LicenseStatus(state="licensed", edition="lifetime")
 
     trial = config_dir / TRIAL_FILENAME
     today = _today().isoformat()
     rec = _read_trial(trial)
-    if rec:
-        started = rec["started"]
-        # Clock-rollback clamp: "now" can never precede the last run we recorded.
-        last_seen = max(rec["last_seen"], today)
-        _write_trial(trial, started, last_seen)
-        used = (_dt.date.fromisoformat(last_seen) - _dt.date.fromisoformat(started)).days
-    else:
-        started = last_seen = today
-        _write_trial(trial, started, last_seen)
-        used = 0
+    anchor = _read_anchor(device)
+    # The true trial start is the EARLIEST we've ever recorded anywhere — so wiping
+    # trial.json falls back to the durable anchor instead of granting a fresh trial.
+    starts = [today] + ([rec["started"]] if rec else []) + ([anchor] if anchor else [])
+    started = min(starts)
+    # Clock-rollback clamp: "now" can never precede the last run we recorded.
+    last_seen = max([today] + ([rec["last_seen"]] if rec else []))
+    _write_trial(trial, started, last_seen)
+    _write_anchor(device, started)
+    used = (_dt.date.fromisoformat(last_seen) - _dt.date.fromisoformat(started)).days
 
     left = TRIAL_DAYS - used
     if left >= 0:

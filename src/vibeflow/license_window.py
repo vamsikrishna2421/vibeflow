@@ -1,26 +1,26 @@
 """
-License window — a standalone Tk dialog (own process, like settings_window.py).
-Shows current status, lets the user paste/open a license file, and links to buy.
-Launched via `python -m vibeflow --license` (or `VibeFlow.exe --license`).
+Activate window — a standalone Tk dialog (own process, like settings_window.py).
+Shows trial / locked / licensed status, lets the user paste a Lemon Squeezy license
+key to unlock THIS device for life, and links to buy ($10). Launched via
+`VibeFlow.exe --license`.
 """
 from __future__ import annotations
 
+import threading
 import tkinter as tk
 import webbrowser
-from pathlib import Path
-from tkinter import filedialog, ttk
+from tkinter import ttk
 
 from . import config as config_mod
 from . import licensing
-
-BUY_PERSONAL_URL = "https://vibeflow.app/buy/personal"
-BUY_BUSINESS_URL = "https://vibeflow.app/buy/business"
 
 _BG = "#141020"
 _CARD = "#1b1730"
 _INK = "#f4f2fb"
 _SOFT = "#b7b2d0"
 _BRAND = "#8b6dff"
+_OK = "#3ed598"
+_ERR = "#ff6b6b"
 
 
 def run(config_path: str | None = None) -> int:
@@ -28,17 +28,18 @@ def run(config_path: str | None = None) -> int:
     status = licensing.evaluate(cfg_dir)
 
     root = tk.Tk()
-    root.title("VibeFlow · License")
+    root.title("VibeFlow · Activate")
     root.configure(bg=_BG)
     try:
-        root.geometry("460x460")
+        root.geometry("470x440")
+        root.resizable(False, False)
     except Exception:
         pass
 
     def label(parent, text, **kw):
         return tk.Label(parent, text=text, bg=kw.pop("bg", _BG), fg=kw.pop("fg", _INK), **kw)
 
-    label(root, "VibeFlow License", font=("Segoe UI", 18, "bold")).pack(anchor="w", padx=22, pady=(20, 2))
+    label(root, "VibeFlow", font=("Segoe UI", 18, "bold")).pack(anchor="w", padx=22, pady=(20, 2))
 
     # Status card
     card = tk.Frame(root, bg=_CARD)
@@ -46,58 +47,66 @@ def run(config_path: str | None = None) -> int:
     state_line = label(card, status.badge, bg=_CARD, fg=_BRAND, font=("Segoe UI", 14, "bold"))
     state_line.pack(anchor="w", padx=16, pady=(14, 2))
     detail = {
-        "licensed": f"Licensed to {status.name or status.email or 'you'}. Thank you!",
-        "trial": "Every feature is unlocked during your trial.",
-        "expired": "Trial ended — voice-to-text stays free; AI formatting is locked.",
-        "free": "Free mode — voice-to-text is free forever; unlock AI with a license.",
+        "licensed": "This device is licensed. Thank you for buying VibeFlow!",
+        "trial": "Every feature is unlocked during your free trial.",
+        "locked": "Your free trial has ended. Unlock this device once ($10) to keep using VibeFlow.",
     }.get(status.state, "")
-    label(card, detail, bg=_CARD, fg=_SOFT, font=("Segoe UI", 10), wraplength=390, justify="left").pack(
-        anchor="w", padx=16, pady=(0, 14)
-    )
+    detail_line = label(card, detail, bg=_CARD, fg=_SOFT, font=("Segoe UI", 10),
+                        wraplength=400, justify="left")
+    detail_line.pack(anchor="w", padx=16, pady=(0, 14))
 
-    # Paste box
-    label(root, "Paste your license key", font=("Segoe UI", 10)).pack(anchor="w", padx=22, pady=(6, 4))
-    box = tk.Text(root, height=4, wrap="word", bg=_CARD, fg=_INK, insertbackground=_INK,
-                  relief="flat", font=("Consolas", 9))
+    # Paste-key box
+    label(root, "Have a license key? Paste it to unlock this device",
+          font=("Segoe UI", 10)).pack(anchor="w", padx=22, pady=(6, 4))
+    box = tk.Text(root, height=2, wrap="word", bg=_CARD, fg=_INK, insertbackground=_INK,
+                  relief="flat", font=("Consolas", 11))
     box.pack(fill="x", padx=18)
 
-    msg = label(root, "", fg=_SOFT, font=("Segoe UI", 10))
+    msg = label(root, "", fg=_SOFT, font=("Segoe UI", 10), wraplength=420, justify="left")
     msg.pack(anchor="w", padx=22, pady=(8, 0))
 
-    def apply_text(text: str) -> None:
-        new = licensing.install_license(cfg_dir, text)
-        if new:
-            msg.config(text=f"✓ Activated — {new.badge}", fg="#3ed598")
-            state_line.config(text=new.badge)
-        else:
-            msg.config(text="✗ That doesn't look like a valid VibeFlow license.", fg="#ff6b6b")
+    activate_btn = None  # set below
+
+    def _finish(ok: bool, text: str, badge: str | None = None) -> None:
+        msg.config(text=text, fg=_OK if ok else _ERR)
+        if ok and badge:
+            state_line.config(text=badge)
+            detail_line.config(text="This device is licensed. Thank you for buying VibeFlow!")
+        if activate_btn is not None:
+            activate_btn.config(state="normal")
+
+    def _worker(key: str) -> None:
+        try:
+            new = licensing.activate_license(cfg_dir, key)
+            root.after(0, lambda: _finish(True, "✓ Unlocked — this device is licensed for life. Thank you!", new.badge))
+        except licensing.ActivationError as exc:
+            emsg = str(exc)
+            root.after(0, lambda: _finish(False, f"✗ {emsg}"))
 
     def on_activate():
-        apply_text(box.get("1.0", "end"))
-
-    def on_open_file():
-        p = filedialog.askopenfilename(title="Choose your VibeFlow license file",
-                                       filetypes=[("License", "*.key *.txt *.lic"), ("All", "*.*")])
-        if p:
-            try:
-                apply_text(Path(p).read_text(encoding="utf-8"))
-            except Exception:
-                msg.config(text="✗ Couldn't read that file.", fg="#ff6b6b")
+        key = box.get("1.0", "end").strip()
+        if not key:
+            _finish(False, "✗ Paste your license key first.")
+            return
+        if activate_btn is not None:
+            activate_btn.config(state="disabled")
+        msg.config(text="Activating this device…", fg=_SOFT)
+        threading.Thread(target=_worker, args=(key,), daemon=True).start()
 
     btns = tk.Frame(root, bg=_BG)
     btns.pack(fill="x", padx=18, pady=14)
-    ttk.Button(btns, text="Activate", command=on_activate).pack(side="left")
-    ttk.Button(btns, text="Open license file…", command=on_open_file).pack(side="left", padx=8)
+    activate_btn = ttk.Button(btns, text="Activate this device", command=on_activate)
+    activate_btn.pack(side="left")
 
     buy = tk.Frame(root, bg=_BG)
     buy.pack(fill="x", padx=18, pady=(0, 6))
-    ttk.Button(buy, text="Buy Personal", command=lambda: webbrowser.open(BUY_PERSONAL_URL)).pack(side="left")
-    ttk.Button(buy, text="Buy Business (per-seat)", command=lambda: webbrowser.open(BUY_BUSINESS_URL)).pack(
-        side="left", padx=8
-    )
+    ttk.Button(buy, text="Buy — $10 (one device, lifetime)",
+               command=lambda: webbrowser.open(licensing.LS_CHECKOUT_URL)).pack(side="left")
 
-    label(root, "Fully offline — your license is verified on this device; nothing is sent anywhere.",
-          fg=_SOFT, font=("Segoe UI", 8), wraplength=410, justify="left").pack(anchor="w", padx=22, pady=(6, 0))
+    label(root, "One-time $10 per device — no subscription. After you activate once, "
+                "VibeFlow runs fully offline; nothing about your dictation is ever sent anywhere.",
+          fg=_SOFT, font=("Segoe UI", 8), wraplength=420, justify="left").pack(
+        anchor="w", padx=22, pady=(6, 0))
 
     root.mainloop()
     return 0

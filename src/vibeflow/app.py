@@ -137,6 +137,21 @@ class VibeFlowApp:
     # Recording lifecycle (called from hotkey threads)
     # ------------------------------------------------------------------
     def start_recording(self) -> None:
+        # License gate: after the 14-day free trial, the WHOLE app is locked until
+        # this device is activated. Re-evaluate each time (cheap file reads) so an
+        # expiry — or a fresh activation — takes effect immediately.
+        self._license = licensing.evaluate(config_mod.config_dir())
+        if not self._license.tool_unlocked:
+            self.hotkeys.reset_toggle()
+            notifier.play(notifier.ERROR, self._sounds)
+            self._notify(
+                __app_name__,
+                "Your free trial has ended. Unlock VibeFlow — $10 once, this device, "
+                "for life. Opening activation…",
+            )
+            self._open_license()
+            self._refresh()
+            return
         with self._lock:
             if self._recording or self._busy:
                 # Already busy: don't stack recordings. Keep trigger state sane.
@@ -1361,18 +1376,20 @@ class VibeFlowApp:
             return False
 
     def _maybe_reload_license(self) -> None:
-        """Re-evaluate the license if license.key changed (activated in the window)."""
+        """Re-evaluate the license if the activation changed (device activated in the window)."""
         try:
-            lic = config_mod.config_dir() / licensing.LICENSE_FILENAME
-            mtime = lic.stat().st_mtime if lic.exists() else 0.0
+            act = config_mod.config_dir() / licensing.ACTIVATION_FILENAME
+            mtime = act.stat().st_mtime if act.exists() else 0.0
         except Exception:
             return
         if mtime != self._license_mtime:
             self._license_mtime = mtime
             new = licensing.evaluate(config_mod.config_dir())
-            if new.is_paid and not self._license.is_paid:
-                self._license_nudged = False
-                self._notify(__app_name__, f"Activated — {new.badge}. AI formatting unlocked.")
+            was_locked = not self._license.tool_unlocked
+            self._license = new
+            if new.state == "licensed" and was_locked:
+                self._notify(__app_name__, "Unlocked — this device is licensed for life. Thank you!")
+            self._refresh()
             self._license = new
             if self.icon is not None:
                 try: self.icon.update_menu()
