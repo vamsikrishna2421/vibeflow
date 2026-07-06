@@ -36,12 +36,28 @@ TRIAL_FILENAME = "trial.json"
 # App-embedded key for the trial-file HMAC (tamper/rollback friction, not secrecy).
 _TRIAL_HMAC_KEY = b"vibeflow-trial-v1"
 
+# ── Lemon Squeezy per-device activation (one-time online, then fully offline) ──
+# Model: 14-day full trial → whole app LOCKS → $10 one-time unlocks THIS device for
+# life. Each key has activation_limit=1 in LS, so a 2nd device needs its own key.
+# Everything below is PUBLIC (no secrets) — the license key the customer pastes is
+# the only credential, and LS's activate endpoint needs no API token.
+LS_ACTIVATE_URL = "https://api.lemonsqueezy.com/v1/licenses/activate"
+LS_VALIDATE_URL = "https://api.lemonsqueezy.com/v1/licenses/validate"
+LS_PRODUCT_ID = 0  # TODO: set to your LS product id (keys for other products are rejected)
+LS_CHECKOUT_URL = "https://vibeflow.lemonsqueezy.com/buy/REPLACE-ME"  # TODO: your $10 buy link
+ACTIVATION_FILENAME = "activation.json"
+_ACT_HMAC_KEY = b"vibeflow-activation-v1"
+
+
+class ActivationError(Exception):
+    """Raised with a user-facing message when activation can't complete."""
+
 
 # ─────────────────────────── status model ────────────────────────────
 @dataclass(frozen=True)
 class LicenseStatus:
-    state: str            # "licensed" | "trial" | "expired" | "free"
-    edition: str          # "personal" | "business" | "free"
+    state: str            # "licensed" | "trial" | "locked"
+    edition: str = "lifetime"
     name: Optional[str] = None
     email: Optional[str] = None
     seats: int = 1
@@ -49,21 +65,23 @@ class LicenseStatus:
     expired: bool = False
 
     @property
-    def is_paid(self) -> bool:
-        """Paid features (AI formatting, business tools) unlocked?"""
+    def tool_unlocked(self) -> bool:
+        """The whole app is usable (a valid device activation, or still in trial)."""
         return self.state in ("licensed", "trial")
+
+    # Back-compat alias — older call sites gated AI on this.
+    @property
+    def is_paid(self) -> bool:
+        return self.tool_unlocked
 
     @property
     def badge(self) -> str:
         if self.state == "licensed":
-            base = f"VibeFlow {self.edition.title()}"
-            return base + (f" · {self.seats} seats" if self.edition == "business" else "")
+            return "VibeFlow — Licensed (this device)"
         if self.state == "trial":
             n = self.days_left or 0
             return f"Trial — {n} day{'s' if n != 1 else ''} left"
-        if self.state == "expired":
-            return "Trial ended · Free mode"
-        return "Free"
+        return "Trial ended — activate to unlock"
 
 
 # ─────────────────────────── ed25519 verify ──────────────────────────
@@ -222,14 +240,115 @@ def _write_trial(path: Path, started: str, last_seen: str) -> None:
                                 "mac": _trial_mac(started, last_seen)}), encoding="utf-8")
 
 
+# ─────────────────── device fingerprint + LS activation ───────────────────
+def device_fingerprint() -> str:
+    """A stable, per-device id — hashed so we never store the raw hardware id.
+    Windows: MachineGuid; macOS: IOPlatformUUID; fallback: the MAC address."""
+    raw = ""
+    try:
+        import sys
+        if sys.platform == "win32":
+            import winreg
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+                                r"SOFTWARE\Microsoft\Cryptography") as k:
+                raw = winreg.QueryValueEx(k, "MachineGuid")[0]
+        elif sys.platform == "darwin":
+            import subprocess
+            out = subprocess.check_output(
+                ["ioreg", "-rd1", "-c", "IOPlatformExpertDevice"],
+                text=True, timeout=5)
+            for line in out.splitlines():
+                if "IOPlatformUUID" in line:
+                    raw = line.split('"')[-2]
+                    break
+    except Exception:
+        raw = ""
+    if not raw:
+        import uuid
+        raw = f"node:{uuid.getnode()}"
+    return hashlib.sha256(f"vibeflow|{raw}".encode()).hexdigest()[:32]
+
+
+def _ls_post(url: str, payload: dict, timeout: int = 15) -> dict:
+    import urllib.parse
+    import urllib.request
+
+    data = urllib.parse.urlencode(payload).encode()
+    req = urllib.request.Request(
+        url, data=data,
+        headers={"Accept": "application/json",
+                 "Content-Type": "application/x-www-form-urlencoded"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+
+def _activation_mac(key: str, instance_id: str, device: str) -> str:
+    return hmac.new(_ACT_HMAC_KEY, f"{key}|{instance_id}|{device}".encode(),
+                    hashlib.sha256).hexdigest()
+
+
+def _read_activation(path: Path) -> Optional[dict]:
+    try:
+        d = json.loads(path.read_text(encoding="utf-8"))
+        if hmac.compare_digest(d.get("mac", ""),
+                               _activation_mac(d["key"], d["instance_id"], d["device"])):
+            return d
+    except Exception:
+        pass
+    return None
+
+
+def _write_activation(path: Path, key: str, instance_id: str, device: str,
+                      product_id) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({
+        "key": key, "instance_id": instance_id, "device": device,
+        "product_id": product_id, "activated_at": _today().isoformat(),
+        "mac": _activation_mac(key, instance_id, device),
+    }), encoding="utf-8")
+
+
+def activate_license(config_dir: Path, key: str) -> LicenseStatus:
+    """One-time online activation of a Lemon Squeezy key on THIS device. Persists a
+    device-bound record so the app runs offline forever after. Raises
+    ActivationError (user-facing message) on any failure."""
+    key = (key or "").strip()
+    if not key:
+        raise ActivationError("Enter your license key.")
+    device = device_fingerprint()
+    try:
+        resp = _ls_post(LS_ACTIVATE_URL,
+                        {"license_key": key, "instance_name": f"VibeFlow {device[:8]}"})
+    except Exception:
+        raise ActivationError(
+            "Couldn't reach the license server. Check your internet connection and try again.")
+
+    if not resp.get("activated"):
+        msg = resp.get("error") or "This license key could not be activated."
+        if "activation limit" in msg.lower():
+            msg = ("This key is already active on another device. Each VibeFlow license "
+                   "is for one device — buy another to use it here.")
+        elif "not found" in msg.lower():
+            msg = "That license key wasn't recognized. Check for typos and try again."
+        raise ActivationError(msg)
+
+    meta = resp.get("meta") or {}
+    if LS_PRODUCT_ID and int(meta.get("product_id", 0) or 0) != int(LS_PRODUCT_ID):
+        raise ActivationError("That key isn't a VibeFlow license.")
+    instance_id = (resp.get("instance") or {}).get("id") or ""
+    _write_activation(config_dir / ACTIVATION_FILENAME, key, instance_id, device,
+                      meta.get("product_id"))
+    return LicenseStatus(state="licensed", edition="lifetime")
+
+
 def evaluate(config_dir: Path) -> LicenseStatus:
-    """Single entry point: read license/trial state from the config dir."""
-    lic = config_dir / LICENSE_FILENAME
-    if lic.exists():
-        payload = verify_license_text(lic.read_text(encoding="utf-8"))
-        if payload:
-            return _status_from_payload(payload)
-        return LicenseStatus(state="free", edition="free")  # tampered file → free, not trial
+    """Single entry point: licensed (activated on THIS device) → trial → locked."""
+    # A device activation is only valid on the machine it was made on: a copied
+    # activation.json fails the device check → locked. LS also caps the key at 1
+    # device server-side, so the key can't be re-activated elsewhere either.
+    act = _read_activation(config_dir / ACTIVATION_FILENAME)
+    if act and hmac.compare_digest(str(act.get("device", "")), device_fingerprint()):
+        return LicenseStatus(state="licensed", edition="lifetime")
 
     trial = config_dir / TRIAL_FILENAME
     today = _today().isoformat()
@@ -241,15 +360,14 @@ def evaluate(config_dir: Path) -> LicenseStatus:
         _write_trial(trial, started, last_seen)
         used = (_dt.date.fromisoformat(last_seen) - _dt.date.fromisoformat(started)).days
     else:
-        # Fresh (or tampered) trial file → start now.
         started = last_seen = today
         _write_trial(trial, started, last_seen)
         used = 0
 
     left = TRIAL_DAYS - used
     if left >= 0:
-        return LicenseStatus(state="trial", edition="personal", days_left=left)
-    return LicenseStatus(state="expired", edition="free", expired=True)
+        return LicenseStatus(state="trial", edition="trial", days_left=left)
+    return LicenseStatus(state="locked", expired=True)
 
 
 def install_license(config_dir: Path, text: str) -> Optional[LicenseStatus]:
