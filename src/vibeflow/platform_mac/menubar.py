@@ -563,6 +563,10 @@ class MenuBarApp:
         # before app.run() races TSM init across threads and aborts HIToolbox.
         self._ui_timer = rumps.Timer(self._sync_ui, 0.3)
         self._ui_timer.start()
+        # A dedicated fast timer for the live level meter, so it animates smoothly
+        # (~20fps) instead of lurching at the 0.3s UI tick. Cheap no-op when idle.
+        self._meter_timer = rumps.Timer(self._tick_meter, 0.05)
+        self._meter_timer.start()
         self._app.run()
 
     def _ensure_menu_icons(self):
@@ -786,15 +790,23 @@ class MenuBarApp:
         """Show/hide the status pill on the main thread per the latest state."""
         self.overlay.set_enabled(bool(self.cfg.get("feedback.overlay", True)))
         if self._overlay_text and time.time() < self._overlay_until:
-            text = self._overlay_text
-            if self._state == "recording":  # animate a live level meter while listening
-                try:
-                    text = "🎙 Listening  " + self._level_glyph()
-                except Exception:
-                    pass
-            self.overlay.show(text)
+            if self._state == "recording":
+                return  # the fast _meter_timer owns the overlay text while recording
+            self.overlay.show(self._overlay_text)
         else:
             self.overlay.hide()
+
+    def _tick_meter(self, _timer=None) -> None:
+        """~20fps live level meter while recording — decoupled from the 0.3s UI
+        tick so it breathes instead of lurching in discrete steps."""
+        if self._state != "recording":
+            return
+        if not (self._overlay_text and time.time() < self._overlay_until):
+            return
+        try:
+            self.overlay.show("🎙 Listening  " + self._level_glyph())
+        except Exception:
+            pass
 
     def _drain_notifications(self) -> None:
         """Show queued notifications on the main thread (Cocoa requires it)."""

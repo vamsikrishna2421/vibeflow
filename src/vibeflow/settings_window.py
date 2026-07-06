@@ -18,7 +18,7 @@ _BG = "#0E1730"
 _CARD = "#16213E"
 _FG = "#F2F4F8"
 _MUTED = "#9AA4B2"
-_ACCENT = "#5B8DEF"
+_ACCENT = "#7C5CFF"  # iris brand accent (matches theme.BRAND) — one accent everywhere
 
 # (config key, label) — plain on/off settings.
 # NB: filler removal is now always-on (deterministic), so it no longer belongs here.
