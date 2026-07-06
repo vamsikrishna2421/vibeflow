@@ -92,6 +92,7 @@ def run(config_path: str | None = None) -> int:
                     settings_link.pack(anchor="w", padx=16, pady=(0, 14))
                 else:
                     mic_status.config(text="✓ Loud and clear — your mic's all set.", fg=T.OK)
+                    _unlock_cta()
             root.after(0, show)
 
         threading.Thread(target=work, daemon=True).start()
@@ -108,8 +109,22 @@ def run(config_path: str | None = None) -> int:
 
     bar = tk.Frame(root, bg=T.BG)
     bar.pack(side="bottom", fill="x", padx=24, pady=18)
-    T.primary_button(bar, "Start dictating  →", finish).pack(side="right")
     label(bar, f"VibeFlow {__version__}", bg=T.BG, fg=T.FAINT, font=T.font(T.CAPTION)).pack(side="left", anchor="s")
+    # Gate: the prominent CTA appears only after the mic test passes — so nobody
+    # leaves onboarding without confirming VibeFlow can actually hear them (the
+    # exact silent-mic trap this window exists to prevent). A quiet skip stays.
+    cta = tk.Frame(bar, bg=T.BG)
+    cta.pack(side="right")
+    skip = label(cta, "Skip for now →", bg=T.BG, fg=T.SOFT, font=T.font(T.BODY), cursor="hand2")
+    skip.pack(side="right")
+    skip.bind("<Button-1>", lambda e: finish())
+
+    def _unlock_cta():
+        try:
+            skip.pack_forget()
+        except Exception:
+            pass
+        T.primary_button(cta, "Start dictating  →", finish).pack(side="right")
 
     root.protocol("WM_DELETE_WINDOW", finish)  # closing the window still marks it done
     root.mainloop()
