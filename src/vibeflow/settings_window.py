@@ -21,8 +21,8 @@ _MUTED = "#9AA4B2"
 _ACCENT = "#5B8DEF"
 
 # (config key, label) — plain on/off settings.
+# NB: filler removal is now always-on (deterministic), so it no longer belongs here.
 _CHECKS = [
-    ("text.strip_fillers", "Remove filler words (um, uh)"),
     ("text.modes.enabled", "Adapt formatting to each app (terminals stay as spoken)"),
     ("text.persona", "Match my writing style (Personalized AI)"),
     ("text.teach_back", "Learn from my edits"),
@@ -121,9 +121,10 @@ def run(config_path: str | None = None) -> int:
         highlightthickness=0, bd=0,
     ).pack(fill="x", anchor="w", padx=10, pady=1)
 
-    tk.Label(root, text="Speech accuracy (Fast/Balanced) and the AI tier are in the "
-             "tray menu — they download or reload a model.", bg=_BG, fg=_MUTED,
-             anchor="w", wraplength=430, justify="left",
+    tk.Label(root, text="Speech accuracy and the AI tier (Off/Fast/Balanced/Best/"
+             "Offline) live in the tray menu — they download or reload a model. "
+             "Filler words (um, uh) are always cleaned up automatically.",
+             bg=_BG, fg=_MUTED, anchor="w", wraplength=430, justify="left",
              font=("Segoe UI", 8)).pack(fill="x", padx=18, pady=(10, 0))
 
     status = tk.Label(root, text="", bg=_BG, fg=_ACCENT, font=("Segoe UI", 9), anchor="w")
