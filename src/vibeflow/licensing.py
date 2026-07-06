@@ -280,6 +280,7 @@ def device_fingerprint() -> str:
 
 
 def _ls_post(url: str, payload: dict, timeout: int = 15) -> dict:
+    import urllib.error
     import urllib.parse
     import urllib.request
 
@@ -288,8 +289,17 @@ def _ls_post(url: str, payload: dict, timeout: int = 15) -> dict:
         url, data=data,
         headers={"Accept": "application/json",
                  "Content-Type": "application/x-www-form-urlencoded"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.loads(r.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        # LS returns the real details ({"activated": false, "error": ...}) in the
+        # body even for a 4xx (e.g. "activation limit reached", "key not found"),
+        # so parse the body instead of treating it as a connection failure.
+        try:
+            return json.loads(exc.read().decode("utf-8"))
+        except Exception:
+            raise exc
 
 
 def _activation_mac(key: str, instance_id: str, device: str) -> str:
