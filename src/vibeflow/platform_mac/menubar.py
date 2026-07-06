@@ -18,7 +18,7 @@ import logging
 import threading
 import time
 
-from .. import __app_name__, __version__, ai_setup, config as config_mod
+from .. import __app_name__, __version__, ai_setup, config as config_mod, licensing
 from ..audio import AudioError, Recorder
 from ..core import ai_format, appmode
 from ..core.curate import curate
@@ -51,6 +51,7 @@ class MenuBarApp:
         self._stopping = False
         self._stream_session = None          # active streaming session, if any
         self._offline_dl = False             # offline-model download in progress
+        self._license = licensing.evaluate(config_mod.config_dir())
 
         self._status = "Starting…"
         self._state = "idle"
@@ -125,6 +126,17 @@ class MenuBarApp:
     # Recording lifecycle (called from the pynput listener thread)
     # ------------------------------------------------------------------
     def start_recording(self) -> None:
+        # License gate: after the 14-day trial, the whole app is locked until this
+        # Mac is activated. Re-evaluate each time so expiry / activation take effect.
+        self._license = licensing.evaluate(config_mod.config_dir())
+        if not self._license.tool_unlocked:
+            self.hotkeys.reset()
+            self._notify(
+                __app_name__,
+                "Your free trial has ended. Open the VibeFlow menu → “Activate” to "
+                "unlock this Mac ($10 once, lifetime).",
+            )
+            return
         with self._lock:
             if self._recording or self._busy:
                 self.hotkeys.reset()
@@ -667,6 +679,7 @@ class MenuBarApp:
             self._mi(rumps, "debug_log", "Detailed logging (troubleshooting)",
                      self._toggle_debug_log),
             None,
+            self._mi(rumps, "license", "Activate / License…", self._activate_license),
             self._mi(rumps, "update", "Check for updates", self._update_action),
             self._mi(rumps, "about", f"About {__app_name__} {__version__}", self._about),
             self._mi(rumps, "quit", "Quit", self._quit),
@@ -1003,6 +1016,46 @@ class MenuBarApp:
         self.persona.save()
         self._notify(__app_name__, "Forgot your writing profile. It will rebuild as "
                      "you dictate.")
+
+    def _activate_license(self, _s=None) -> None:
+        """Native Activate dialog: paste a Lemon Squeezy key to unlock this Mac, or buy.
+        Runs on the main thread (menu callback) so the AppKit window is safe."""
+        import webbrowser
+
+        import rumps
+
+        cfg_dir = config_mod.config_dir()
+        status = licensing.evaluate(cfg_dir)
+        if status.state == "licensed" and status.edition != "beta":
+            self._notify(__app_name__, "This Mac is already licensed. Thank you!")
+            return
+        lead = ("Your free trial has ended. " if status.state == "locked"
+                else f"{status.badge}. ")
+        win = rumps.Window(
+            message=lead + "Paste your license key to unlock this Mac for life, or buy "
+                           "VibeFlow ($10 — one device, no subscription).",
+            title="VibeFlow — Activate",
+            default_text="",
+            ok="Activate",
+            cancel="Later",
+            dimensions=(340, 44),
+        )
+        win.add_button("Buy — $10")
+        resp = win.run()
+        if resp.clicked == 2:  # "Buy — $10"
+            webbrowser.open(licensing.LS_CHECKOUT_URL)
+            return
+        if resp.clicked == 1:  # "Activate"
+            key = (resp.text or "").strip()
+            if not key:
+                self._notify(__app_name__, "Paste your license key, then click Activate.")
+                return
+            try:
+                licensing.activate_license(cfg_dir, key)
+                self._license = licensing.evaluate(cfg_dir)
+                self._notify(__app_name__, "Unlocked — this Mac is licensed for life. Thank you!")
+            except licensing.ActivationError as exc:
+                self._notify(__app_name__, f"Activation failed: {exc}")
 
     def _open_history(self, _s=None) -> None:
         try:
