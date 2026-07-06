@@ -128,7 +128,7 @@ def format_text(text: str, cfg, *, persona: str | None = None) -> str | None:
     if llm is None:
         return None
 
-    from .ai_format import _DEFAULT_PROMPT, _preserves_voice
+    from .ai_format import _DEFAULT_PROMPT, _mostly_preserved, _preserves_voice
 
     system = _DEFAULT_PROMPT
     if persona:
@@ -155,5 +155,9 @@ def format_text(text: str, cfg, *, persona: str | None = None) -> str | None:
     if not _preserves_voice(text, out):
         return None
     if len(out) > len(text) * 1.7 or len(out) < len(text) * 0.5:
+        return None
+    # Faithfulness guard: allow targeted fixes (e.g. "fathering" -> "gathering")
+    # but reject wholesale paraphrasing — keep the plain transcript instead.
+    if not _mostly_preserved(text, out):
         return None
     return out
