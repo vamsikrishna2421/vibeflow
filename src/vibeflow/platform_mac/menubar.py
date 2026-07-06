@@ -1306,11 +1306,16 @@ class MenuBarApp:
         if permissions.missing():
             self._run_setup()
         elif first:
-            self._notify(
-                __app_name__,
-                f"Welcome! Hold {self._hotkey_label()} to dictate anywhere. "
-                "Everything runs on this Mac — no internet, no accounts.",
-            )
+            # Interactive welcome + live mic check (own process). Falls back to a
+            # notification only if the window can't be launched.
+            try:
+                self._launch_manager("--onboarding")
+            except Exception:
+                self._notify(
+                    __app_name__,
+                    f"Welcome! Hold {self._hotkey_label()} to dictate anywhere. "
+                    "Everything runs on this Mac — no internet, no accounts.",
+                )
         try:
             marker.parent.mkdir(parents=True, exist_ok=True)
             marker.write_text("1", encoding="utf-8")
