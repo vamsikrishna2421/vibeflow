@@ -382,7 +382,14 @@ class VibeFlowApp:
                 tone = {appmode.PROFESSIONAL: "professional",
                         appmode.CASUAL: "casual",
                         appmode.EMAIL: "email"}.get(outcome)
-                if ai_on:
+                # Tier gate: the 'restructure' tier (3B) only runs when there's a
+                # message/email tone to apply — plain fields keep the raw transcript
+                # (3B isn't accurate enough for surgical word-fixes). The 'pro' tier
+                # (7B, ai.fix_words) also corrects mis-hears everywhere; the offline
+                # tier runs everywhere too (its output is guarded).
+                _fix_words = bool(self.cfg.get("ai.fix_words", False))
+                _builtin = self.cfg.get("ai.provider", "ollama") == "builtin"
+                if ai_on and (bool(tone) or _fix_words or _builtin):
                     # Visible "Restructuring for <App>…" while the local model runs.
                     if target_name:
                         label = (
@@ -829,21 +836,17 @@ class VibeFlowApp:
                         radio=True,
                     ),
                     Item(
-                        "Fast — qwen2.5:1.5b (1 GB · fastest, may reword)",
-                        lambda i: self._set_ai_model("fast"),
-                        checked=lambda i: self._ai_tier() == "fast",
+                        lambda i: "Restructure only — qwen2.5:3b (2 GB · tidies into a clean "
+                        "message)" + (" · recommended" if ai_setup.recommended_tier() == "restructure" else ""),
+                        lambda i: self._set_ai_model("restructure"),
+                        checked=lambda i: self._ai_tier() == "restructure",
                         radio=True,
                     ),
                     Item(
-                        "Balanced — qwen2.5:3b (2 GB · recommended, keeps your words)",
-                        lambda i: self._set_ai_model("balanced"),
-                        checked=lambda i: self._ai_tier() == "balanced",
-                        radio=True,
-                    ),
-                    Item(
-                        "Best — gemma2:2b (1.6 GB)",
-                        lambda i: self._set_ai_model("best"),
-                        checked=lambda i: self._ai_tier() == "best",
+                        lambda i: "Fix + Restructure — qwen2.5:7b (4.7 GB · fixes mis-hears "
+                        "too, needs a strong PC)" + (" · recommended" if ai_setup.recommended_tier() == "pro" else ""),
+                        lambda i: self._set_ai_model("pro"),
+                        checked=lambda i: self._ai_tier() == "pro",
                         radio=True,
                     ),
                     Menu.SEPARATOR,
@@ -1734,10 +1737,10 @@ class VibeFlowApp:
             return
         model, size = ai_setup.MODEL_TIERS[tier]
         threading.Thread(
-            target=self._setup_ai_worker, args=(model, size), daemon=True
+            target=self._setup_ai_worker, args=(model, size, tier), daemon=True
         ).start()
 
-    def _setup_ai_worker(self, model: str, size: str = "") -> None:
+    def _setup_ai_worker(self, model: str, size: str = "", tier: str | None = None) -> None:
         def progress(message: str) -> None:
             self._set_status(message)
             self._refresh()
@@ -1767,6 +1770,9 @@ class VibeFlowApp:
             self.cfg.set("ai.enabled", True)
             self.cfg.set("ai.provider", "ollama")
             self.cfg.set("ai.model", model)
+            # Only the 'pro' (7B) tier is accurate enough for surgical word fixes;
+            # the 'restructure' (3B) tier restructures only (gated in _process).
+            self.cfg.set("ai.fix_words", bool(tier and tier in ai_setup.FIX_WORDS_TIERS))
             self._record_pulled_model(model)
             self._save_config()
         self._notify("AI formatting ready" if ok else "AI setup failed", message)

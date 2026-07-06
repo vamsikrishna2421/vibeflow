@@ -64,7 +64,7 @@ def _mostly_preserved(original: str, formatted: str, threshold: float = 0.80) ->
     return difflib.SequenceMatcher(None, o, f).ratio() >= threshold
 
 DEFAULT_ENDPOINT = "http://127.0.0.1:11434"
-DEFAULT_MODEL = "qwen2.5:1.5b"  # benchmark winner: fast, tiny, clean, reliable
+DEFAULT_MODEL = "qwen2.5:3b"  # 'restructure' tier default (1.5b retired — leaks junk)
 
 _DEFAULT_PROMPT = (
     "You are a strict proofreader for speech-to-text dictation. Fix ONLY:\n"

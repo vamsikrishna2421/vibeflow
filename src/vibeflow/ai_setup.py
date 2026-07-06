@@ -28,12 +28,49 @@ ENDPOINT = "http://127.0.0.1:11434"
 # Official signed Windows installer — the winget-free fallback path.
 OLLAMA_SETUP_URL = "https://ollama.com/download/OllamaSetup.exe"
 
-# Friendly tiers -> (Ollama model, approx download size). Chosen by benchmark.
+# Friendly tiers -> (Ollama model, approx download size). Chosen by a 20-case
+# benchmark: 1.5B leaks template junk (~25%) and is weak at corrections, so it's
+# retired. 3B restructures cleanly (0 junk) but is unreliable at surgical word
+# fixes, so it's the "restructure only" tier. 7B does both (fixes ~7/10 mis-hears
+# AND restructures) but needs a capable machine.
 MODEL_TIERS = {
-    "fast": ("qwen2.5:1.5b", "1 GB"),
-    "balanced": ("qwen2.5:3b", "2 GB"),
-    "best": ("gemma2:2b", "1.6 GB"),
+    "restructure": ("qwen2.5:3b", "2 GB"),
+    "pro": ("qwen2.5:7b", "4.7 GB"),
 }
+
+# Which tiers apply surgical word-corrections (not just restructure). Only the 7B
+# "pro" tier is accurate enough; the 3B "restructure" tier restructures only.
+FIX_WORDS_TIERS = {"pro"}
+
+
+def total_ram_gb() -> float:
+    """Best-effort total physical RAM in GB (0.0 if it can't be determined)."""
+    import os
+    try:
+        if hasattr(os, "sysconf") and "SC_PHYS_PAGES" in os.sysconf_names:
+            return os.sysconf("SC_PHYS_PAGES") * os.sysconf("SC_PAGE_SIZE") / (1024 ** 3)
+    except Exception:
+        pass
+    try:  # Windows
+        import ctypes
+
+        class _MS(ctypes.Structure):
+            _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong),
+                        ("ullTotalPhys", ctypes.c_ulonglong), ("ullAvailPhys", ctypes.c_ulonglong),
+                        ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                        ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong),
+                        ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+        m = _MS(); m.dwLength = ctypes.sizeof(_MS)
+        ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(m))
+        return m.ullTotalPhys / (1024 ** 3)
+    except Exception:
+        return 0.0
+
+
+def recommended_tier() -> str:
+    """'pro' (7B) on a machine with enough RAM to run it comfortably, else the
+    lighter 'restructure' (3B). ~15 GB threshold so 16 GB machines get 7B."""
+    return "pro" if total_ram_gb() >= 15.0 else "restructure"
 
 _CREATE_NO_WINDOW = 0x08000000
 _DETACHED_PROCESS = 0x00000008
