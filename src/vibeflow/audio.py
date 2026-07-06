@@ -30,10 +30,15 @@ class Recorder:
         sample_rate: int = 16000,
         channels: int = 1,
         input_device: str | int | None = None,
+        on_level=None,
     ) -> None:
         self.sample_rate = int(sample_rate)
         self.channels = int(channels)
         self.input_device = input_device  # raw; resolved at start() (built-in by default)
+        # Optional callback(peak_0_to_1) fired per audio chunk — drives a live
+        # level meter in the HUD. Called from the audio thread; keep it cheap and
+        # thread-safe (the overlay just queues the value).
+        self.on_level = on_level
         self._frames: list = []
         self._stream = None
         self._lock = threading.Lock()
@@ -82,6 +87,13 @@ class Recorder:
         if self._recording:
             with self._lock:
                 self._frames.append(indata.copy())
+            if self.on_level is not None:
+                try:
+                    import numpy as np
+
+                    self.on_level(float(np.max(np.abs(indata))))
+                except Exception:
+                    pass
 
     def stop(self):
         """Stop recording and return the captured audio as a 1-D float32 array."""

@@ -54,6 +54,7 @@ class MenuBarApp:
         self._offline_dl = False             # offline-model download in progress
         self._license = licensing.evaluate(config_mod.config_dir())
         self._empty_streak = 0               # consecutive silent/no-speech (mic-trouble detector)
+        self._mic_level = 0.0                 # live input level (0..1) for the HUD meter
 
         self._status = "Starting…"
         self._state = "idle"
@@ -95,7 +96,24 @@ class MenuBarApp:
         return Recorder(
             sample_rate=int(self.cfg.get("audio.sample_rate", 16000)),
             input_device=self.cfg.get("audio.input_device", "default"),
+            on_level=self._on_mic_level,
         )
+
+    def _on_mic_level(self, value: float) -> None:
+        """Store a peak-held input level (0..1) for the live HUD meter. Called
+        from the audio thread — a plain assignment is fine for a cosmetic meter."""
+        try:
+            self._mic_level = max(float(value), self._mic_level * 0.75)
+        except Exception:
+            pass
+
+    def _level_glyph(self) -> str:
+        """A 7-bar Unicode meter reflecting the current input level."""
+        bars = "▁▂▃▄▅▆▇█"
+        v = max(0.0, min(1.0, self._mic_level * 6.0))  # boost quiet speech
+        weights = (0.5, 0.75, 0.9, 1.0, 0.9, 0.75, 0.5)
+        return "".join(bars[max(0, min(len(bars) - 1, int(v * w * (len(bars) - 1))))]
+                        for w in weights)
 
     def _build_transcriber(self) -> Transcriber:
         return Transcriber(
@@ -768,7 +786,13 @@ class MenuBarApp:
         """Show/hide the status pill on the main thread per the latest state."""
         self.overlay.set_enabled(bool(self.cfg.get("feedback.overlay", True)))
         if self._overlay_text and time.time() < self._overlay_until:
-            self.overlay.show(self._overlay_text)
+            text = self._overlay_text
+            if self._state == "recording":  # animate a live level meter while listening
+                try:
+                    text = "🎙 Listening  " + self._level_glyph()
+                except Exception:
+                    pass
+            self.overlay.show(text)
         else:
             self.overlay.hide()
 
