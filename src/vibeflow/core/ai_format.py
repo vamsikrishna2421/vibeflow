@@ -41,6 +41,28 @@ def _preserves_voice(original: str, formatted: str) -> bool:
         return False
     return True
 
+
+def _word_tokens(s: str) -> list:
+    import re
+    return re.findall(r"[a-z0-9]+", (s or "").lower())
+
+
+def _mostly_preserved(original: str, formatted: str, threshold: float = 0.80) -> bool:
+    """True if the formatted text keeps most of the ORIGINAL wording.
+
+    A guard for the conservative *proofread* mode: a weak model (e.g. a 3B) will
+    happily paraphrase, restructure or "improve" a transcript that was only meant
+    to be lightly cleaned. Word-sequence similarity — so fixed punctuation,
+    capitalization and a few corrected terms pass, but reworded/summarized output
+    fails and we fall back to the (already-excellent) plain transcript. Only ever
+    applied when the user did NOT ask for a rewrite tone.
+    """
+    import difflib
+    o, f = _word_tokens(original), _word_tokens(formatted)
+    if not o:
+        return True
+    return difflib.SequenceMatcher(None, o, f).ratio() >= threshold
+
 DEFAULT_ENDPOINT = "http://127.0.0.1:11434"
 DEFAULT_MODEL = "qwen2.5:1.5b"  # benchmark winner: fast, tiny, clean, reliable
 
@@ -52,6 +74,10 @@ _DEFAULT_PROMPT = (
     "name that is obvious from the surrounding words, and common variants (e.g. "
     "'Postgres SQL' -> 'PostgreSQL', 'push to name' -> 'push to main', 'pytest tool' "
     "-> 'pytest suite', 'GRPC' -> 'gRPC').\n"
+    "- obvious CONTEXT mis-hears — a single word that clearly doesn't fit but whose "
+    "intended word is unambiguous from the surrounding words (e.g. 'requirement "
+    "fathering' -> 'requirement gathering', 'four loop' -> 'for loop', 'buck fix' -> "
+    "'bug fix'). Only when you are confident; if unsure, leave the word exactly as-is.\n"
     "STRICT RULES: do NOT rephrase, restructure, summarise, expand, reorder, add, or "
     "drop ANY words beyond those corrections. Keep every number exactly. Preserve the "
     "speaker's exact wording, sentence order, length, and FIRST-PERSON voice (I, we, "
@@ -186,6 +212,16 @@ def _ollama_generate(
     # "the user did" despite the prompt). Fall back to the plain transcript.
     if not _preserves_voice(text, result):
         _warn("AI formatting changed the point of view; keeping the plain transcript")
+        return None
+    # Faithfulness guard for the conservative (proofread) mode: a small model may
+    # paraphrase / restructure despite the strict prompt. A genuine fix like
+    # "requirement fathering" -> "requirement gathering" barely changes the
+    # sentence (similarity stays high, so it PASSES); wholesale rewording drops
+    # below the threshold and we keep the (already-excellent) plain transcript.
+    # Skipped for tone rewrites (email/professional), where rewriting is the point.
+    conservative = tone not in _TONE_PROMPTS and not str(cfg.get("ai.prompt") or "").strip()
+    if conservative and not _mostly_preserved(text, result):
+        _warn("AI formatting drifted too far from the transcript; keeping the plain transcript")
         return None
     return result
 
