@@ -260,6 +260,27 @@ class StatusOverlay:
         except Exception:
             pass
         self._show_no_activate()
+        self._fade_in()
+
+    def _fade_in(self) -> None:
+        """Soft entrance (0 → 0.94 alpha over ~120ms) instead of an instant pop."""
+        try:
+            self._root.attributes("-alpha", 0.0)
+        except Exception:
+            return
+
+        def step(a: float = 0.0) -> None:
+            a += 0.16
+            try:
+                if a >= 0.94:
+                    self._root.attributes("-alpha", 0.94)
+                    return
+                self._root.attributes("-alpha", a)
+                self._root.after(16, lambda: step(a))
+            except Exception:
+                pass
+
+        step()
 
     # -- Win32: show without stealing focus ----------------------------
     def _show_no_activate(self) -> None:
