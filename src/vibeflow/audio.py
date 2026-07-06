@@ -58,13 +58,19 @@ class Recorder:
             self._recording = True
 
         try:
+            import sys
+            # "low" latency starts capture sooner (helps the first word) on Windows,
+            # but on macOS CoreAudio the tiny buffer + 48k→16k conversion of the
+            # built-in mic can degrade capture to near-silence (VAD then strips it
+            # all → "no speech"). Use the device's default latency off Windows.
+            _latency = "low" if sys.platform == "win32" else None
             self._stream = sd.InputStream(
                 samplerate=self.sample_rate,
                 channels=self.channels,
                 dtype="float32",
                 device=_resolve_input_device(self.input_device),
                 callback=self._callback,
-                latency="low",  # start capturing sooner so the first word isn't clipped
+                latency=_latency,
             )
             self._stream.start()
         except Exception as exc:
