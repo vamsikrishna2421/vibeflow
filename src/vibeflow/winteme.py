@@ -49,8 +49,17 @@ def is_dark() -> bool:
 
 
 def palette() -> dict:
-    """The colour palette matching the current Windows app theme."""
-    return dict(DARK if is_dark() else LIGHT)
+    """The colour palette matching the current Windows app theme, but with the
+    VibeFlow brand accent (iris) — so Settings/Models/Persona/Vocabulary share the
+    same accent as the hero dialogs instead of the OS-blue (one accent = coherent
+    product; the design review's #1 fix). Background stays OS-adaptive."""
+    pal = dict(DARK if is_dark() else LIGHT)
+    try:
+        from . import theme
+        pal["accent"] = theme.BRAND
+    except Exception:
+        pass
+    return pal
 
 
 def style_ttk(root, pal: dict) -> None:
