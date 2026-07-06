@@ -78,6 +78,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Open the Updates window (check + install) and exit.",
     )
     p.add_argument(
+        "--onboarding",
+        action="store_true",
+        help="Open the first-run welcome / mic-check window and exit.",
+    )
+    p.add_argument(
         "--check-ai",
         action="store_true",
         help="Test the local-LLM (AI formatting) connection and exit.",
@@ -140,6 +145,10 @@ def main(argv: list[str] | None = None) -> int:
         from .update_window import run as run_update
 
         return run_update(args.config)
+    if args.onboarding:
+        from .onboarding_window import run as run_onboarding
+
+        return run_onboarding(args.config)
     if args.check_ai:
         return _check_ai(cfg)
     if args.setup_ai:

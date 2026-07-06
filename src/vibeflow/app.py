@@ -634,20 +634,22 @@ class VibeFlowApp:
         threading.Thread(target=self._startup_update_check, daemon=True).start()
 
     def _first_run_notice(self) -> None:
-        """One-time welcome + privacy note on the very first launch."""
+        """One-time interactive welcome (how-to + live mic check) on first launch.
+        Falls back to a notification if the window can't be launched."""
         marker = config_mod.config_dir() / ".welcomed"
         try:
             if marker.exists():
                 return
         except Exception:
             return
-        self._notify(
-            __app_name__,
-            f"Welcome! Hold {self._hotkey_label()} to dictate anywhere. Everything "
-            "runs on this PC. Personalized AI quietly learns your writing style "
-            "locally (nothing leaves your computer; turn it off or clear it any "
-            "time in the tray).",
-        )
+        if not self._launch_manager("--onboarding"):
+            self._notify(
+                __app_name__,
+                f"Welcome! Hold {self._hotkey_label()} to dictate anywhere. Everything "
+                "runs on this PC. Personalized AI quietly learns your writing style "
+                "locally (nothing leaves your computer; turn it off or clear it any "
+                "time in the tray).",
+            )
         try:
             marker.parent.mkdir(parents=True, exist_ok=True)
             marker.write_text("1", encoding="utf-8")
