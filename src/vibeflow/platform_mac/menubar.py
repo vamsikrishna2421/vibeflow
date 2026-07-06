@@ -330,7 +330,12 @@ class MenuBarApp:
                 tone = {appmode.PROFESSIONAL: "professional",
                         appmode.CASUAL: "casual",
                         appmode.EMAIL: "email"}.get(outcome)
-                if ai_on:
+                # Tier gate: 'restructure' (3B) runs only for a message/email tone
+                # (plain fields keep the raw transcript); 'pro' (7B, ai.fix_words) also
+                # corrects mis-hears everywhere; the offline tier runs everywhere (guarded).
+                _fix_words = bool(self.cfg.get("ai.fix_words", False))
+                _builtin = self.cfg.get("ai.provider", "ollama") == "builtin"
+                if ai_on and (bool(tone) or _fix_words or _builtin):
                     if target_name:
                         self._set("busy", f"Restructuring for {target_name}…")
                         self._overlay_persist(f"Restructuring for {target_name}…")
@@ -673,12 +678,12 @@ class MenuBarApp:
             ("AI formatting", [
                 self._mi(rumps, "ai_off", "Off (plain voice-to-text)",
                          lambda s: self._set_ai_model("off")),
-                self._mi(rumps, "ai_fast", "Fast — qwen2.5:1.5b",
-                         lambda s: self._set_ai_model("fast")),
-                self._mi(rumps, "ai_balanced", "Balanced — qwen2.5:3b (recommended)",
-                         lambda s: self._set_ai_model("balanced")),
-                self._mi(rumps, "ai_best", "Best — gemma2:2b",
-                         lambda s: self._set_ai_model("best")),
+                self._mi(rumps, "ai_restructure",
+                         "Restructure only — qwen2.5:3b (tidies into a clean message)",
+                         lambda s: self._set_ai_model("restructure")),
+                self._mi(rumps, "ai_pro",
+                         "Fix + Restructure — qwen2.5:7b (fixes mis-hears too · needs a strong Mac)",
+                         lambda s: self._set_ai_model("pro")),
                 None,
                 self._mi(rumps, "ai_offline", "Offline — no Ollama (built-in 3B · ~2 GB)",
                          lambda s: self._set_ai_model("offline")),
@@ -844,9 +849,8 @@ class MenuBarApp:
 
         tier = self._ai_tier()
         self._check("ai_off", not bool(self.cfg.get("ai.enabled", False)))
-        self._check("ai_fast", tier == "fast")
-        self._check("ai_balanced", tier == "balanced")
-        self._check("ai_best", tier == "best")
+        self._check("ai_restructure", tier == "restructure")
+        self._check("ai_pro", tier == "pro")
         self._check("ai_offline", tier == "offline")
 
         self._check("modes_enabled", bool(self.cfg.get("text.modes.enabled", True)))
@@ -904,9 +908,9 @@ class MenuBarApp:
         model, size = ai_setup.MODEL_TIERS[tier]
         self._notify(__app_name__, f"Setting up AI ({model}, {size}). Needs Ollama "
                      "(ollama.com) — watch the menu-bar status for progress.")
-        threading.Thread(target=self._setup_ai_worker, args=(model,), daemon=True).start()
+        threading.Thread(target=self._setup_ai_worker, args=(model, tier), daemon=True).start()
 
-    def _setup_ai_worker(self, model: str) -> None:
+    def _setup_ai_worker(self, model: str, tier: str | None = None) -> None:
         def progress(message: str) -> None:
             self._set(self._state, message)
 
@@ -917,6 +921,8 @@ class MenuBarApp:
             self.cfg.set("ai.enabled", True)
             self.cfg.set("ai.provider", "ollama")
             self.cfg.set("ai.model", model)
+            # Only the 7B 'pro' tier does surgical word-fixes; 3B restructures only.
+            self.cfg.set("ai.fix_words", bool(tier and tier in ai_setup.FIX_WORDS_TIERS))
             self._save_config()
         self._notify("AI formatting ready" if ok else "AI setup failed", message)
         self._set("idle", "Ready")

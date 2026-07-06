@@ -94,7 +94,8 @@ DEFAULTS: dict[str, Any] = {
         "enabled": False,            # voice-to-text + AI formatting (needs a local LLM)
         "provider": "ollama",        # ollama (local, runs on your machine)
         "endpoint": "http://127.0.0.1:11434",
-        "model": "qwen2.5:3b",       # best at keeping your exact words (1.5b paraphrases)
+        "model": "qwen2.5:3b",       # 'restructure' tier; 'pro' tier swaps in qwen2.5:7b
+        "fix_words": False,          # True only on the 7B 'pro' tier: correct mis-hears on plain text too
         "timeout": 20,
         "prompt": "",                # empty = use the built-in formatting prompt
         "keep_alive": "30m",         # keep the model loaded this long (fewer Ollama reloads)

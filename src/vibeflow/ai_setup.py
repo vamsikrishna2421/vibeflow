@@ -30,10 +30,29 @@ OLLAMA_MACOS_URL = "https://ollama.com/download/Ollama-darwin.zip"
 
 # Friendly tiers -> (Ollama model, approx download size). Chosen by benchmark.
 MODEL_TIERS = {
-    "fast": ("qwen2.5:1.5b", "1 GB"),
-    "balanced": ("qwen2.5:3b", "2 GB"),
-    "best": ("gemma2:2b", "1.6 GB"),
+    "restructure": ("qwen2.5:3b", "2 GB"),
+    "pro": ("qwen2.5:7b", "4.7 GB"),
 }
+
+# Only the 7B 'pro' tier is accurate enough for surgical word-corrections; the
+# 3B 'restructure' tier restructures only. (Benchmark: 1.5B/gemma2 retired.)
+FIX_WORDS_TIERS = {"pro"}
+
+
+def total_ram_gb() -> float:
+    """Best-effort total physical RAM in GB (0.0 if it can't be determined)."""
+    import os
+    try:
+        if hasattr(os, "sysconf") and "SC_PHYS_PAGES" in os.sysconf_names:
+            return os.sysconf("SC_PHYS_PAGES") * os.sysconf("SC_PAGE_SIZE") / (1024 ** 3)
+    except Exception:
+        pass
+    return 0.0
+
+
+def recommended_tier() -> str:
+    """'pro' (7B) on a machine with enough RAM, else the lighter 'restructure' (3B)."""
+    return "pro" if total_ram_gb() >= 15.0 else "restructure"
 
 _CREATE_NO_WINDOW = 0x08000000
 _DETACHED_PROCESS = 0x00000008
