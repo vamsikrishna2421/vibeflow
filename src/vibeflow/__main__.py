@@ -63,6 +63,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Open the Settings window and exit.",
     )
     p.add_argument(
+        "--update",
+        action="store_true",
+        help="Open the Updates window (check + download) and exit.",
+    )
+    p.add_argument(
         "--check-ai",
         action="store_true",
         help="Test the local-LLM (AI formatting) connection and exit.",
@@ -114,6 +119,10 @@ def main(argv: list[str] | None = None) -> int:
         from .settings_window import run as run_settings
 
         return run_settings(args.config)
+    if args.update:
+        from .platform_mac.update_window import run as run_update
+
+        return run_update(args.config)
     if args.check_ai:
         return _check_ai(cfg)
     if args.setup_ai:

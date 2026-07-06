@@ -14,6 +14,7 @@ object is ever touched from a background thread.
 from __future__ import annotations
 
 import difflib
+import json
 import logging
 import threading
 import time
@@ -680,7 +681,7 @@ class MenuBarApp:
                      self._toggle_debug_log),
             None,
             self._mi(rumps, "license", "Activate / License…", self._activate_license),
-            self._mi(rumps, "update", "Check for updates", self._update_action),
+            self._mi(rumps, "update", "Check for updates…", self._open_update_dialog),
             self._mi(rumps, "about", f"About {__app_name__} {__version__}", self._about),
             self._mi(rumps, "quit", "Quit", self._quit),
         ]
@@ -693,6 +694,7 @@ class MenuBarApp:
             self._reconcile_accessibility()
             self._recording_watchdog()
             self._drain_notifications()
+            self._check_update_marker()
             self._render_overlay()
             # Reflect state on the menu bar: swap the branded logo icon (or fall
             # back to a text glyph). Only update on change to avoid flicker.
@@ -1299,6 +1301,46 @@ class MenuBarApp:
             self._update_info = info
             self._notify(__app_name__, f"VibeFlow {info['version']} is available — "
                          "open the menu to update.")
+
+    def _launch_manager(self, flag: str) -> None:
+        """Spawn a standalone Tk window in its own process (own event loop)."""
+        import subprocess
+        import sys
+        try:
+            args = ([sys.executable, flag] if getattr(sys, "frozen", False)
+                    else [sys.executable, "-m", "vibeflow", flag])
+            subprocess.Popen(args)
+        except Exception:
+            pass
+
+    def _open_update_dialog(self, _s=None) -> None:
+        self._launch_manager("--update")
+
+    def _check_update_marker(self) -> None:
+        """The update dialog (separate process) downloads the new build and drops a
+        marker; the menu-bar process does the swap-and-quit it can't do itself.
+        Marker name must match update_window.UPDATE_MARKER."""
+        import os
+
+        marker = config_mod.config_dir() / "update_pending.json"
+        if not marker.exists():
+            return
+        try:
+            data = json.loads(marker.read_text(encoding="utf-8"))
+        except Exception:
+            data = None
+        try:
+            marker.unlink()
+        except Exception:
+            pass
+        if not data:
+            return
+        zip_path, ver = data.get("zip"), data.get("version")
+        if not zip_path or not os.path.exists(zip_path):
+            return
+        self._notify(__app_name__, f"Installing VibeFlow {ver}… it will reopen automatically.")
+        if updater.apply_update(zip_path, expected_version=ver):
+            self._quit()  # the helper waits on THIS process, then swaps + relaunches
 
     def _update_action(self, _s=None) -> None:
         if self._update_info:
