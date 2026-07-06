@@ -20,7 +20,7 @@ import threading
 import time
 
 from .. import __app_name__, __version__, ai_setup, config as config_mod, licensing
-from ..audio import AudioError, Recorder
+from ..audio import AudioError, Recorder, is_silent, peak_level
 from ..core import ai_format, appmode
 from ..core.curate import curate
 from ..core.persona import Persona
@@ -53,6 +53,7 @@ class MenuBarApp:
         self._stream_session = None          # active streaming session, if any
         self._offline_dl = False             # offline-model download in progress
         self._license = licensing.evaluate(config_mod.config_dir())
+        self._empty_streak = 0               # consecutive silent/no-speech (mic-trouble detector)
 
         self._status = "Starting…"
         self._state = "idle"
@@ -241,9 +242,37 @@ class MenuBarApp:
                 ),
             )
             if not text:
-                self._overlay_flash("No speech detected")
-                self._notify(__app_name__, "No speech detected.")
+                # Work out WHY nothing came back so the message is actionable. The
+                # common trap is a muted/blocked/wrong mic handing a silent-or-quiet
+                # stream (no error) — peak_level tells that apart from real no-speech.
+                peak = peak_level(audio)
+                self._empty_streak += 1
+                quiet = is_silent(audio) or peak < 0.02  # real speech peaks ~0.1+
+                if is_silent(audio):
+                    self._overlay_flash("No sound from mic")
+                    reason = ("No sound from the microphone. Check the right mic is "
+                              "selected and not muted, and that VibeFlow has Microphone "
+                              "permission.")
+                elif quiet:
+                    self._overlay_flash("Mic level very low")
+                    reason = ("VibeFlow is barely hearing you — the input level is very "
+                              "low. Check the mic isn't muted and VibeFlow has Microphone "
+                              "permission.")
+                else:
+                    self._overlay_flash("No speech detected")
+                    reason = "No speech detected — try speaking a bit louder or closer to the mic."
+                # Two silent/quiet captures in a row is almost never the user — it's a
+                # permission/selection problem. Say so and open the mic settings pane.
+                if quiet and self._empty_streak >= 2:
+                    self._notify(__app_name__, reason + " Opening Microphone settings…")
+                    try:
+                        permissions.open_pane("Microphone")
+                    except Exception:
+                        pass
+                else:
+                    self._notify(__app_name__, reason)
                 return
+            self._empty_streak = 0  # a real transcript came through — mic is working
             self._last_raw_transcript = text.strip()
 
             strip_fillers = bool(self.cfg.get("text.strip_fillers", False))
