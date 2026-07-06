@@ -32,7 +32,7 @@ from . import (
 )
 from . import licensing
 from .core import ai_format, appmode, history
-from .audio import AudioError, Recorder, is_silent
+from .audio import AudioError, Recorder, is_silent, peak_level
 from .focus_detect import detect_focus
 from .hotkey import DeliveryHotkey, HotkeyManager
 from .output import COPIED, deliver
@@ -84,6 +84,7 @@ class VibeFlowApp:
         self._last_output_ts = 0.0
         self._clip_last = None
         self._offline_dl = None         # offline-cleanup download progress (None=idle, else 0..1)
+        self._empty_streak = 0          # consecutive silent/no-speech captures (mic-trouble detector)
         self._stopping = False
         self._vocab_wordlist_mtime = None  # set when the user opens the word list
         self._cfg_mtime = None  # config.yaml mtime, to pick up Settings-window edits
@@ -287,24 +288,38 @@ class VibeFlowApp:
                 ),
             )
             if not text:
-                # Distinguish "the mic gave us silence" (a fixable setup problem)
-                # from "we heard you but found no words". The first is the common
-                # fresh-install trap: Windows hands a blocked/muted mic a silent
-                # stream (no error), so dictation looks broken for no clear reason.
+                # Nothing usable came back. Figure out WHY so the message is
+                # actionable — the common trap is a muted/blocked/wrong mic that
+                # hands a silent-or-near-silent stream (no error), which just looks
+                # like "no speech" forever. peak_level tells silence/very-quiet
+                # (a mic setup problem) apart from a real "you didn't speak".
+                peak = peak_level(audio)
+                self._empty_streak += 1
+                quiet = is_silent(audio) or peak < 0.02  # real speech peaks ~0.1+
                 if is_silent(audio):
                     self.overlay.show("info", "VibeFlow · No sound from mic")
-                    self._notify(
-                        __app_name__,
-                        "No sound from the microphone. Check Windows mic access "
-                        "(Settings ▸ Privacy & security ▸ Microphone ▸ turn on "
-                        "“Let desktop apps access your microphone”) and that the "
-                        "right mic is selected and not muted.",
-                    )
+                    reason = ("No sound from the microphone at all. Check that the right "
+                              "mic is selected and not muted, and that VibeFlow has "
+                              "microphone permission.")
+                elif quiet:
+                    self.overlay.show("info", "VibeFlow · Mic level very low")
+                    reason = ("VibeFlow is barely hearing you — the input level is very "
+                              "low. Check the mic isn't muted, the right one is selected, "
+                              "and VibeFlow has microphone permission.")
                 else:
                     self.overlay.show("info", "VibeFlow · No speech detected")
-                    self._notify(__app_name__, "No speech detected.")
+                    reason = "No speech detected — try speaking a bit louder or closer to the mic."
+                # Two silent/quiet captures in a row is almost never the user — it's a
+                # mic-permission/selection problem. Say so plainly and open the settings.
+                if quiet and self._empty_streak >= 2:
+                    self._notify(__app_name__, reason + " Opening Microphone settings…")
+                    self._open_mic_settings()
+                else:
+                    self._notify(__app_name__, reason)
                 return
 
+            # A real transcript came through — the mic is clearly working.
+            self._empty_streak = 0
             # Keep the user's own words recoverable (for the empty-output guard
             # and the tray "Copy last transcript (unedited)").
             self._last_raw_transcript = text.strip()
@@ -955,6 +970,17 @@ class VibeFlowApp:
 
     def _open_update_dialog(self, *_args) -> None:
         self._launch_manager("--update")
+
+    def _open_mic_settings(self, *_args) -> None:
+        """Open Windows' Microphone privacy settings (where mic access is granted)."""
+        try:
+            os.startfile("ms-settings:privacy-microphone")  # noqa: S606
+        except Exception:
+            try:
+                import webbrowser
+                webbrowser.open("ms-settings:privacy-microphone")
+            except Exception:
+                pass
 
     def _reload(self, *_args) -> None:
         self.cfg = config_mod.load_config(self.cfg.path)
