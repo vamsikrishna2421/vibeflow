@@ -43,9 +43,26 @@ class StatusOverlay:
         if not self.enabled or not text:
             return
         try:
+            first = not self._visible
             self._ensure_built()
             self._apply_text(text)
-            self._panel.orderFrontRegardless()  # show WITHOUT activating/focusing
+            if first:
+                # Soft fade-in instead of an instant pop (a premium touch on the
+                # surface users see every dictation). Never touches focus.
+                try:
+                    from AppKit import NSAnimationContext
+
+                    self._panel.setAlphaValue_(0.0)
+                    self._panel.orderFrontRegardless()
+                    NSAnimationContext.beginGrouping()
+                    NSAnimationContext.currentContext().setDuration_(0.14)
+                    self._panel.animator().setAlphaValue_(1.0)
+                    NSAnimationContext.endGrouping()
+                except Exception:
+                    self._panel.setAlphaValue_(1.0)
+                    self._panel.orderFrontRegardless()
+            else:
+                self._panel.orderFrontRegardless()  # show WITHOUT activating/focusing
             self._visible = True
         except Exception:  # pragma: no cover - overlay is best-effort
             log.debug("overlay show failed", exc_info=True)
@@ -135,7 +152,9 @@ class StatusOverlay:
         from AppKit import NSScreen
 
         screen = NSScreen.mainScreen()
-        sf = screen.frame() if screen is not None else None
+        # visibleFrame excludes the Dock and menu bar, so the pill never tucks
+        # under the Dock (the raw frame() ignores both).
+        sf = screen.visibleFrame() if screen is not None else None
         panel.setContentSize_((w, h))
         if sf is not None:
             x = sf.origin.x + (sf.size.width - w) / 2.0
