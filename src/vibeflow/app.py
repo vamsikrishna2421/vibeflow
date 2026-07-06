@@ -78,6 +78,8 @@ class VibeFlowApp:
         self.overlay = overlay_mod.StatusOverlay(
             enabled=bool(self.cfg.get("feedback.overlay", True))
         )
+        # Feed the live HUD meter (the recorder was built before the overlay).
+        self.recorder.on_level = self.overlay.level
         self.vocabulary = self._build_vocabulary()
         self.persona = self._build_persona()
         self._last_output = None        # what we last produced (for teach-back)
@@ -105,6 +107,7 @@ class VibeFlowApp:
         return Recorder(
             sample_rate=int(self.cfg.get("audio.sample_rate", 16000)),
             input_device=self.cfg.get("audio.input_device", "auto"),
+            on_level=getattr(getattr(self, "overlay", None), "level", None),
         )
 
     def _build_transcriber(self) -> Transcriber:

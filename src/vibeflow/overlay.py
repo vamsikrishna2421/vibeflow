@@ -60,6 +60,16 @@ class StatusOverlay:
             return
         self._queue.put(("show", state, text))
 
+    def level(self, value: float) -> None:
+        """Feed a live input level (0..1) to animate the meter while listening.
+        No-op unless the overlay is up; safe to call from the audio thread."""
+        if not (self.enabled and self._started and self._available):
+            return
+        try:
+            self._queue.put(("level", float(value), None))
+        except Exception:
+            pass
+
     def hide(self) -> None:
         if self._started:
             self._queue.put(("hide", None, None))
@@ -118,9 +128,18 @@ class StatusOverlay:
         root.configure(bg=_BG)
         frame = tk.Frame(root, bg=_BG, padx=18, pady=11)
         frame.pack()
-        self._canvas = tk.Canvas(frame, width=16, height=16, bg=_BG, highlightthickness=0)
+        self._canvas = tk.Canvas(frame, width=70, height=16, bg=_BG, highlightthickness=0)
         self._canvas.pack(side="left", padx=(0, 11))
         self._dot = self._canvas.create_oval(2, 2, 14, 14, fill="#E23A3A", outline="")
+        # A small live level meter to the right of the dot (shown while listening).
+        # Idle bars are painted in the background colour so they're invisible until
+        # audio drives them — so non-listening states look exactly as before.
+        self._bars = []
+        for i in range(5):
+            x = 24 + i * 9
+            self._bars.append(
+                self._canvas.create_rectangle(x, 7, x + 5, 9, fill=_BG, outline="")
+            )
         self._label = tk.Label(
             frame, text="VibeFlow", fg=_FG, bg=_BG, font=("Segoe UI", 11)
         )
@@ -134,6 +153,8 @@ class StatusOverlay:
                 cmd, state, text = self._queue.get_nowait()
                 if cmd == "show":
                     self._apply(state, text)
+                elif cmd == "level":
+                    self._apply_level(state)  # 'state' carries the level value
                 elif cmd == "hide":
                     self._cancel_hide()
                     self._do_hide()
@@ -159,6 +180,8 @@ class StatusOverlay:
             self._label.config(text=text or default_text)
         except Exception:
             return
+        if state != "listening":
+            self._reset_bars()
         self._cancel_hide()
         self._position_and_show()
         if pulse:
@@ -168,6 +191,30 @@ class StatusOverlay:
             self._pulse_on = False
         if auto_ms:
             self._hide_id = self._root.after(auto_ms, self._do_hide)
+
+    def _apply_level(self, value) -> None:
+        """Animate the meter bars from a 0..1 level. Only while listening."""
+        if self._current != "listening":
+            return
+        try:
+            v = 0.0 if value is None else max(0.0, min(1.0, float(value) * 6.0))  # boost quiet speech
+            for i, bar in enumerate(self._bars):
+                mag = v * (0.55 + 0.45 * ((i % 3) / 2.0))  # per-bar variation → reads like a meter
+                h = 2 + int(mag * 12)
+                x0, _, x1, _ = self._canvas.coords(bar)
+                self._canvas.coords(bar, x0, 8 - h / 2, x1, 8 + h / 2)
+                self._canvas.itemconfig(bar, fill="#E23A3A" if mag > 0.06 else _BG)
+        except Exception:
+            pass
+
+    def _reset_bars(self) -> None:
+        try:
+            for i, bar in enumerate(getattr(self, "_bars", [])):
+                x = 24 + i * 9
+                self._canvas.coords(bar, x, 7, x + 5, 9)
+                self._canvas.itemconfig(bar, fill=_BG)
+        except Exception:
+            pass
 
     def _pulse(self) -> None:
         if not self._pulse_on or self._current != "listening":
@@ -183,6 +230,7 @@ class StatusOverlay:
     def _do_hide(self) -> None:
         self._current = None
         self._pulse_on = False
+        self._reset_bars()
         try:
             self._root.withdraw()
         except Exception:
