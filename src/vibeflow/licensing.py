@@ -43,8 +43,11 @@ _TRIAL_HMAC_KEY = b"vibeflow-trial-v1"
 # the only credential, and LS's activate endpoint needs no API token.
 LS_ACTIVATE_URL = "https://api.lemonsqueezy.com/v1/licenses/activate"
 LS_VALIDATE_URL = "https://api.lemonsqueezy.com/v1/licenses/validate"
-LS_PRODUCT_ID = 0  # TODO: set to your LS product id (keys for other products are rejected)
-LS_CHECKOUT_URL = "https://vibeflow.lemonsqueezy.com/buy/REPLACE-ME"  # TODO: your $10 buy link
+# NOTE: these are the LS TEST-mode ids (store is in test mode). At launch, after the
+# store is activated and the product is "Copied to Live Mode", swap in the LIVE
+# product id + checkout URL (they differ from test mode).
+LS_PRODUCT_ID = 1198702  # VibeFlow Desktop (Lifetime) — keys for other products are rejected
+LS_CHECKOUT_URL = "https://getvibeflow.lemonsqueezy.com/checkout/buy/6cb40bd6-2345-4966-a37d-3847455ab1b5"
 ACTIVATION_FILENAME = "activation.json"
 _ACT_HMAC_KEY = b"vibeflow-activation-v1"
 
