@@ -737,7 +737,7 @@ class MenuBarApp:
                      self._toggle_debug_log),
             None,
             self._mi(rumps, "license", "Activate / License…", self._activate_license),
-            self._mi(rumps, "update", "Check for updates…", self._open_update_dialog),
+            self._mi(rumps, "update", "Check for updates…", self._check_and_update),
             self._mi(rumps, "about", f"About {__app_name__} {__version__}", self._about),
             self._mi(rumps, "quit", "Quit", self._quit),
         ]
@@ -1388,6 +1388,41 @@ class MenuBarApp:
             subprocess.Popen(args)
         except Exception:
             pass
+
+    def _check_and_update(self, _s=None) -> None:
+        """One click, no window: check → download → swap-and-relaunch, progress in
+        the overlay pill. No popup, no external links."""
+        def work():
+            self._overlay_persist("🔄 Checking for updates…")
+            try:
+                info = updater.check()
+            except Exception:
+                info = None
+            if info is None:
+                self._overlay_flash("Couldn't check (offline?)")
+                self._notify(__app_name__, "Couldn't check for updates — check your connection.")
+                return
+            if not (info.get("newer") and info.get("zip_url")):
+                self._overlay_flash(f"Up to date (v{__version__})")
+                self._notify(__app_name__, f"You're on the latest version (v{__version__}).")
+                return
+            ver = info.get("version", "")
+            self._overlay_persist(f"⬇ Downloading update {ver}…")
+            path = updater.download_zip(info["zip_url"],
+                                        progress=lambda m: self._overlay_persist(f"⬇ {m}"))
+            if not path:
+                self._overlay_flash("Update download failed")
+                self._notify(__app_name__, "Update download failed — please try again.")
+                return
+            self._overlay_persist(f"Installing {ver} — VibeFlow will restart…")
+            self._notify(__app_name__, f"Installing VibeFlow {ver} — it will reopen automatically.")
+            if updater.apply_update(path, expected_version=ver):
+                self._quit()  # the helper swaps the bundle + relaunches
+            else:
+                self._overlay_flash("Update couldn't be verified")
+                self._notify(__app_name__, "Update couldn't be verified — please try again.")
+
+        threading.Thread(target=work, daemon=True).start()
 
     def _open_update_dialog(self, _s=None) -> None:
         self._launch_manager("--update")
