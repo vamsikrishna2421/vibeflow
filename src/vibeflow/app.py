@@ -949,7 +949,7 @@ class VibeFlowApp:
                     if self._update_info
                     else "Check for updates…"
                 ),
-                self._open_update_dialog,
+                self._check_and_update,
             ),
             Menu.SEPARATOR,
             Item(lambda i: self._license_label(), self._open_license),
@@ -979,6 +979,66 @@ class VibeFlowApp:
 
     def _open_update_dialog(self, *_args) -> None:
         self._launch_manager("--update")
+
+    def _check_and_update(self, *_args) -> None:
+        """One click, no window: check → if newer, download + install + relaunch,
+        with progress shown in the on-screen pill. No popup, no external links."""
+        def work():
+            from . import update_check
+
+            self.overlay.show("working", "VibeFlow · Checking for updates…")
+            self._set_status("Checking for updates…")
+            self._refresh()
+            try:
+                info = update_check.check()
+            except Exception:
+                info = None
+            if info is None:
+                self.overlay.show("info", "VibeFlow · Couldn't check (offline?)")
+                self._notify(__app_name__, "Couldn't check for updates — check your connection.")
+                self._set_status("Ready")
+                self._refresh()
+                return
+            if not info.get("newer"):
+                self.overlay.show("done", f"VibeFlow · Up to date (v{__version__})")
+                self._notify(__app_name__, f"You're on the latest version (v{__version__}).")
+                self._set_status("Ready")
+                self._refresh()
+                return
+            ver = info.get("version", "")
+            # The release asset can lag the tag by a minute — re-check once.
+            if not info.get("installer_url"):
+                try:
+                    fresh = update_check.check()
+                    if fresh and fresh.get("installer_url"):
+                        info = fresh
+                except Exception:
+                    pass
+            if not info.get("installer_url"):
+                self.overlay.show("info", f"VibeFlow · Update {ver} not ready yet")
+                self._notify(__app_name__, f"VibeFlow {ver} is being prepared — try again shortly.")
+                self._set_status("Ready")
+                self._refresh()
+                return
+            self.overlay.show("working", f"VibeFlow · Downloading update {ver}…")
+
+            def prog(m: str) -> None:
+                self.overlay.show("working", f"VibeFlow · {m}")
+                self._set_status(m)
+                self._refresh()
+
+            path = update_check.download_installer(info["installer_url"], progress=prog)
+            if not path:
+                self.overlay.show("error", "VibeFlow · Update download failed")
+                self._notify(__app_name__, "Update download failed — please try again.")
+                self._set_status("Ready")
+                self._refresh()
+                return
+            self.overlay.show("working", f"VibeFlow · Installing {ver} — restarting…")
+            self._notify(__app_name__, f"Installing VibeFlow {ver} — it will reopen automatically.")
+            update_check.run_installer(path)  # closes this instance, installs, relaunches
+
+        threading.Thread(target=work, daemon=True).start()
 
     def _open_main(self, *_args) -> None:
         self._launch_manager("--main")
