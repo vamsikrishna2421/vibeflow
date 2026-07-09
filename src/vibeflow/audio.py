@@ -69,15 +69,42 @@ class Recorder:
             # built-in mic can degrade capture to near-silence (VAD then strips it
             # all → "no speech"). Use the device's default latency off Windows.
             _latency = "low" if sys.platform == "win32" else None
-            self._stream = sd.InputStream(
-                samplerate=self.sample_rate,
-                channels=self.channels,
-                dtype="float32",
-                device=_resolve_input_device(self.input_device),
-                callback=self._callback,
-                latency=_latency,
-            )
-            self._stream.start()
+
+            # Refresh PortAudio's device list before opening. On Windows (MME) the
+            # cached device list goes STALE when the set of microphones changes
+            # while the app is running (unplug/replug, Bluetooth, a virtual device
+            # appearing). A once-valid device index then becomes out of range —
+            # PaErrorCode -9999 "A device ID has been used that is out of range" —
+            # which used to fail on every retry and beep continuously. Re-initing
+            # picks up the current devices so the index resolves correctly.
+            try:
+                sd._terminate()
+                sd._initialize()
+            except Exception:
+                pass
+
+            resolved = _resolve_input_device(self.input_device)
+
+            def _make(dev):
+                return sd.InputStream(
+                    samplerate=self.sample_rate,
+                    channels=self.channels,
+                    dtype="float32",
+                    device=dev,
+                    callback=self._callback,
+                    latency=_latency,
+                )
+
+            try:
+                self._stream = _make(resolved)
+                self._stream.start()
+            except Exception:
+                # A pinned/built-in device index went stale — SELF-HEAL by falling
+                # back to the system default device instead of erroring in a loop.
+                if resolved is None:
+                    raise
+                self._stream = _make(None)
+                self._stream.start()
         except Exception as exc:
             self._recording = False
             raise AudioError(f"Could not open microphone: {exc}") from exc
