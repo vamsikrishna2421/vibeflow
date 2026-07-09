@@ -1197,10 +1197,9 @@ class VibeFlowApp:
             info = None
         if info and info.get("newer"):
             self._update_info = info
-            self._notify(
-                __app_name__,
-                f"VibeFlow {info['version']} is available — open the tray menu to update.",
-            )
+            # No popup: the user asked not to be nagged. Just surface it as the tray
+            # item, which flips to "⬆ Install update (X)…" — one click silently
+            # downloads + installs + relaunches (see _check_and_update).
             self._refresh()
 
     def _update_action(self, *_args) -> None:
