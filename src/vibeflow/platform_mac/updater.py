@@ -287,6 +287,40 @@ fi
 """
 
 
+# Reopens the app once this process has exited: switching speech engines needs a
+# fresh process (PyTorch and CTranslate2 can't share one). Path and PID arrive as
+# argv, never interpolated into the script.
+_RELAUNCH_HELPER = r"""#!/bin/bash
+TARGET="$1"; PID="$2"
+for _ in $(seq 1 150); do kill -0 "$PID" 2>/dev/null || break; sleep 0.1; done
+/usr/bin/open "$TARGET"
+"""
+
+
+def relaunch_after_exit() -> bool:
+    """Start a helper that reopens this ``.app`` once the current process exits.
+
+    Returns ``False`` when not running from a bundle (a source checkout), so the
+    caller can ask the user to restart by hand. The caller should quit next.
+    """
+    target = _bundle_path()
+    if not target:
+        return False
+    try:
+        work = tempfile.mkdtemp(prefix="vibeflow-relaunch-")
+        helper = os.path.join(work, "relaunch.sh")
+        with open(helper, "w", encoding="utf-8") as f:
+            f.write(_RELAUNCH_HELPER)
+        os.chmod(helper, 0o700)
+        subprocess.Popen(
+            ["/bin/bash", helper, target, str(os.getpid())],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+        return True
+    except Exception:
+        return False
+
+
 def apply_update(zip_path: str, expected_version: str | None = None) -> bool:
     """Verify the downloaded build and swap it in, then relaunch.
 

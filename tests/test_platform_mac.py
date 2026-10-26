@@ -39,6 +39,42 @@ def test_mac_defaults_preserve_user_choice():
     assert cfg.get("text.modes.deliver_hotkey") == "cmd+alt+v"
 
 
+def test_mac_defaults_keep_phonon():
+    cfg = _cfg({"model": {"size": "phonon-2"}})
+    defaults.apply_mac_defaults(cfg)
+    assert cfg.get("model.size") == "phonon-2"
+
+
+def test_mac_defaults_still_retire_old_whisper_sizes():
+    cfg = _cfg({"model": {"size": "large-v3"}})
+    defaults.apply_mac_defaults(cfg)
+    assert cfg.get("model.size") == "medium"
+
+
+def test_saved_mac_whisper_setup_moves_to_phonon(tmp_path):
+    import json
+
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"model": {"size": "small", "language": "en"}}))
+    cfg = defaults.load_mac_config(path)
+    assert cfg.get("model.size") == "phonon-2"
+    assert cfg.get("model.fallback") == "small"  # already downloaded
+
+
+def test_relaunch_after_exit_needs_a_bundle(monkeypatch):
+    import subprocess
+
+    started = []
+    monkeypatch.setattr(subprocess, "Popen", lambda cmd, **kw: started.append(cmd))
+    monkeypatch.setattr(updater, "_bundle_path", lambda: None)
+    assert updater.relaunch_after_exit() is False and started == []
+    monkeypatch.setattr(updater, "_bundle_path", lambda: "/Applications/VibeFlow.app")
+    assert updater.relaunch_after_exit() is True
+    cmd = started[0]
+    assert cmd[0] == "/bin/bash" and cmd[2] == "/Applications/VibeFlow.app"
+    assert cmd[3].isdigit()  # waits for this process to exit first
+
+
 # --- Mac per-app resolver: built-in verbatim surfaces ----------------------
 def test_terminals_and_editors_are_verbatim_by_bundle_id():
     for bundle in ("com.apple.terminal", "com.googlecode.iterm2",

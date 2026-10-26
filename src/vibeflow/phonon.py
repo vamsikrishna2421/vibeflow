@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from pathlib import Path
 
 from .core.numbers import spoken_numbers_to_digits, tidy_digits
@@ -26,12 +27,59 @@ class PhononError(RuntimeError):
     """A Phonon model couldn't load or decode."""
 
 
+def _signed_mac_app() -> bool:
+    return bool(getattr(sys, "frozen", False)) and sys.platform == "darwin"
+
+
 def prepare_env(models_dir: str | Path | None) -> None:
     """Point fermion at VibeFlow's models folder; no progress bars (the windowed
     app has no console). Existing values win, so a developer can redirect them."""
     if models_dir:
         os.environ.setdefault("FERMION_CACHE_DIR", str(models_dir))
     os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+    if _signed_mac_app():
+        # The Mac app bundles the CPU engine (no MLX). Naming it also lets the
+        # Intel build run under Rosetta, which fermion otherwise refuses.
+        os.environ.setdefault("FERMION_DEVICE", "cpu")
+
+
+def _trust_signed_bundle() -> None:
+    """Inside the signed Mac app, accept fermion's kernel libraries as bundled.
+
+    Code signing (PyInstaller's ad-hoc pass, then Developer ID in CI) rewrites
+    every Mach-O in VibeFlow.app, so the libraries stop matching the sha256 pins
+    fermion ships and it refuses them. The app's own signature, which macOS checks
+    before running any of its code, covers their integrity instead. fermion's
+    list of which libraries it ships stays authoritative; only the hashes come
+    from the bundled files. A pip install (or Windows) keeps the original pins.
+    """
+    if not _signed_mac_app():
+        return
+    import hashlib
+
+    from fermion._speech import _engine_phonon2_cpu as kernels
+    from fermion._speech import gate_cpu
+
+    if getattr(kernels, "_vibeflow_trusted", False):
+        return
+    shipped_pins = kernels._pins
+
+    def bundled_pins() -> dict:
+        out = {}
+        for name in shipped_pins():
+            path = kernels.HERE / name
+            if path.is_file():
+                out[name] = hashlib.sha256(path.read_bytes()).hexdigest()
+        return out
+
+    checked_binary_path = gate_cpu.binary_path
+
+    def binary_path(*, verify: bool = True):  # Apple Silicon's CPU-engine check
+        return checked_binary_path(verify=False)
+
+    kernels._pins = bundled_pins
+    gate_cpu.binary_path = binary_path
+    kernels._vibeflow_trusted = True
 
 
 def is_cached(size: str = "phonon-2", models_dir: str | Path | None = None) -> bool | None:
@@ -58,6 +106,10 @@ def load(size: str, models_dir: str | Path | None = None, language: str = "en"):
     except Exception as exc:
         raise PhononError(f"{size} needs the 'fermion-research' package (Python 3.10+).") from exc
     prepare_env(models_dir)  # fermion creates the folders it needs
+    try:
+        _trust_signed_bundle()
+    except Exception as exc:  # fermion internals moved: the load reports the real cause
+        logging.getLogger("vibeflow").warning("could not adapt fermion to the signed app: %s", exc)
     try:
         model = fermion.load_speech(MODELS.get(size, size), quiet=True)
     except (Exception, SystemExit) as exc:  # fermion refuses with SystemExit

@@ -65,6 +65,7 @@ import types  # noqa: E402
 
 import pytest  # noqa: E402
 
+import vibeflow.transcriber as tr  # noqa: E402
 from vibeflow import phonon  # noqa: E402
 
 
@@ -259,3 +260,43 @@ def test_relaunch_command(monkeypatch, frozen, expected):
         monkeypatch.delattr(sys, "frozen", raising=False)
     entry._relaunch()
     assert started == [expected]
+
+
+# --- signed Mac app: fermion's kernel pins -----------------------------------
+def _fake_kernel_modules(monkeypatch, tmp_path):
+    kernels = types.ModuleType("fermion._speech._engine_phonon2_cpu")
+    kernels.HERE = tmp_path
+    (tmp_path / "libphonon2_tdt-macos-x86_64.dylib").write_bytes(b"re-signed bytes")
+    kernels._pins = lambda: {"libphonon2_tdt-macos-x86_64.dylib": "original-pin",
+                             "libphonon2_cpu-linux-x86_64.so": "not-in-this-bundle"}
+    gate = types.ModuleType("fermion._speech.gate_cpu")
+    calls = []
+    gate.binary_path = lambda *, verify=True: calls.append(verify) or tmp_path
+    speech = types.ModuleType("fermion._speech")
+    speech._engine_phonon2_cpu, speech.gate_cpu = kernels, gate
+    for name, mod in (("fermion", types.ModuleType("fermion")), ("fermion._speech", speech),
+                      ("fermion._speech._engine_phonon2_cpu", kernels),
+                      ("fermion._speech.gate_cpu", gate)):
+        monkeypatch.setitem(sys.modules, name, mod)
+    return kernels, gate, calls
+
+
+def test_signed_mac_app_trusts_its_bundled_kernels(monkeypatch, tmp_path):
+    import hashlib
+
+    kernels, gate, calls = _fake_kernel_modules(monkeypatch, tmp_path)
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(sys, "platform", "darwin")
+    phonon._trust_signed_bundle()
+    want = hashlib.sha256(b"re-signed bytes").hexdigest()
+    assert kernels._pins() == {"libphonon2_tdt-macos-x86_64.dylib": want}
+    gate.binary_path(verify=True)
+    assert calls == [False]  # Apple Silicon's CPU-engine check skips the old pin
+
+
+def test_pins_untouched_outside_the_signed_mac_app(monkeypatch, tmp_path):
+    kernels, gate, _ = _fake_kernel_modules(monkeypatch, tmp_path)
+    original = kernels._pins
+    monkeypatch.delattr(sys, "frozen", raising=False)
+    phonon._trust_signed_bundle()
+    assert kernels._pins is original

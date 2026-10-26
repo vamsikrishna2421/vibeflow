@@ -44,6 +44,11 @@ for pkg in ("faster_whisper", "ctranslate2", "tokenizers", "av", "onnxruntime",
 hiddenimports += collect_submodules("vibeflow")
 datas += collect_data_files("vibeflow.resources")
 
+# Phonon-2's package (fermion) is collected by packaging/hooks/hook-fermion.py:
+# real modules only (it ships Linux ".so" files that look like extensions here),
+# plus its .py sources (loaded by file path) and kernel libraries as files.
+hiddenimports += ["fermion"]
+
 # PyObjC bridges the Mac "hands" import (lazily) — name them so they're frozen in.
 hiddenimports += [
     "objc", "AppKit", "Foundation", "Quartz",
@@ -58,7 +63,7 @@ a = Analysis(
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
-    hookspath=[],
+    hookspath=[os.path.join(ROOT, "packaging", "hooks")],
     runtime_hooks=[],
     excludes=["comtypes", "win32api", "win32con", "win32gui", "pywin32"],
     cipher=block_cipher,

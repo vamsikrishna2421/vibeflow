@@ -122,6 +122,7 @@ class MenuBarApp:
             device=self.cfg.get("model.device", "auto"),
             compute_type=self.cfg.get("model.compute_type", "auto"),
             models_dir=str(config_mod.models_dir()),
+            fallback_size=self.cfg.get("model.fallback", "small"),
         )
 
     def _build_hotkeys(self) -> MacHotkeys:
@@ -178,11 +179,11 @@ class MenuBarApp:
             return
 
         # Streaming (default): transcribe WHILE speaking so the paste is near-instant
-        # on release. Whisper engine only; any failure falls back to batch.
+        # on release. Whisper and Phonon; any failure falls back to batch.
         self._stream_session = None
         try:
             if bool(self.cfg.get("model.streaming", True)) and \
-                    getattr(self.transcriber, "engine", "whisper") == "whisper":
+                    getattr(self.transcriber, "engine", "whisper") in ("whisper", "phonon"):
                 from ..streaming import StreamingSession
                 self._stream_session = StreamingSession(
                     self.transcriber, self.recorder, prompt=self.vocabulary.prompt()
@@ -525,8 +526,14 @@ class MenuBarApp:
             self.transcriber.load()
             self._model_ready = True
             self._set("idle", "Ready")
-            log.info("model ready: %s %s", self.cfg.get("model.size"),
+            log.info("model ready: %s %s", self.transcriber.size,
                      self.transcriber._resolved)
+            if getattr(self.transcriber, "fell_back_from", None):
+                log.warning("speech model fell back: %s", self.transcriber.fallback_reason)
+                self._notify(__app_name__,
+                             f"{self.transcriber.fell_back_from} couldn't start on this "
+                             f"Mac, so VibeFlow is using Whisper {self.transcriber.size}. "
+                             "Details are in the log.")
             self._notify(__app_name__, f"Ready. {self._trigger_hint()} to dictate.")
         except Exception as exc:
             self._set("idle", "Model failed to load")
@@ -669,10 +676,12 @@ class MenuBarApp:
                 self._mi(rumps, "out_clip", "Always clipboard",
                          lambda s: self._set_output("clipboard")),
             ]),
-            ("Speech accuracy", [
-                self._mi(rumps, "acc_small", "Fast (small)",
+            ("Speech model", [
+                self._mi(rumps, "acc_phonon", "Phonon-2 · fastest (recommended)",
+                         lambda s: self._set_accuracy("phonon-2")),
+                self._mi(rumps, "acc_small", "Whisper small",
                          lambda s: self._set_accuracy("small")),
-                self._mi(rumps, "acc_medium", "Accurate (medium · recommended)",
+                self._mi(rumps, "acc_medium", "Whisper medium · best for rare jargon, slow",
                          lambda s: self._set_accuracy("medium")),
             ]),
             ("AI formatting", [
@@ -844,6 +853,7 @@ class MenuBarApp:
         self._check("out_clip", mode == "clipboard")
 
         size = self.cfg.get("model.size")
+        self._check("acc_phonon", size == "phonon-2")
         self._check("acc_small", size == "small")
         self._check("acc_medium", size == "medium")
 
@@ -874,14 +884,43 @@ class MenuBarApp:
         self._notify(__app_name__, f"Output set to '{mode}'.")
 
     def _set_accuracy(self, size: str) -> None:
+        from ..transcriber import _engine_of
+
+        previous = self.cfg.get("model.size")
+        if _engine_of(size) == "phonon" and _engine_of(previous) == "whisper":
+            # The Whisper model in use is already downloaded: keep it as the fallback.
+            self.cfg.set("model.fallback", previous)
         self.cfg.set("model.size", size)
         self._save_config()
+        if self._restart_for_engine(size):
+            return
         self.transcriber = self._build_transcriber()
         self._model_ready = False
-        labels = {"small": "Fast", "medium": "Accurate"}
-        self._notify(__app_name__, f"Speech accuracy: {labels.get(size, size)}. "
+        labels = {"phonon-2": "Phonon-2", "phonon-2.5-en": "Phonon-2.5 English",
+                  "small": "Whisper small", "medium": "Whisper medium"}
+        self._notify(__app_name__, f"Speech model: {labels.get(size, size)}. "
                      "The model downloads on first use if it's new.")
         threading.Thread(target=self._preload_model, daemon=True).start()
+
+    def _restart_for_engine(self, size: str) -> bool:
+        """Relaunch VibeFlow when model ``size`` runs on a different engine.
+
+        Phonon (PyTorch) and Whisper (CTranslate2) can't share one process (see
+        ``transcriber._runtime_clash``), and the current model may still be
+        loading in the background, so an engine switch reopens the app with the
+        saved setting. Returns True when the switch is left to a restart.
+        """
+        from ..transcriber import _engine_of, needs_restart
+
+        same_engine = _engine_of(size) == getattr(self.transcriber, "engine", None)
+        if same_engine and not needs_restart(size):
+            return False
+        if updater.relaunch_after_exit():
+            self._notify(__app_name__, "Restarting VibeFlow to switch the speech model…")
+            self._quit()
+        else:  # running from source: no bundle to reopen
+            self._notify(__app_name__, "Quit and reopen VibeFlow to switch the speech model.")
+        return True
 
     def _ai_tier(self):
         if not bool(self.cfg.get("ai.enabled", False)):
@@ -1272,6 +1311,8 @@ class MenuBarApp:
 
     def _reload(self, _s=None) -> None:
         self.cfg = defaults.load_mac_config(self.cfg.path)
+        if self._restart_for_engine(self.cfg.get("model.size", "phonon-2")):
+            return
         self.recorder = self._build_recorder()
         self.transcriber = self._build_transcriber()
         self.vocabulary = self._build_vocabulary()
