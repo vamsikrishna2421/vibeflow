@@ -4,6 +4,33 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.18.0] — 2026-10-26 (macOS)
+
+### Changed
+- **Phonon-2 is the new default speech engine.** Phonon-2 (Fermion Research's
+  compressed NVIDIA Parakeet-TDT 0.6B, ~160 MB, English) transcribed the benchmark
+  clips 24× faster than Whisper medium on a 2018 Intel MacBook Pro (0.35 s vs 8.3 s
+  a clip; an 86-second passage in 5.6 s vs 69 s), with ~40% less memory. Pick
+  Phonon-2, Whisper small or Whisper medium from the menu bar → **Speech model**.
+  - Existing English setups move to Phonon-2 once. The Whisper model you had
+    becomes the fallback, so nothing is re-downloaded if Phonon-2 can't run.
+    Choosing Whisper again from the menu sticks. Non-English setups stay on Whisper.
+  - Phonon-2 writes most numbers as words, and mis-spaces digits it writes itself.
+    VibeFlow now types them as digits: "five hundred three" → "503", "two forty
+    five PM" → "2:45 PM", "at245" → "at 245". Numbers in prose stay words.
+  - If Phonon-2 can't start (no internet for its first download, or an
+    unsupported machine), VibeFlow uses Whisper and says so.
+  - Switching between Phonon-2 and Whisper restarts VibeFlow. Their runtimes
+    (PyTorch and CTranslate2) each bundle Intel OpenMP and crash when both load.
+  - Trade-off: on rare jargon and names, Whisper medium is still the most accurate
+    (benchmark word error 10.8% vs 15.0%); it stays one click away.
+
+### Internal
+- The app bundles the fermion package (`packaging/hooks/hook-fermion.py`) and CPU
+  PyTorch. Code signing rewrites fermion's kernel libraries, so inside the signed
+  app VibeFlow trusts the bundled copies (covered by the app's own signature)
+  instead of fermion's original sha256 pins.
+
 ## [1.16.1] — 2026-06-22
 
 ### Added

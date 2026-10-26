@@ -121,7 +121,7 @@ def run(config_path: str | None = None) -> int:
         highlightthickness=0, bd=0,
     ).pack(fill="x", anchor="w", padx=10, pady=1)
 
-    tk.Label(root, text="Speech accuracy and the AI tier (Off/Fast/Balanced/Best/"
+    tk.Label(root, text="The speech model and the AI tier (Off/Fast/Balanced/Best/"
              "Offline) live in the tray menu — they download or reload a model. "
              "Filler words (um, uh) are always cleaned up automatically.",
              bg=_BG, fg=_MUTED, anchor="w", wraplength=430, justify="left",

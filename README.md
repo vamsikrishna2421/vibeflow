@@ -44,7 +44,7 @@ nothing sent to the cloud. Your voice never leaves your computer.
 - ✅ Only **one** VibeFlow ever runs at a time (no accidental duplicates).
 - ✅ Clean **uninstall** any time via *Settings → Apps → VibeFlow*.
 
-> On first dictation, VibeFlow downloads the speech model once (a few hundred MB),
+> On first launch, VibeFlow downloads the speech model once (about 160 MB),
 > then runs **fully offline**. With the installer you don't need Python at all.
 
 After installing, press **`Ctrl + Win`**, speak, then press it again — your words
@@ -107,21 +107,24 @@ Everything in that diagram happens **on your laptop**. Nothing is sent online.
 
 ---
 
-## 🎚️ Choosing accuracy vs. speed
+## 🎚️ Choosing a speech model
 
-VibeFlow uses an offline speech model. Bigger models are more accurate but need
-a bit more computer power. You can change this any time in the settings.
+VibeFlow runs its speech model on your own computer. Pick one any time from the
+tray menu → **Speech model** (or `model: size:` in the settings file).
 
-| Model      | Accuracy | Speed        | Good for                                |
-|------------|----------|--------------|-----------------------------------------|
-| `tiny`     | ★★       | ⚡⚡⚡ fastest | Older / low-power laptops               |
-| `base`     | ★★★      | ⚡⚡ fast     | **Default — great everyday balance**    |
-| `small`    | ★★★★     | ⚡ medium    | Most modern laptops; noticeably better  |
-| `medium`   | ★★★★★    | 🐢 slower    | Strong CPUs or an NVIDIA GPU            |
-| `large-v3` | ★★★★★    | 🐢 slowest   | Best quality; GPU recommended           |
+| Model                | Speed on an ordinary laptop | Good for                                    |
+|----------------------|-----------------------------|---------------------------------------------|
+| `phonon-2`           | ⚡⚡⚡ near-instant            | **Default.** English dictation on any PC    |
+| `small` (Whisper)    | ⚡ a few seconds             | Other languages; the automatic fallback     |
+| `medium` (Whisper)   | 🐢 slow without a GPU        | Rare jargon and names, if you can wait      |
 
-Change it in the settings file (tray menu → *Open settings file*) under
-`model: size:`.
+**Phonon-2** (by Fermion Research, based on NVIDIA's Parakeet) is English only
+and downloads once (about 160 MB). Its raw output spells most numbers out, so
+VibeFlow writes them as digits for you ("503", "2.5 liters", "2:45 PM"). If
+Phonon-2 can't run on a PC, VibeFlow uses Whisper automatically (`model: fallback:`).
+Switching between Phonon-2 and Whisper restarts VibeFlow, because their engines
+can't share one process. Measured results are in
+[benchmarks/asr_results.md](benchmarks/asr_results.md).
 
 ---
 
@@ -205,6 +208,9 @@ Project layout: `src/vibeflow/` (the app), `tests/` (unit tests),
 ## 📄 License
 
 MIT — see [LICENSE](LICENSE). Speech recognition is provided by
+[Phonon-2](https://huggingface.co/FermionResearch/Phonon-2) by Fermion Research
+(CC BY 4.0, derived from NVIDIA's parakeet-tdt-0.6b-v3) through the
+[fermion-research](https://github.com/fermionresearch/phonon) package, and by
 [faster-whisper](https://github.com/SYSTRAN/faster-whisper) using OpenAI's
 Whisper models. VibeFlow bundles none of these weights; they are downloaded from
 their official sources on first use.

@@ -21,7 +21,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ----------------------------------------------------------------------------
-Third-party components are used under their own licenses, including OpenAI's
-Whisper models (MIT) via faster-whisper (MIT), and the libraries listed in
-requirements.txt. Speech model weights are downloaded from their respective
-sources on first use.
+Third-party components are used under their own licenses, including:
+
+  - The Phonon-2 speech model by Fermion Research
+    (https://huggingface.co/FermionResearch/Phonon-2), licensed CC BY 4.0
+    (https://creativecommons.org/licenses/by/4.0/). Phonon-2 is derived from
+    NVIDIA's parakeet-tdt-0.6b-v3 (CC BY 4.0); the NOTICE file in its model
+    repository lists the changes. It runs through the fermion-research package
+    (Apache-2.0) and PyTorch (BSD-3-Clause).
+  - OpenAI's Whisper models (MIT) via faster-whisper (MIT).
+  - The other libraries listed in requirements.txt.
+
+Speech model weights are downloaded unmodified from their respective sources on
+first use.

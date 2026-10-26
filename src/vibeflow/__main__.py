@@ -24,7 +24,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--version", action="version", version=f"{__app_name__} {__version__}")
     p.add_argument("--config", metavar="PATH", help="Use a specific config file.")
-    p.add_argument("--model", metavar="SIZE", help="Override model size (e.g. small).")
+    p.add_argument("--model", metavar="SIZE",
+                   help="Override the speech model (phonon-2, small, medium).")
     p.add_argument(
         "--mode",
         choices=["toggle", "push_to_talk"],
@@ -158,14 +159,33 @@ def _run(cfg: config_mod.Config) -> int:
         notify_already_running()
         return 0
 
+    app = None
     try:
-        VibeFlowApp(cfg).run()
+        app = VibeFlowApp(cfg)
+        app.run()
     except RuntimeError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 2
     finally:
-        instance.release()
+        instance.release()  # before relaunching, so the new copy gets the lock
+    if app is not None and app.restart_requested:
+        _relaunch()
     return 0
+
+
+def _relaunch() -> None:
+    """Start a fresh VibeFlow: switching between Phonon and Whisper needs a clean
+    process, because their runtimes can't share one (see transcriber.py)."""
+    import subprocess
+
+    if getattr(sys, "frozen", False):  # the packaged VibeFlow.exe
+        cmd = [sys.executable, *sys.argv[1:]]
+    else:
+        cmd = [sys.executable, "-m", "vibeflow", *sys.argv[1:]]
+    try:
+        subprocess.Popen(cmd, close_fds=True)
+    except Exception as exc:  # noqa: BLE001 - the user can still start it by hand
+        print(f"Could not restart VibeFlow: {exc}", file=sys.stderr)
 
 
 def _check_ai(cfg: config_mod.Config) -> int:
@@ -221,13 +241,17 @@ def _download_model(cfg: config_mod.Config) -> int:
         device=cfg.get("model.device", "auto"),
         compute_type=cfg.get("model.compute_type", "auto"),
         models_dir=str(config_mod.models_dir()),
+        fallback_size=cfg.get("model.fallback", "small"),
     )
     try:
         t.load()
     except TranscriptionError as exc:
         print(f"Failed: {exc}", file=sys.stderr)
         return 2
-    print("Model ready. VibeFlow can now run fully offline.")
+    if t.fell_back_from:
+        print(f"{t.fell_back_from} couldn't load ({t.fallback_reason}); "
+              f"using Whisper {t.size} instead.")
+    print(f"Model '{t.size}' ready. VibeFlow can now run fully offline.")
     return 0
 
 
@@ -237,12 +261,16 @@ def _doctor(cfg: config_mod.Config) -> int:
     print(f"Config file       : {cfg.path}")
     print(f"Models folder     : {config_mod.models_dir()}")
 
-    from .transcriber import _resolve_device
+    from .transcriber import _engine_of, _resolve_device
 
-    device, compute = _resolve_device(
-        cfg.get("model.device", "auto"), cfg.get("model.compute_type", "auto")
-    )
-    print(f"Model             : {cfg.get('model.size')} on {device}/{compute}")
+    size = cfg.get("model.size")
+    if _engine_of(size) == "phonon":
+        print(f"Model             : {size} (fallback: Whisper {cfg.get('model.fallback', 'small')})")
+    else:
+        device, compute = _resolve_device(
+            cfg.get("model.device", "auto"), cfg.get("model.compute_type", "auto")
+        )
+        print(f"Model             : {size} on {device}/{compute}")
     if cfg.get("hotkey.mode") == "push_to_talk":
         print(f"Trigger           : hold '{cfg.get('hotkey.push_to_talk_key')}'")
     else:
@@ -266,6 +294,9 @@ def _doctor(cfg: config_mod.Config) -> int:
         present = _can_import(module)
         ok = ok and present
         print(f"  [{'OK' if present else '--'}] {package}")
+    # Optional: without it the Phonon-2 setting falls back to Whisper.
+    phonon = _can_import("fermion")
+    print(f"  [{'OK' if phonon else '--'}] fermion-research (Phonon-2; optional)")
 
     print("\nMicrophones:")
     from .audio import list_input_devices

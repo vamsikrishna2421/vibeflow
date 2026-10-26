@@ -1,18 +1,45 @@
-"""Offline speech-to-text using faster-whisper (CTranslate2).
+"""Offline speech-to-text: Phonon-2 by default, faster-whisper (CTranslate2) too.
 
-The model is downloaded once into the app's data folder and then runs fully
-offline. ``faster_whisper`` is imported lazily so the rest of VibeFlow — and the
-test-suite — works without the (large) inference dependencies installed.
+Phonon-2 (English, see :mod:`vibeflow.phonon`) is the default. Whisper stays
+selectable from the tray, and is used automatically when Phonon-2 can't run on
+a machine.
+
+Models download once into the app's data folder and then run fully offline.
+Both engines are imported lazily so the rest of VibeFlow — and the test-suite —
+works without the (large) inference dependencies installed.
 """
 
 from __future__ import annotations
 
+import logging
 import sys
 from pathlib import Path
+
+from . import phonon
 
 
 class TranscriptionError(RuntimeError):
     """Raised when a model cannot be loaded or audio cannot be transcribed."""
+
+
+class EngineRestartRequired(TranscriptionError):
+    """The model needs the other engine's runtime: restart VibeFlow to load it."""
+
+
+def _runtime_clash(engine: str) -> bool:
+    """Would loading ``engine`` put a second OpenMP runtime into this process?
+
+    PyTorch (Phonon) and CTranslate2 (Whisper) each bundle Intel's OpenMP. With
+    both loaded the process segfaults, in either order; KMP_DUPLICATE_LIB_OK
+    only turns the abort into that crash. So: one engine family per process.
+    """
+    other = {"phonon": "ctranslate2", "whisper": "torch"}.get(engine)
+    return other is not None and other in sys.modules
+
+
+def needs_restart(size: str) -> bool:
+    """True if switching to model ``size`` needs a fresh VibeFlow process."""
+    return _runtime_clash(_engine_of(size))
 
 
 # The speech models VibeFlow exposes, mapped to their HuggingFace CTranslate2 repo.
@@ -41,6 +68,11 @@ def model_cache_dirname(size: str) -> str | None:
     return ("models--" + repo.replace("/", "--")) if repo else None
 
 
+# Whisper size used when Phonon can't run on a machine: the package is missing
+# (Python 3.9 installs), the CPU is unsupported, or the first download failed.
+DEFAULT_FALLBACK = "small"
+
+
 # Prepend this much silence before transcription. Whisper's encoder has an edge
 # effect and its VAD can trim a soft speech onset, so audio that starts *exactly*
 # at the first spoken word tends to lose that word ("spin up a…" → "…"). A short
@@ -56,9 +88,14 @@ def _lead_pad(audio):
     return x if n <= 0 else np.concatenate([np.zeros(n, dtype="float32"), x])
 
 
-# A non-Whisper engine exposed for the bake-off, dispatched by the model-id prefix.
 def _engine_of(size: str) -> str:
-    return "moonshine" if str(size or "").startswith("moonshine") else "whisper"
+    """The engine a model id runs on, from its prefix: phonon | moonshine | whisper."""
+    s = str(size or "").strip().lower()
+    if s.startswith("phonon"):
+        return "phonon"
+    if s.startswith("moonshine"):
+        return "moonshine"
+    return "whisper"
 
 
 def _audio_to_wav(audio, sample_rate: int = 16000) -> str:
@@ -83,8 +120,8 @@ def _audio_to_wav(audio, sample_rate: int = 16000) -> str:
 
 
 class Transcriber:
-    """Lazy wrapper around a speech model — faster-whisper by default, or the
-    Moonshine / Parakeet ONNX engines when the model id selects them."""
+    """Lazy wrapper around a speech model: Phonon-2, faster-whisper, or the
+    Moonshine ONNX bake-off engine, chosen by the model id."""
 
     def __init__(
         self,
@@ -95,6 +132,7 @@ class Transcriber:
         models_dir: str | Path | None = None,
         beam_size: int = 5,
         vad_filter: bool = True,
+        fallback_size: str | None = DEFAULT_FALLBACK,
     ) -> None:
         self.size = size
         self.engine = _engine_of(size)
@@ -104,6 +142,10 @@ class Transcriber:
         self.models_dir = str(models_dir) if models_dir else None
         self.beam_size = int(beam_size)
         self.vad_filter = bool(vad_filter)
+        # Whisper size to switch to when a Phonon model can't load (None = raise).
+        self.fallback_size = fallback_size
+        self.fell_back_from: str | None = None  # the Phonon id we switched away from
+        self.fallback_reason: str | None = None
         self._model = None
         self._resolved: tuple[str, str] | None = None
 
@@ -120,7 +162,19 @@ class Transcriber:
         """
         if self._model is not None:
             return
-        if self.engine != "whisper":
+        if _runtime_clash(self.engine):
+            raise EngineRestartRequired(f"Switching to '{self.size}' needs a VibeFlow restart.")
+        if self.engine == "phonon":
+            if not allow_download and phonon.is_cached(self.size, self.models_dir) is False:
+                raise TranscriptionError(f"The '{self.size}' model isn't downloaded yet.")
+            try:
+                self._load_phonon()
+                return
+            except TranscriptionError as exc:
+                if not self._use_fallback(exc):
+                    raise
+            # Phonon can't run here: carry on and load the Whisper fallback below.
+        if self.engine == "moonshine":
             self._model = self.engine  # sentinel — the ONNX engine loads/caches per call
             return
         try:
@@ -167,6 +221,30 @@ class Transcriber:
                 f"Could not load the '{self.size}' model on {device}/{compute_type}: {exc}"
             ) from exc
 
+    def _load_phonon(self) -> None:
+        """Load a Phonon model through the fermion package (downloads once)."""
+        try:
+            self._model, kind = phonon.load(self.size, self.models_dir, self.language)
+        except phonon.PhononError as exc:
+            raise TranscriptionError(str(exc)) from exc
+        self._resolved = (kind, self.size)
+
+    def _use_fallback(self, exc: Exception) -> bool:
+        """Switch to the Whisper fallback after a Phonon model failed to load.
+
+        Not once PyTorch is loaded (a failure late in the Phonon load): Whisper
+        can't safely join it in this process, so the error is raised instead.
+        """
+        if not self.fallback_size or _engine_of(self.fallback_size) != "whisper" \
+                or _runtime_clash("whisper"):
+            return False
+        logging.getLogger("vibeflow").warning(
+            "%s unavailable (%s); using Whisper %s instead.", self.size, exc, self.fallback_size
+        )
+        self.fell_back_from, self.fallback_reason = self.size, str(exc)
+        self.size, self.engine = self.fallback_size, "whisper"
+        return True
+
     def _open_model(self, WhisperModel, device: str, compute_type: str, allow_download: bool):
         """Construct a ``WhisperModel`` offline-first (cached model → no network).
 
@@ -192,13 +270,16 @@ class Transcriber:
         """Transcribe a float32 numpy audio array (16 kHz) into text.
 
         ``prompt`` is passed as Whisper's ``initial_prompt`` to bias decoding
-        toward the user's adaptive vocabulary (names, jargon, acronyms).
+        toward the user's adaptive vocabulary (names, jargon, acronyms). The
+        Phonon engine doesn't use it (see :func:`vibeflow.phonon.transcribe`).
         """
         if self._model is None:
             self.load()
 
         if self.engine == "moonshine":
             return self._transcribe_moonshine(audio)
+        if self.engine == "phonon":
+            return self._transcribe_phonon(audio)
 
         # English by default. A valid language code set in config still works,
         # but anything empty / "auto" / an unknown value falls back to English so
@@ -219,6 +300,14 @@ class Transcriber:
                 except Exception as exc2:
                     raise TranscriptionError(f"Transcription failed: {exc2}") from exc2
             raise TranscriptionError(f"Transcription failed: {exc}") from exc
+
+    def _transcribe_phonon(self, audio) -> str:
+        """Phonon decode, with the same half-second lead-in as Whisper (it
+        helped on the benchmark clips too)."""
+        try:
+            return phonon.transcribe(self._model, _lead_pad(audio))
+        except phonon.PhononError as exc:
+            raise TranscriptionError(str(exc)) from exc
 
     def _transcribe_moonshine(self, audio) -> str:
         """Moonshine v2 via onnxruntime — a tiny, edge-optimized model. Best on
@@ -296,6 +385,8 @@ class Transcriber:
         conditioning), which is what LocalAgreement needs."""
         if self._model is None:
             self.load()
+        if self.engine != "whisper":
+            raise TranscriptionError("Word timestamps need the Whisper engine.")
         lang = str(self.language or "").strip().lower()
         if lang in ("", "auto", "auto-detect", "autodetect"):
             lang = "en"

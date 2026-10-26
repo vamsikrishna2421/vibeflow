@@ -235,8 +235,8 @@ model:
   language: en      # English. Use es, fr, de, hi, it, pt, ja, zh, …
 ```
 
-The `base` model understands many languages. For the best results in non-English
-languages, try `size: small` or `medium`.
+The default model, Phonon-2, is English only. For other languages, use a Whisper
+model: `size: small` or `medium`.
 
 ---
 
@@ -283,10 +283,10 @@ installed.
 | **"No speech detected"** | The recording was too quiet or too short | Speak longer and closer to the mic. Confirm the right mic in `--doctor` / `--list-devices`. |
 | **Text goes to clipboard, not the box** | VibeFlow couldn't confirm a text field was focused (it plays it safe) | Click *inside* the text field first. Or set `output: mode: type`. |
 | **Wrong microphone is used** | The default device isn't the one you want | Set `audio: input_device:` to a name fragment or number from `--list-devices`. |
-| **It's slow to transcribe** | The model is large for your CPU | Use `model: size: base` (or `tiny`). A short delay is normal on first use while the model loads. |
+| **It's slow to transcribe** | A Whisper model is large for your CPU | Use `model: size: phonon-2` (the fastest, English only). A short delay is normal on first use while the model loads. |
 | **Beeps are annoying** | — | Set `feedback: sounds: false`. |
 | **Install failed at "finding Python"** | Python isn't installed or wasn't added to PATH | Reinstall Python and tick *"Add python.exe to PATH"*. |
-| **Accented/other-language words are off** | Model too small for that language | Try `size: small` or `medium`, and set `language` explicitly. |
+| **Accented/other-language words are off** | Phonon-2 is English only, or the Whisper model is too small | Use `size: small` or `medium` (Whisper), and set `language` explicitly. |
 
 Still stuck? See the [Developer Guide](DEVELOPERS.md) or run from a console with
 `scripts\run.ps1` (instead of the `.bat`) to see detailed messages.

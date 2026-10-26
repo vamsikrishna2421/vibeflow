@@ -2,7 +2,12 @@
 # Install with:  pip install -r requirements.txt
 # (The provided installer script does this for you inside a virtual environment.)
 
-faster-whisper>=1.0.0     # offline speech-to-text engine (CTranslate2)
+faster-whisper>=1.1.0     # offline speech-to-text engine (CTranslate2): Whisper + the fallback
+# Phonon-2, the default speech engine. Needs Python 3.10+ (older installs use
+# Whisper) and pulls in PyTorch; on Windows and macOS the PyPI build is CPU-only.
+# On Linux, install CPU torch first so pip doesn't fetch the multi-GB CUDA build:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+fermion-research>=0.2.15,<0.3 ; python_version >= "3.10"
 sounddevice>=0.4.6        # microphone capture
 numpy>=1.24              # audio buffers
 pynput>=1.7.6            # global hotkeys + keyboard output

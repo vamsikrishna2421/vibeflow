@@ -25,7 +25,8 @@ from typing import Any
 # ---------------------------------------------------------------------------
 DEFAULTS: dict[str, Any] = {
     "model": {
-        "size": "medium",        # small | medium (medium recommended). Others removed from the UI.
+        "size": "phonon-2",      # phonon-2 (default) | small | medium (Whisper)
+        "fallback": "small",     # Whisper size used if Phonon-2 can't run on this PC
         "language": "en",        # English by default (unknown values fall back to English)
         "device": "auto",        # auto | cpu | cuda
         "compute_type": "auto",  # auto | int8 | int8_float16 | float16 | float32
@@ -273,5 +274,31 @@ def load_config(path: Path | None = None, *, create: bool = True) -> Config:
         except Exception:
             user = {}  # malformed file — ignore and use defaults
 
+    _migrate_speech_model(user)
     merged = deep_merge(DEFAULTS, user)
     return Config(merged, target)
+
+
+# Whisper sizes a settings file may hold from before Phonon-2 became the default.
+_WHISPER_SIZES = (
+    "tiny", "base", "small", "medium", "large-v3", "large-v3-turbo", "distil-large-v3",
+)
+
+
+def _migrate_speech_model(user: dict) -> None:
+    """Move a saved Whisper model to Phonon-2 once, keeping it as the fallback.
+
+    The old Whisper model is already downloaded, so a PC that can't run
+    Phonon-2 keeps dictating with it. Non-English speakers stay on Whisper,
+    because Phonon-2 is English only. ``model.phonon_migrated`` records that
+    this ran, so choosing Whisper again from the tray sticks.
+    """
+    model = user.get("model")
+    if not isinstance(model, dict) or model.get("phonon_migrated"):
+        return
+    model["phonon_migrated"] = True
+    size = str(model.get("size") or "")
+    lang = str(model.get("language") or "en").strip().lower()
+    if size in _WHISPER_SIZES and lang in ("en", "auto", "auto-detect", "autodetect"):
+        model["fallback"] = size
+        model["size"] = "phonon-2"

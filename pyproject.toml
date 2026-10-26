@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [{ name = "VibeFlow" }]
-keywords = ["dictation", "speech-to-text", "whisper", "offline", "voice-typing", "accessibility"]
+keywords = ["dictation", "speech-to-text", "phonon", "parakeet", "whisper", "offline", "voice-typing", "accessibility"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Win32 (MS Windows)",
@@ -23,6 +23,7 @@ classifiers = [
 ]
 dependencies = [
     "faster-whisper>=1.0.0",
+    "fermion-research>=0.2.15,<0.3 ; python_version >= '3.10'",
     "sounddevice>=0.4.6",
     "numpy>=1.24",
     "pynput>=1.7.6",
