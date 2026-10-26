@@ -4,6 +4,35 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- **Phonon-2 is the new default speech engine.** Phonon-2 (Fermion Research's
+  compressed NVIDIA Parakeet-TDT 0.6B, ~160 MB, English) transcribed the benchmark
+  clips 24× faster than Whisper medium on a 2018 6-core laptop CPU (0.35 s vs 8.3 s
+  a clip; an 86-second passage in 5.6 s vs 69 s), with ~40% less memory. Pick
+  Phonon-2, Whisper small or Whisper medium from tray → **Speech model**.
+  - Existing English setups move to Phonon-2 once. The Whisper model you had
+    becomes the fallback, so nothing is re-downloaded if Phonon-2 can't run.
+    Choosing Whisper again from the tray sticks. Non-English setups stay on Whisper.
+  - Phonon-2 writes most numbers as words, and mis-spaces digits it writes itself.
+    VibeFlow now types them as digits: "five hundred three" → "503", "two forty
+    five PM" → "2:45 PM", "at245" → "at 245". Numbers in prose stay words
+    ("one of them").
+  - If Phonon-2 can't start (no internet for its first download, an unsupported
+    CPU, or a Python 3.9 source install), VibeFlow uses Whisper and says so.
+  - Switching between Phonon-2 and Whisper restarts VibeFlow. Their runtimes
+    (PyTorch and CTranslate2) each bundle Intel OpenMP and crash when both load.
+  - Trade-off: on rare jargon and names, Whisper medium is still the most accurate
+    (benchmark word error 10.8% vs 15.0%); it stays one click away.
+
+### Internal
+- `benchmarks/asr_bench.py` runs every engine through the app's Transcriber, one
+  process per model, and times a long passage for a real-time factor.
+- The Windows build bundles the fermion package (via `packaging/hooks/hook-fermion.py`)
+  and CPU PyTorch, builds with `--noupx` so Phonon-2's sha256-pinned kernel DLLs
+  stay intact, and drops PyTorch's C++ headers and import libraries.
+
 ## [1.22.1] — 2026-06-23
 
 ### Changed

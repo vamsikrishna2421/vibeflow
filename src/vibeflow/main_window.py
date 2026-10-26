@@ -142,7 +142,7 @@ def run(config_path: str | None = None) -> int:
             status.config(text=f"Couldn't save: {exc}", fg=T.ERR)
 
     T.primary_button(gen, "Save & apply", save, width=150).pack(anchor="w", padx=28, pady=(16, 0))
-    tk.Label(gen, text="Speech accuracy and the AI tier live in the tray menu (they "
+    tk.Label(gen, text="The speech model and the AI tier live in the tray menu (they "
              "download / reload a model). Filler words are always cleaned up.",
              bg=T.BG, fg=T.FAINT, font=T.font(T.CAPTION), wraplength=440,
              justify="left").pack(anchor="w", padx=28, pady=(18, 0))

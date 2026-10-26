@@ -5,8 +5,10 @@
 #  shows "VibeFlow" everywhere — including the microphone privacy indicator
 #  ("Microphone in use by: VibeFlow") instead of "Python".
 #
-#  The speech model is NOT bundled (it is large); it downloads on first use into
-#  %APPDATA%\VibeFlow\models. Output: release\VibeFlow\VibeFlow.exe
+#  The speech model is NOT bundled; it downloads on first use into
+#  %APPDATA%\VibeFlow\models (Phonon-2 ~160 MB; Whisper if chosen). Its runtimes
+#  (PyTorch CPU for Phonon-2, CTranslate2 for Whisper) are bundled.
+#  Output: release\VibeFlow\VibeFlow.exe
 # =============================================================================
 
 $ErrorActionPreference = "Stop"
@@ -30,10 +32,16 @@ if (-not (Test-Path $Ico)) {
 }
 $VersionFile = Join-Path $Root "packaging\version_info.txt"
 
+# fermion (Phonon-2) is collected by packaging\hooks\hook-fermion.py: modules,
+# plus its .py sources and kernel DLLs as files on disk. The DLLs are sha256-pinned
+# and must ship byte-for-byte unmodified: an altered DLL is refused and decoding
+# silently drops to a much slower path. PyInstaller copies DLLs untouched on
+# Windows unless UPX compresses them, hence --noupx.
 Write-Host "Building VibeFlow.exe (this takes a few minutes) ..." -ForegroundColor Yellow
 & $VenvPy -m PyInstaller `
     --noconfirm `
     --clean `
+    --noupx `
     --name VibeFlow `
     --windowed `
     --icon "$Ico" `
@@ -41,6 +49,8 @@ Write-Host "Building VibeFlow.exe (this takes a few minutes) ..." -ForegroundCol
     --paths src `
     --collect-submodules vibeflow `
     --collect-data vibeflow.resources `
+    --additional-hooks-dir packaging\hooks `
+    --hidden-import fermion `
     --collect-all faster_whisper `
     --collect-all ctranslate2 `
     --collect-all tokenizers `
@@ -57,6 +67,21 @@ Write-Host "Building VibeFlow.exe (this takes a few minutes) ..." -ForegroundCol
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Build failed. See the messages above." -ForegroundColor Red
     exit 1
+}
+
+# PyTorch (Phonon-2's runtime) ships C++ headers and *.lib import libraries for
+# compiling extensions. The app never compiles anything, so drop them to keep
+# the installer small. Only build-time files are removed, never a .dll or .pyd.
+$TorchDir = Join-Path $Root "release\VibeFlow\_internal\torch"
+if (Test-Path $TorchDir) {
+    foreach ($sub in @("include", "share")) {
+        $p = Join-Path $TorchDir $sub
+        if (Test-Path $p) { Remove-Item -Recurse -Force $p }
+    }
+    $TorchLib = Join-Path $TorchDir "lib"
+    if (Test-Path $TorchLib) {
+        Get-ChildItem -Path $TorchLib -Filter *.lib | Remove-Item -Force
+    }
 }
 
 # --- Optional code signing ---------------------------------------------------

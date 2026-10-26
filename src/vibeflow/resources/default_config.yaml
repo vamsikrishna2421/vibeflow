@@ -7,15 +7,19 @@
 # ============================================================================
 
 # ----------------------------------------------------------------------------
-#  Speech model — turns your voice into text. Bigger = more accurate but slower.
+#  Speech model — turns your voice into text.
 # ----------------------------------------------------------------------------
 model:
-  # tiny | base | small | medium | large-v3
-  #   tiny  = fastest, least accurate (good for old/slow laptops)
-  #   base  = great everyday balance (default)
-  #   small = noticeably more accurate, still fast on most machines
-  #   medium / large-v3 = most accurate, needs a strong CPU or a GPU
-  size: base
+  # phonon-2 | small | medium
+  #   phonon-2 = default. Phonon-2 (based on NVIDIA Parakeet), ~160 MB, English
+  #              only. Many times faster than Whisper on an ordinary CPU.
+  #   small / medium = Whisper. Multilingual; medium is the most accurate on
+  #              rare jargon and names, but slow without a strong CPU or GPU.
+  size: phonon-2
+
+  # Whisper model used automatically if Phonon-2 can't run on this PC (for
+  # example, no internet for its one-time download): small | medium
+  fallback: small
 
   # Language of your speech. Defaults to English ("en"). Use "auto" to detect it
   # for you, or set a code such as es (Spanish), fr (French), de (German),

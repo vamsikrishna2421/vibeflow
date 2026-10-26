@@ -24,8 +24,10 @@ VibeFlow is a Python tray application that performs **offline** speech-to-text
 and routes the result either into the focused text field or onto the clipboard.
 
 - **Language:** Python 3.9+
-- **Speech engine:** [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
-  (CTranslate2 backend; CPU `int8` or CUDA `float16`).
+- **Speech engines:** [Phonon-2](https://huggingface.co/FermionResearch/Phonon-2)
+  by default, through the `fermion-research` package (CPU PyTorch + native
+  kernels; Python 3.10+), and [faster-whisper](https://github.com/SYSTRAN/faster-whisper)
+  (CTranslate2 backend; CPU `int8` or CUDA `float16`) as the alternative and fallback.
 - **Primary platform:** Windows 10/11. The code is structured so audio,
   transcription, hotkeys, output, and config are cross-platform; only
   **focus detection** is Windows-specific (with safe fallbacks elsewhere).
@@ -56,7 +58,8 @@ vibeflow/
 │       ├── config.py          # load/merge/save YAML settings
 │       ├── text.py            # pure transcript cleanup helpers
 │       ├── audio.py           # microphone capture (sounddevice)
-│       ├── transcriber.py     # faster-whisper wrapper
+│       ├── transcriber.py     # engine choice (Phonon-2 / Whisper) + fallback
+│       ├── phonon.py          # Phonon-2 adapter (fermion-research package)
 │       ├── hotkey.py          # global hotkeys + key parsing (pynput)
 │       ├── focus_detect.py    # is the focused element editable? (UIA/Win32)
 │       ├── output.py          # route + insert text (paste/keystroke/clipboard)
@@ -68,6 +71,7 @@ vibeflow/
 │           ├── default_config.yaml   # commented settings template
 │           └── logos/                 # brand art + generated vibeflow.ico
 ├── packaging/
+│   ├── hooks/hook-fermion.py # PyInstaller hook for Phonon-2's package
 │   └── version_info.txt      # VibeFlow.exe version metadata (mic shows "VibeFlow")
 ├── installer/
 │   └── vibeflow.iss          # Inno Setup script -> VibeFlowSetup.exe
@@ -136,7 +140,8 @@ vibeflow/
 | `focus_detect.py` | `EDITABLE` / `NON_EDITABLE` / `UNKNOWN` | `comtypes`, `ctypes` |
 | `output.py` | `decide_target` (pure) + insert/paste/clipboard | `pyperclip`, `pynput` |
 | `audio.py` | `Recorder`, device listing | `sounddevice`, `numpy` |
-| `transcriber.py` | `Transcriber` (load + transcribe), device resolution | `faster_whisper`, `ctranslate2` |
+| `transcriber.py` | `Transcriber` (load + transcribe), engine choice, fallback, device resolution | `faster_whisper`, `ctranslate2` |
+| `phonon.py` | Phonon-2 load/decode, spoken numbers -> digits (`core/numbers.py`) | `fermion` (PyTorch) |
 | `hotkey.py` | `HotkeyManager`, combo/key parsing (pure) | `pynput` |
 | `notifier.py` | Start/stop/error beeps | `winsound` |
 | `icons.py` | Render the brand logo (tray icons + `.ico`) | `PIL` |
@@ -233,6 +238,14 @@ toggle (`autostart.py`) — one value, one source of truth.
   the compressed installer is smaller.
 - Packaging native ML wheels is finicky; if a hidden import is missing at
   runtime, add it via `--hidden-import` / `--collect-all` in `build_exe.ps1`.
+- **Phonon-2 packaging:** `packaging/hooks/hook-fermion.py` ships fermion's `.py`
+  sources on disk (it loads some modules by file path) and its kernel DLLs
+  unmodified. The DLLs are sha256-pinned, so keep `--noupx`: an altered DLL is
+  refused. On macOS, PyInstaller re-signs dylibs, which breaks those pins — the
+  Mac build needs its own answer before it can ship Phonon-2.
+- **One engine per process:** PyTorch (Phonon-2) and CTranslate2 (Whisper) each
+  bundle Intel OpenMP and crash when both load. `Transcriber.load` refuses with
+  `EngineRestartRequired`, and the app relaunches itself on an engine switch.
 
 ---
 

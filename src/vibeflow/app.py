@@ -71,6 +71,8 @@ class VibeFlowApp:
         self._busy = False
         self._model_ready = False
         self._status = "Starting…"
+        # Set when switching speech engines needs a fresh process; main() relaunches.
+        self.restart_requested = False
 
         self.recorder = self._build_recorder()
         self.transcriber = self._build_transcriber()
@@ -117,6 +119,7 @@ class VibeFlowApp:
             device=self.cfg.get("model.device", "auto"),
             compute_type=self.cfg.get("model.compute_type", "auto"),
             models_dir=str(config_mod.models_dir()),
+            fallback_size=self.cfg.get("model.fallback", "small"),
         )
 
     def _build_hotkeys(self) -> HotkeyManager:
@@ -176,11 +179,11 @@ class VibeFlowApp:
             return
 
         # Streaming (opt-in): transcribe WHILE speaking so the paste is near-instant
-        # on release. Whisper engine only; any failure just falls back to batch.
+        # on release. Whisper and Phonon; any failure just falls back to batch.
         self._stream_session = None
         try:
             if bool(self.cfg.get("model.streaming", False)) and \
-                    getattr(self.transcriber, "engine", "whisper") == "whisper":
+                    getattr(self.transcriber, "engine", "whisper") in ("whisper", "phonon"):
                 from .streaming import StreamingSession
 
                 self._stream_session = StreamingSession(
@@ -265,7 +268,8 @@ class VibeFlowApp:
                 text = self.transcriber.transcribe(audio, prompt=self.vocabulary.prompt())
                 _took = time.perf_counter() - _t0
                 self._model_ready = True
-                _size = self.cfg.get("model.size", "base")
+                # The model actually used (a Phonon fallback runs Whisper instead).
+                _size = getattr(self.transcriber, "size", None) or self.cfg.get("model.size", "base")
                 logging.getLogger("vibeflow").info(
                     "transcribed with %s in %.2fs (audio %.1fs)", _size, _took, seconds
                 )
@@ -669,9 +673,13 @@ class VibeFlowApp:
     def _model_cached(self) -> bool:
         """Is the chosen speech model already downloaded? (False on a fresh PC.)"""
         try:
+            from . import phonon
             from .transcriber import model_cache_dirname
 
-            size = self.cfg.get("model.size", "base")
+            size = getattr(self.transcriber, "size", None) or self.cfg.get("model.size", "base")
+            if getattr(self.transcriber, "engine", "whisper") == "phonon":
+                cached = phonon.is_cached(size, config_mod.models_dir())
+                return True if cached is None else cached  # unknown -> let the loader decide
             dirname = model_cache_dirname(size)
             if not dirname:
                 return True  # unknown model id — let the loader handle the download
@@ -725,9 +733,16 @@ class VibeFlowApp:
             self._set_status("Ready")
             import os as _os
             logging.getLogger("vibeflow").info(
-                "Model ready: %s %s (cwd=%s)", self.cfg.get("model.size"),
+                "Model ready: %s %s (cwd=%s)", self.transcriber.size,
                 self.transcriber._resolved, _os.getcwd(),
             )
+            if getattr(self.transcriber, "fell_back_from", None):
+                self._notify(
+                    __app_name__,
+                    f"{self.transcriber.fell_back_from} couldn't start on this PC, so "
+                    f"VibeFlow is using Whisper {self.transcriber.size}. Details are "
+                    "in the log.",
+                )
             self._notify(
                 __app_name__,
                 f"Ready. {self._trigger_hint()} to dictate.",
@@ -810,16 +825,22 @@ class VibeFlowApp:
                 ),
             ),
             Item(
-                "Speech accuracy",
+                "Speech model",
                 Menu(
                     Item(
-                        "Fast (small)",
+                        "Phonon-2 · fastest (recommended)",
+                        lambda i: self._set_accuracy("phonon-2"),
+                        checked=lambda i: self.cfg.get("model.size") == "phonon-2",
+                        radio=True,
+                    ),
+                    Item(
+                        "Whisper small",
                         lambda i: self._set_accuracy("small"),
                         checked=lambda i: self.cfg.get("model.size") == "small",
                         radio=True,
                     ),
                     Item(
-                        "Accurate (medium · recommended)",
+                        "Whisper medium · best for rare jargon, slow",
                         lambda i: self._set_accuracy("medium"),
                         checked=lambda i: self.cfg.get("model.size") == "medium",
                         radio=True,
@@ -1054,8 +1075,28 @@ class VibeFlowApp:
             except Exception:
                 pass
 
+    def _restart_for_engine(self, size: str) -> bool:
+        """Restart VibeFlow when model ``size`` runs on a different engine.
+
+        Phonon (PyTorch) and Whisper (CTranslate2) can't share one process (see
+        ``transcriber._runtime_clash``), and the current model may still be
+        loading in the background, so any engine switch relaunches the app with
+        the saved setting. Returns True when a restart was started.
+        """
+        from .transcriber import _engine_of, needs_restart
+
+        same_engine = _engine_of(size) == getattr(self.transcriber, "engine", None)
+        if same_engine and not needs_restart(size):
+            return False
+        self._notify(__app_name__, "Restarting VibeFlow to switch the speech model…")
+        self.restart_requested = True
+        self._quit()
+        return True
+
     def _reload(self, *_args) -> None:
         self.cfg = config_mod.load_config(self.cfg.path)
+        if self._restart_for_engine(self.cfg.get("model.size", "phonon-2")):
+            return
         self.recorder = self._build_recorder()
         self.transcriber = self._build_transcriber()
         self.vocabulary = self._build_vocabulary()
@@ -1753,18 +1794,27 @@ class VibeFlowApp:
             winreg.CloseKey(key)
 
     def _set_accuracy(self, size: str) -> None:
+        from .transcriber import _engine_of
+
+        previous = self.cfg.get("model.size")
+        if _engine_of(size) == "phonon" and _engine_of(previous) == "whisper":
+            # The Whisper model in use is already downloaded: keep it as the fallback.
+            self.cfg.set("model.fallback", previous)
         self.cfg.set("model.size", size)
         self._save_config()
+        if self._restart_for_engine(size):
+            return
         self.transcriber = self._build_transcriber()
         self._model_ready = False
         labels = {
-            "base": "Fast", "small": "Balanced", "medium": "Accurate",
-            "large-v3": "Full (large-v3)", "large-v3-turbo": "Turbo",
-            "distil-large-v3": "Distil", "moonshine/base": "Moonshine",
+            "phonon-2": "Phonon-2", "phonon-2.5-en": "Phonon-2.5 English",
+            "base": "Whisper base", "small": "Whisper small", "medium": "Whisper medium",
+            "large-v3": "Whisper large-v3", "large-v3-turbo": "Whisper turbo",
+            "distil-large-v3": "Whisper distil", "moonshine/base": "Moonshine",
         }
         self._notify(
             __app_name__,
-            f"Speech accuracy: {labels.get(size, size)}. The model downloads on "
+            f"Speech model: {labels.get(size, size)}. The model downloads on "
             "first use if it's new.",
         )
         self._set_status("Loading model…")
