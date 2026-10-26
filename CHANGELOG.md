@@ -4,7 +4,7 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.23.0] — 2026-10-26
 
 ### Changed
 - **Phonon-2 is the new default speech engine.** Phonon-2 (Fermion Research's
