@@ -77,7 +77,7 @@ echo "Done (unsigned): $APP"
 # copy to ~/Applications. Signing gives the app a STABLE identity so macOS keeps
 # its Accessibility/Microphone grants across rebuilds (no re-granting), and makes
 # it notarization-ready. Without the keychain, this block is skipped.
-SIGN_ID="${VIBEFLOW_SIGN_ID:-Developer ID Application: Scuts Technologies Private Limited (CJ8SV692GN)}"
+SIGN_ID="${VIBEFLOW_SIGN_ID:-Developer ID Application: VAMSI KRISHNA REDDY LEKKALA (33348G2388)}"
 BUILD_KC="$ROOT/build/signing/vibeflow-build.keychain-db"
 BUILD_KC_PW="${VIBEFLOW_KC_PW:-vibeflow-build}"
 ENTITLEMENTS="$ROOT/packaging/entitlements.plist"

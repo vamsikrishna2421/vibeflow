@@ -37,7 +37,10 @@ from ..update_check import REPO, RELEASES_PAGE
 
 API_LIST = f"https://api.github.com/repos/{REPO}/releases?per_page=100"
 _MAC_ASSET = f"vibeflow-mac-{platform.machine().lower()}.zip"   # arch-aware (compared lowercased)
-_TEAM_ID = "CJ8SV692GN"                  # pin self-updates to OUR Developer ID
+# Pin self-updates to OUR Developer ID: the team that signs the CI releases.
+# (Was CJ8SV692GN, the previous team; releases have been signed by 33348G2388
+# since July 2026, so that pin refused every update.)
+_TEAM_ID = "33348G2388"
 # GitHub-controlled hosts. `_host_ok` also matches any subdomain, so
 # "githubusercontent.com" covers release-assets / objects / codeload /raw.* —
 # GitHub serves release-asset downloads from release-assets.githubusercontent.com.

@@ -4,6 +4,15 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.18.1] — 2026-10-26 (macOS)
+
+### Fixed
+- **In-app updates work again.** The updater only accepted builds signed by the
+  previous Apple team (CJ8SV692GN), while releases have been signed by
+  33348G2388 since July, so every update was refused. Install 1.18.1 by hand
+  once; later updates install from the menu again. Includes all of 1.18.0,
+  which was tagged but not published.
+
 ## [1.18.0] — 2026-10-26 (macOS)
 
 ### Changed

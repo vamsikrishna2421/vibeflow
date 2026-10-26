@@ -62,7 +62,7 @@ internet"). The dict's `version` key is always present (use `""` for no-update).
   Returns `{version, tag, page_url, zip_url, newer}` (note: **`zip_url`**, not
   `installer_url` — that's `menubar.py`'s contract).
 - **Security:** installs only if the downloaded bundle is notarized **and**
-  `TeamIdentifier == CJ8SV692GN` (our Developer ID — notarization alone only
+  `TeamIdentifier == 33348G2388` (our Developer ID — notarization alone only
   proves "some Apple developer"). Download is restricted to GitHub HTTPS hosts,
   truncation-checked, written to a unique temp path; the bundle is version-bound
   to its tag (`CFBundleShortVersionString` must match), and swapped in by a
@@ -144,8 +144,10 @@ asset-still-uploading falls through; `1.10 > 1.9`; out-of-order picks max;
 - **CI enforcement** of the §1 invariants (no new bare tags, asset disjointness,
   `__version__ == tag`) is recommended but not yet implemented — until then a
   mistagged/mis-asseted release can violate the disjointness the updaters assume.
-- **Team-ID pin** is hardcoded (`CJ8SV692GN`); if the signing identity ever
+- **Team-ID pin** is hardcoded (`33348G2388`); if the signing identity ever
   rotates, update `_TEAM_ID` in `updater.py` or Mac self-update silently stops.
+  (It did: releases moved to 33348G2388 in July 2026 while the pin still said
+  CJ8SV692GN, so self-update refused every release until 1.18.1.)
 - GitHub release metadata is mutable/unsigned; the version↔Info.plist binding +
   Team-ID pin reduce but don't fully eliminate a downgrade-to-old-signed-build
   attack. A detached signature over `{version, sha256}` would close it fully.
