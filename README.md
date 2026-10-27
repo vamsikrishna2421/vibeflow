@@ -107,24 +107,17 @@ Everything in that diagram happens **on your laptop**. Nothing is sent online.
 
 ---
 
-## 🎚️ Choosing a speech model
+## 🎚️ Speech model
 
-VibeFlow runs its speech model on your own computer. Pick one any time from the
-tray menu → **Speech model** (or `model: size:` in the settings file).
+VibeFlow runs its speech model on your own computer. For now that model is
+**Phonon-2** (by Fermion Research, based on NVIDIA's Parakeet): English only,
+near-instant on an ordinary laptop, and a one-time download of about 160 MB.
+Whisper is switched off for now, also as a fallback: if Phonon-2 can't start,
+VibeFlow says so.
 
-| Model                | Speed on an ordinary laptop | Good for                                    |
-|----------------------|-----------------------------|---------------------------------------------|
-| `phonon-2`           | ⚡⚡⚡ near-instant            | **Default.** English dictation on any PC    |
-| `small` (Whisper)    | ⚡ a few seconds             | Other languages; the automatic fallback     |
-| `medium` (Whisper)   | 🐢 slow without a GPU        | Rare jargon and names, if you can wait      |
-
-**Phonon-2** (by Fermion Research, based on NVIDIA's Parakeet) is English only
-and downloads once (about 160 MB). Its raw output spells most numbers out, so
-VibeFlow writes them as digits for you ("503", "2.5 liters", "2:45 PM"). If
-Phonon-2 can't run on a PC, VibeFlow uses Whisper automatically (`model: fallback:`).
-Switching between Phonon-2 and Whisper restarts VibeFlow, because their engines
-can't share one process. Measured results are in
-[benchmarks/asr_results.md](benchmarks/asr_results.md).
+Phonon-2's raw output spells most numbers out, so VibeFlow writes them as digits
+for you ("503", "2.5 liters", "2:45 PM"). Measured results against Whisper are
+in [benchmarks/asr_results.md](benchmarks/asr_results.md).
 
 ---
 

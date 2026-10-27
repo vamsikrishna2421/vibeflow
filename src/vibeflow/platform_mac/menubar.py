@@ -122,7 +122,9 @@ class MenuBarApp:
             device=self.cfg.get("model.device", "auto"),
             compute_type=self.cfg.get("model.compute_type", "auto"),
             models_dir=str(config_mod.models_dir()),
-            fallback_size=self.cfg.get("model.fallback", "small"),
+            # Phonon-2 only for now: a model that fails to load is reported
+            # instead of switching to Whisper.
+            fallback_size=None,
         )
 
     def _build_hotkeys(self) -> MacHotkeys:
@@ -676,13 +678,9 @@ class MenuBarApp:
                 self._mi(rumps, "out_clip", "Always clipboard",
                          lambda s: self._set_output("clipboard")),
             ]),
-            ("Speech model", [
-                self._mi(rumps, "acc_phonon", "Phonon-2 · fastest (recommended)",
+            ("Speech model", [  # Phonon-2 only for now; Whisper is switched off
+                self._mi(rumps, "acc_phonon", "Phonon-2",
                          lambda s: self._set_accuracy("phonon-2")),
-                self._mi(rumps, "acc_small", "Whisper small",
-                         lambda s: self._set_accuracy("small")),
-                self._mi(rumps, "acc_medium", "Whisper medium · best for rare jargon, slow",
-                         lambda s: self._set_accuracy("medium")),
             ]),
             ("AI formatting", [
                 self._mi(rumps, "ai_off", "Off (plain voice-to-text)",
@@ -852,10 +850,7 @@ class MenuBarApp:
         self._check("out_type", mode == "type")
         self._check("out_clip", mode == "clipboard")
 
-        size = self.cfg.get("model.size")
-        self._check("acc_phonon", size == "phonon-2")
-        self._check("acc_small", size == "small")
-        self._check("acc_medium", size == "medium")
+        self._check("acc_phonon", self.cfg.get("model.size") == "phonon-2")
 
         tier = self._ai_tier()
         self._check("ai_off", not bool(self.cfg.get("ai.enabled", False)))

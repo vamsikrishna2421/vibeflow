@@ -51,13 +51,11 @@ def apply_mac_defaults(cfg: config_mod.Config) -> config_mod.Config:
     if str(cfg.get("output.auto_fallback", "clipboard")).strip().lower() == "clipboard":
         cfg.set("output.auto_fallback", "type")
 
-    # The model menu offers Phonon-2 plus Whisper small/medium. Migrate any earlier
-    # choice that's no longer selectable (base, large, turbo, …) to medium so
-    # existing users aren't left on a model that's gone from the UI. (English
-    # setups already moved to Phonon-2 in config.load_config.)
-    size = str(cfg.get("model.size", "phonon-2")).strip().lower()
-    if size not in ("small", "medium") and not size.startswith("phonon"):
-        cfg.set("model.size", "medium")
+    # For now the model menu offers only Phonon-2, so any other saved choice
+    # (Whisper small, medium, large, …, in any language) moves to it. Phonon-2
+    # is English only.
+    if str(cfg.get("model.size", "phonon-2")).strip().lower() != "phonon-2":
+        cfg.set("model.size", "phonon-2")
 
     # Allow longer single dictations on Mac (10 min). This is the auto-stop safety
     # cap, not a product limit; only bump it when the user is still on the shipped

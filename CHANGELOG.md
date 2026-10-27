@@ -4,6 +4,15 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.18.2] — 2026-10-27 (macOS)
+
+### Changed
+- **Phonon-2 only, for now.** The menu bar → **Speech model** offers just
+  Phonon-2, and VibeFlow no longer switches to Whisper by itself when Phonon-2
+  can't start: it reports the problem instead. A saved Whisper choice moves to
+  Phonon-2, in any language (Phonon-2 is English only). The Whisper code stays
+  in place for later.
+
 ## [1.18.1] — 2026-10-26 (macOS)
 
 ### Fixed

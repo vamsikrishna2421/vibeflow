@@ -45,10 +45,11 @@ def test_mac_defaults_keep_phonon():
     assert cfg.get("model.size") == "phonon-2"
 
 
-def test_mac_defaults_still_retire_old_whisper_sizes():
-    cfg = _cfg({"model": {"size": "large-v3"}})
-    defaults.apply_mac_defaults(cfg)
-    assert cfg.get("model.size") == "medium"
+def test_mac_defaults_run_phonon_only():
+    for size in ("small", "medium", "large-v3", "phonon-2.5-en"):
+        cfg = _cfg({"model": {"size": size}})
+        defaults.apply_mac_defaults(cfg)
+        assert cfg.get("model.size") == "phonon-2", size
 
 
 def test_saved_mac_whisper_setup_moves_to_phonon(tmp_path):
@@ -59,6 +60,14 @@ def test_saved_mac_whisper_setup_moves_to_phonon(tmp_path):
     cfg = defaults.load_mac_config(path)
     assert cfg.get("model.size") == "phonon-2"
     assert cfg.get("model.fallback") == "small"  # already downloaded
+
+
+def test_saved_non_english_whisper_setup_moves_to_phonon_too(tmp_path):
+    import json
+
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"model": {"size": "medium", "language": "de"}}))
+    assert defaults.load_mac_config(path).get("model.size") == "phonon-2"
 
 
 def test_relaunch_after_exit_needs_a_bundle(monkeypatch):

@@ -10,15 +10,12 @@
 #  Speech model — turns your voice into text.
 # ----------------------------------------------------------------------------
 model:
-  # phonon-2 | small | medium
-  #   phonon-2 = default. Phonon-2 (based on NVIDIA Parakeet), ~160 MB, English
-  #              only. Many times faster than Whisper on an ordinary CPU.
-  #   small / medium = Whisper. Multilingual; medium is the most accurate on
-  #              rare jargon and names, but slow without a strong CPU or GPU.
+  # phonon-2, for now the only speech model. Phonon-2 (based on NVIDIA
+  # Parakeet), ~160 MB, English only. Many times faster than Whisper on an
+  # ordinary CPU. Whisper small / medium are switched off for now.
   size: phonon-2
 
-  # Whisper model used automatically if Phonon-2 can't run on this computer (for
-  # example, no internet for its one-time download): small | medium
+  # Not used for now: VibeFlow runs Phonon-2 only, with no Whisper fallback.
   fallback: small
 
   # Transcribe WHILE you speak (capped-segment streaming) so the paste is
