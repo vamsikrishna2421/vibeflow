@@ -1,7 +1,7 @@
 name: Build macOS app (Intel + Apple Silicon)
 
 # Produces BOTH architectures so any Mac can run it — WITHOUT depending on GitHub's
-# scarce/retiring Intel (macos-13) runners. Both jobs run on Apple Silicon (macos-14):
+# scarce/retiring Intel (macos-13) runners. Both jobs run on Apple Silicon (macos-15):
 #   • arm64  — native.
 #   • x86_64 — the ENTIRE toolchain (venv, pip, PyInstaller) runs under `arch -x86_64`
 #              via Rosetta 2, so uname/pip/PyInstaller all resolve to Intel and fetch
@@ -25,7 +25,7 @@ jobs:
         include:
           - { arch: arm64,  py_arch: arm64, wrap: '' }
           - { arch: x86_64, py_arch: x64,   wrap: 'arch -x86_64' }
-    runs-on: macos-14      # Apple Silicon — reliable; Intel runners are being retired
+    runs-on: macos-15      # Apple Silicon; GitHub retired the macos-14 image
     name: build-${{ matrix.arch }}
     steps:
       - uses: actions/checkout@v4
