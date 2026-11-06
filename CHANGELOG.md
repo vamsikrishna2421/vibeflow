@@ -4,6 +4,15 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.18.3] — 2026-11-06 (macOS)
+
+### Changed
+- **"VibeFlow" is typed as one word.** Phonon-2 hears it as "web flow"; VibeFlow
+  now corrects that (also "vibe flow", "wipe flow").
+- Notarized by Apple again, so the app opens on any Mac without a warning and
+  in-app updates install.
+- README: install with one command, and no activation code is needed.
+
 ## [1.18.2] — 2026-10-27 (macOS)
 
 ### Changed

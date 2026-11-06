@@ -144,6 +144,12 @@ def test_phonon_transcribes_with_lead_pad_and_digits(monkeypatch):
     assert call["hotwords"] == []              # the Whisper prompt isn't used as hotwords
 
 
+def test_phonon_writes_vibeflow_as_one_word():
+    for heard in ("I use web flow daily.", "I use Web Flow daily.", "I use vibe-flow daily."):
+        assert phonon.fix_names(heard) == "I use VibeFlow daily."
+    assert phonon.fix_names("the workflow and webflows") == "the workflow and webflows"
+
+
 def test_phonon_refusal_falls_back_to_whisper(monkeypatch):
     # fermion refuses unsupported machines with SystemExit, not an Exception.
     _fake_fermion(monkeypatch, load_error=SystemExit("CPU speech is unavailable here"))

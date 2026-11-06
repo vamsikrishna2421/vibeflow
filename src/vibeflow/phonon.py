@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -21,6 +22,19 @@ from .core.numbers import spoken_numbers_to_digits, tidy_digits
 # VibeFlow model ids accepted in ``model.size`` -> the name fermion loads.
 # phonon-2.5-en is the newer sibling; it writes digits itself.
 MODELS = {"phonon-2": "phonon-2", "phonon-2.5-en": "phonon-2.5-en"}
+
+
+# Product names Phonon mishears, and what they should read. It hears
+# "VibeFlow" as "web flow" (also "vibe flow", "wipe flow").
+_NAME_FIXES = (
+    (re.compile(r"\b(?:web|vibe|wipe|vibes)[ -]?flow\b", re.IGNORECASE), "VibeFlow"),
+)
+
+
+def fix_names(text: str) -> str:
+    for pattern, name in _NAME_FIXES:
+        text = pattern.sub(name, text)
+    return text
 
 
 class PhononError(RuntimeError):
@@ -140,4 +154,5 @@ def transcribe(model, audio) -> str:
         result = model.transcribe_array_detailed(audio, hotwords=[])
     except (Exception, SystemExit) as exc:  # fermion refuses with SystemExit
         raise PhononError(f"Transcription failed: {exc}") from exc
-    return spoken_numbers_to_digits(tidy_digits(str(getattr(result, "text", "") or "")))
+    text = spoken_numbers_to_digits(tidy_digits(str(getattr(result, "text", "") or "")))
+    return fix_names(text)
