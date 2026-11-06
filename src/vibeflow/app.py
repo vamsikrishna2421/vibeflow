@@ -61,11 +61,19 @@ def _set_app_user_model_id() -> None:
         pass
 
 
+def _phonon_only(cfg: config_mod.Config) -> config_mod.Config:
+    """For now VibeFlow runs Phonon-2 only: any other saved model (Whisper small,
+    medium, …, in any language) moves to it. Phonon-2 is English only."""
+    if str(cfg.get("model.size", "phonon-2")).strip().lower() != "phonon-2":
+        cfg.set("model.size", "phonon-2")
+    return cfg
+
+
 class VibeFlowApp:
     """Owns application state and the tray UI."""
 
     def __init__(self, cfg: config_mod.Config) -> None:
-        self.cfg = cfg
+        self.cfg = _phonon_only(cfg)
         self._lock = threading.Lock()
         self._recording = False
         self._busy = False
@@ -119,7 +127,9 @@ class VibeFlowApp:
             device=self.cfg.get("model.device", "auto"),
             compute_type=self.cfg.get("model.compute_type", "auto"),
             models_dir=str(config_mod.models_dir()),
-            fallback_size=self.cfg.get("model.fallback", "small"),
+            # Phonon-2 only for now: a model that fails to load is reported
+            # instead of switching to Whisper.
+            fallback_size=None,
         )
 
     def _build_hotkeys(self) -> HotkeyManager:
@@ -827,22 +837,11 @@ class VibeFlowApp:
             Item(
                 "Speech model",
                 Menu(
+                    # Phonon-2 only for now; Whisper is switched off.
                     Item(
-                        "Phonon-2 · fastest (recommended)",
+                        "Phonon-2",
                         lambda i: self._set_accuracy("phonon-2"),
                         checked=lambda i: self.cfg.get("model.size") == "phonon-2",
-                        radio=True,
-                    ),
-                    Item(
-                        "Whisper small",
-                        lambda i: self._set_accuracy("small"),
-                        checked=lambda i: self.cfg.get("model.size") == "small",
-                        radio=True,
-                    ),
-                    Item(
-                        "Whisper medium · best for rare jargon, slow",
-                        lambda i: self._set_accuracy("medium"),
-                        checked=lambda i: self.cfg.get("model.size") == "medium",
                         radio=True,
                     ),
                 ),
@@ -1094,7 +1093,7 @@ class VibeFlowApp:
         return True
 
     def _reload(self, *_args) -> None:
-        self.cfg = config_mod.load_config(self.cfg.path)
+        self.cfg = _phonon_only(config_mod.load_config(self.cfg.path))
         if self._restart_for_engine(self.cfg.get("model.size", "phonon-2")):
             return
         self.recorder = self._build_recorder()
@@ -1936,7 +1935,7 @@ class VibeFlowApp:
             return
         self._cfg_mtime = mtime
         try:
-            self.cfg.data = config_mod.load_config().data
+            self.cfg.data = _phonon_only(config_mod.load_config()).data
             # Most settings are read fresh from cfg each dictation, so they take
             # effect immediately. Language is cached on the transcriber — re-apply
             # (the transcriber sanitises unknown values to English).

@@ -33,22 +33,43 @@ nothing sent to the cloud. Your voice never leaves your computer.
 
 ---
 
-## ⬇️ Install in one click (easiest)
+## ⬇️ Install
 
-**[⬇️ Download VibeFlowSetup.exe](https://github.com/vamsikrishna2421/vibeflow/raw/main/installer/VibeFlowSetup.exe)**
-(~70 MB) — then double-click it and click **Next → Next → Finish**.
+Free, no account and no activation code. Pick your computer:
 
-- ✅ Installs **just for you** — no admin password needed.
-- ✅ Optional **Start with Windows**; lives in the system tray with the VibeFlow logo.
-- ✅ Windows shows *"Microphone in use by: **VibeFlow**"*.
-- ✅ Only **one** VibeFlow ever runs at a time (no accidental duplicates).
-- ✅ Clean **uninstall** any time via *Settings → Apps → VibeFlow*.
+**Windows 10/11.** Open **PowerShell** (Start menu → type *PowerShell*), paste this
+line and press Enter:
 
-> On first launch, VibeFlow downloads the speech model once (about 160 MB),
-> then runs **fully offline**. With the installer you don't need Python at all.
+```powershell
+curl.exe -L -o "$env:TEMP\VibeFlowSetup.exe" https://github.com/vamsikrishna2421/vibeflow/releases/download/win-v1.23.1/VibeFlowSetup.exe; Start-Process "$env:TEMP\VibeFlowSetup.exe"
+```
 
-After installing, press **`Ctrl + Win`**, speak, then press it again — your words
-appear wherever your cursor is. 🎉
+The installer opens: click **Next → Next → Finish**. It installs just for you, no
+admin password needed.
+
+**Mac** (Apple chip or Intel). Open **Terminal** (Spotlight → type *Terminal*), paste
+this line and press Enter:
+
+```bash
+curl -L -o /tmp/VibeFlow.zip "https://github.com/vamsikrishna2421/vibeflow/releases/download/mac-v1.18.3/VibeFlow-mac-$(uname -m).zip" && ditto -x -k /tmp/VibeFlow.zip /Applications && open /Applications/VibeFlow.app
+```
+
+On first launch, allow **Microphone** and **Accessibility** when macOS asks.
+
+> **Why a command instead of a download button?** VibeFlow isn't from an app store.
+> A file downloaded in a browser gets marked as "from the internet", so Windows shows
+> *"Windows protected your PC"* (click **More info → Run anyway**). Downloading with
+> the command above skips that warning. Browser downloads still work:
+> [Windows installer](https://github.com/vamsikrishna2421/vibeflow/releases/download/win-v1.23.1/VibeFlowSetup.exe) ·
+> [Mac, Apple chip](https://github.com/vamsikrishna2421/vibeflow/releases/download/mac-v1.18.3/VibeFlow-mac-arm64.zip) ·
+> [Mac, Intel](https://github.com/vamsikrishna2421/vibeflow/releases/download/mac-v1.18.3/VibeFlow-mac-x86_64.zip).
+> Work computers may block unsigned apps; ask your IT team in that case.
+
+On first launch VibeFlow downloads its speech model once (about 160 MB), then runs
+**fully offline**.
+
+Then: **Windows**, press **`Ctrl + Win`**, speak, press it again. **Mac**, hold
+**Right ⌘**, speak, let go. Your words appear wherever your cursor is. 🎉
 
 ---
 
@@ -107,24 +128,17 @@ Everything in that diagram happens **on your laptop**. Nothing is sent online.
 
 ---
 
-## 🎚️ Choosing a speech model
+## 🎚️ Speech model
 
-VibeFlow runs its speech model on your own computer. Pick one any time from the
-tray menu → **Speech model** (or `model: size:` in the settings file).
+VibeFlow runs its speech model on your own computer. For now that model is
+**Phonon-2** (by Fermion Research, based on NVIDIA's Parakeet): English only,
+near-instant on an ordinary laptop, and a one-time download of about 160 MB.
+Whisper is switched off for now, also as a fallback: if Phonon-2 can't start,
+VibeFlow says so.
 
-| Model                | Speed on an ordinary laptop | Good for                                    |
-|----------------------|-----------------------------|---------------------------------------------|
-| `phonon-2`           | ⚡⚡⚡ near-instant            | **Default.** English dictation on any PC    |
-| `small` (Whisper)    | ⚡ a few seconds             | Other languages; the automatic fallback     |
-| `medium` (Whisper)   | 🐢 slow without a GPU        | Rare jargon and names, if you can wait      |
-
-**Phonon-2** (by Fermion Research, based on NVIDIA's Parakeet) is English only
-and downloads once (about 160 MB). Its raw output spells most numbers out, so
-VibeFlow writes them as digits for you ("503", "2.5 liters", "2:45 PM"). If
-Phonon-2 can't run on a PC, VibeFlow uses Whisper automatically (`model: fallback:`).
-Switching between Phonon-2 and Whisper restarts VibeFlow, because their engines
-can't share one process. Measured results are in
-[benchmarks/asr_results.md](benchmarks/asr_results.md).
+Phonon-2's raw output spells most numbers out, so VibeFlow writes them as digits
+for you ("503", "2.5 liters", "2:45 PM"). Measured results against Whisper are
+in [benchmarks/asr_results.md](benchmarks/asr_results.md).
 
 ---
 

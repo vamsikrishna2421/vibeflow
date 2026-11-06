@@ -4,6 +4,18 @@ All notable changes to VibeFlow are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and the
 project uses [Semantic Versioning](https://semver.org/).
 
+## [1.23.1] — 2026-11-06
+
+### Changed
+- **Phonon-2 only, for now.** The tray → **Speech model** offers just Phonon-2,
+  and VibeFlow no longer switches to Whisper by itself when Phonon-2 can't start:
+  it reports the problem instead. A saved Whisper choice moves to Phonon-2, in any
+  language (Phonon-2 is English only). The Whisper code stays in place for later.
+- **"VibeFlow" is typed as one word.** Phonon-2 hears it as "web flow"; VibeFlow
+  now corrects that (also "vibe flow", "wipe flow").
+- README: install with one command, which avoids the browser's "unknown
+  source" warning, and no activation code is needed.
+
 ## [1.23.0] — 2026-10-26
 
 ### Changed
